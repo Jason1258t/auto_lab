@@ -1,0 +1,83 @@
+# Current state
+
+Last updated: 2026-09-23 (design phase, before any code was written).
+
+This file tracks what actually exists versus what is only designed. Update
+it at the end of any work session so the next session (human or agent)
+doesn't have to re-derive context.
+
+## What exists
+
+- `PROJECT.md` (English) / Obsidian note (Russian) — project description,
+  goals, task types, scope.
+- `ARCHITECTURE.md` — data model, pipeline design, orchestrator
+  constraints, model gateway design, file storage layout.
+- `AGENTS.md` — instructions for coding agents working in this repo.
+- **Note (2026-09-23):** the two schema files below are described here
+  but are **not in the repository yet**. They must be added before
+  step 1 of "Immediate next steps" can start.
+- `workbench_schema.sql` — full PostgreSQL DDL: 18 tables, enums,
+  constraints, indexes, 2 views, seed data for `capabilities`, a few
+  `models`, and `task_types`. Not yet run against a real database.
+- `workbench_schema.dbml` — same schema for dbdiagram.io (no constraints/
+  views, dbdiagram.io doesn't render those well).
+- Ubuntu server set up with Ollama and several models already pulled
+  (exact model list not yet recorded here — add it once decided).
+
+## What is designed but not built
+
+- FastAPI backend: no code yet. Not scaffolded.
+- React frontend: no code yet. Not scaffolded.
+- Orchestrator / worker process: no code yet.
+- Model gateway interface: designed in `ARCHITECTURE.md`, not implemented.
+- PostgreSQL database: schema written, **not yet created or tested** on
+  the server. Needs to be run with DataGrip or `psql` and verified
+  (18 tables + 2 views expected under `public`).
+
+## Immediate next steps (in rough order)
+
+1. Run `workbench_schema.sql` against a real `autolab` database on the
+   server and confirm it applies cleanly (fix and report back if not).
+2. Decide and record the actual installed Ollama model list, and update
+   the `models` seed data in `workbench_schema.sql` to match real
+   measured VRAM/RAM/context numbers instead of estimates.
+3. Scaffold the FastAPI backend: project structure, DB connection
+   (SQLAlchemy or similar), first endpoints (likely: list workspaces,
+   create task, list tasks).
+4. Write `DEVELOPMENT.md`: how to run Postgres, install backend/frontend
+   deps, and start everything locally. Not written yet — depends on step
+   3's actual tooling choices (dependency manager, env var handling,
+   etc.), so it should be written once the backend exists, not before.
+5. Build the orchestrator's model gateway (Ollama adapter first) as a
+   small standalone piece, independently testable before wiring it into
+   the FastAPI app.
+6. Implement one full pipeline (`research` or `study_notes`) end to end
+   as a script/CLI before adding the queue/worker infrastructure — this
+   was the agreed order: prove the pipeline logic before building
+   infrastructure around it.
+7. Scaffold the React frontend once the backend has real endpoints to
+   call against.
+
+## Open questions (not yet decided)
+
+- SQLAlchemy vs another approach for the ORM/DB layer in FastAPI —
+  not discussed yet.
+- Exact job queue mechanism for the orchestrator (simple polling on
+  `tasks.status = 'queued'` vs a real queue library) — leaning toward
+  simple polling given the single-worker, single-GPU constraint, but not
+  finalized.
+- Whether `DEVELOPMENT.md` should also cover the SSH-tunnel DataGrip
+  setup already worked out in chat, or only app-level setup.
+- University course requirements (exact DBMS version, required topics
+  like normalization/transactions) — assumed PostgreSQL + 3NF so far,
+  not confirmed against actual course requirements.
+
+## Notes for whoever (or whatever) picks this up next
+
+- Read `AGENTS.md` before making changes.
+- The schema has not been tested against a real PostgreSQL instance yet —
+  treat step 1 above as blocking before building anything that depends on
+  the DB being correct.
+- Hardware constraint (4 GB VRAM) is a real design input, not a minor
+  detail — see the "Orchestrator design constraints" section of
+  `ARCHITECTURE.md` before designing pipeline steps.
