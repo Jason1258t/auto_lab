@@ -1,0 +1,373 @@
+<title>AutoLab Schema Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #F3F5F8;
+    --surface: #FFFFFF;
+    --ink: #16202E;
+    --muted: #5A6678;
+    --line: #DCE2EA;
+    --accent: #1F5FBF;
+    --accent-soft: #E3ECFA;
+    --cascade: #A63D2C;
+    --cascade-bg: #F8E6E2;
+    --restrict: #8A5F00;
+    --restrict-bg: #F7EDD5;
+    --setnull: #3F6384;
+    --setnull-bg: #E3EBF3;
+    --done: #2D7A4B;
+    --done-bg: #E1F1E7;
+    --wip: #8A5F00;
+    --wip-bg: #F7EDD5;
+    --todo: #5A6678;
+    --todo-bg: #E8ECF1;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #0E131A;
+      --surface: #161D27;
+      --ink: #E2E8F0;
+      --muted: #94A1B3;
+      --line: #273142;
+      --accent: #7EA9F0;
+      --accent-soft: #1C2B44;
+      --cascade: #F09A8A; --cascade-bg: #3A1F1B;
+      --restrict: #E6C06A; --restrict-bg: #352A12;
+      --setnull: #9DBAD6; --setnull-bg: #1D2A38;
+      --done: #7FCF9C; --done-bg: #16301F;
+      --wip: #E6C06A; --wip-bg: #352A12;
+      --todo: #94A1B3; --todo-bg: #1F2733;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0E131A;
+    --surface: #161D27;
+    --ink: #E2E8F0;
+    --muted: #94A1B3;
+    --line: #273142;
+    --accent: #7EA9F0;
+    --accent-soft: #1C2B44;
+    --cascade: #F09A8A; --cascade-bg: #3A1F1B;
+    --restrict: #E6C06A; --restrict-bg: #352A12;
+    --setnull: #9DBAD6; --setnull-bg: #1D2A38;
+    --done: #7FCF9C; --done-bg: #16301F;
+    --wip: #E6C06A; --wip-bg: #352A12;
+    --todo: #94A1B3; --todo-bg: #1F2733;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 0 16px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 64px; }
+
+  header { display: grid; gap: 14px; margin-bottom: 28px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  h1 {
+    font-family: var(--cond); font-weight: 600; font-size: 34px;
+    line-height: 1.1; margin: 0; text-wrap: balance;
+  }
+  .lede { color: var(--muted); max-width: 64ch; margin: 0; }
+
+  .rules { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
+  .rules code { font-family: var(--mono); color: var(--ink); font-size: 12.5px; }
+
+  nav.groups {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px; margin-bottom: 36px;
+  }
+  nav.groups a {
+    display: grid; gap: 6px; padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    color: var(--ink); text-decoration: none;
+  }
+  nav.groups a:hover { border-color: var(--accent); }
+  nav.groups a:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  nav.groups .gname { font-weight: 500; font-size: 14px; }
+  nav.groups .gnum { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  .pill {
+    display: inline-block; justify-self: start;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    padding: 2px 8px; border-radius: 999px; letter-spacing: 0.02em;
+  }
+  .pill.done { color: var(--done); background: var(--done-bg); }
+  .pill.wip { color: var(--wip); background: var(--wip-bg); }
+  .pill.todo { color: var(--todo); background: var(--todo-bg); }
+
+  section.group { margin-bottom: 48px; scroll-margin-top: 16px; }
+  .ghead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  h2 { font-family: var(--cond); font-weight: 600; font-size: 24px; margin: 0; }
+  h2 .n { font-family: var(--mono); font-weight: 400; font-size: 15px; color: var(--muted); margin-right: 6px; }
+  .ideas { margin: 0 0 18px; padding-left: 18px; color: var(--muted); max-width: 80ch; }
+  .ideas li { margin: 2px 0; }
+
+  .tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); gap: 16px; align-items: start; }
+  .tcard { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .thead { padding: 12px 16px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 2px; }
+  .tname { font-family: var(--mono); font-weight: 500; font-size: 15px; color: var(--accent); }
+  .tnote { font-size: 13px; color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  td { padding: 7px 16px 7px 0; vertical-align: top; border-bottom: 1px solid var(--line); }
+  td:first-child { padding-left: 16px; }
+  tr:last-child td { border-bottom: 0; }
+  .col { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .col .key { font-size: 10px; font-weight: 500; color: var(--accent); background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: 1px; }
+  .typ { font-family: var(--mono); font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+  .nul { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .notes { color: var(--ink); min-width: 180px; }
+  .notes .ref { font-family: var(--mono); font-size: 12px; color: var(--ink); margin-right: 6px; white-space: nowrap; }
+  .rule { font-family: var(--mono); font-size: 10.5px; font-weight: 500; padding: 1px 6px; border-radius: 3px; white-space: nowrap; margin-right: 6px; }
+  .rule.CASCADE { color: var(--cascade); background: var(--cascade-bg); }
+  .rule.RESTRICT { color: var(--restrict); background: var(--restrict-bg); }
+  .rule.SETNULL { color: var(--setnull); background: var(--setnull-bg); }
+  .constraints { padding: 10px 16px 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); display: grid; gap: 3px; }
+  .constraints code { font-family: var(--mono); color: var(--ink); }
+
+  .later { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+  .box { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+  .box h3 { font-family: var(--cond); font-weight: 600; font-size: 16px; margin: 0 0 8px; }
+  .box ul { margin: 0; padding-left: 18px; font-size: 14px; }
+  .box li { margin: 4px 0; }
+  .box code, .ideas code { font-family: var(--mono); font-size: 12.5px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12.5px; color: var(--muted); margin-bottom: 28px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-09-24</div>
+    <h1>AutoLab database schema, group by group</h1>
+    <p class="lede">A working draft, designed from scratch. When a group is final, it moves into <code>workbench_schema.sql</code>. The same content lives in <code>drafts/schema_design.md</code>.</p>
+    <div class="rules">
+      <span>Tables <code>snake_case</code>, plural</span>
+      <span>Own key <code>id</code></span>
+      <span>Links <code>user_id</code>, <code>workspace_id</code>…</span>
+    </div>
+  </header>
+
+  <nav class="groups" id="nav" aria-label="Groups"></nav>
+
+  <div class="legend">
+    <span>On delete of the referenced row:</span>
+    <span><span class="rule CASCADE">CASCADE</span>delete this row too</span>
+    <span><span class="rule RESTRICT">RESTRICT</span>block the delete</span>
+    <span><span class="rule SETNULL">SET NULL</span>keep row, clear the link</span>
+  </div>
+
+  <main id="groups"></main>
+
+  <section class="group" id="later">
+    <div class="ghead"><h2>Open and parked</h2></div>
+    <div class="later">
+      <div class="box">
+        <h3>Still open in Group 3</h3>
+        <ul>
+          <li><code>llm_calls</code> and other work logs. Draft idea: one row per model request (tokens, duration, model used); full prompt and response stay in JSONL files.</li>
+          <li>Per-step model override: defined in the pipeline file?</li>
+          <li>Cost per call: calculate from model price, or save at call time?</li>
+          <li><code>schedules</code>: suggested to postpone.</li>
+          <li>Version code: per pipeline (backend sets MAX + 1) or one global counter?</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Parked for later</h3>
+        <ul>
+          <li>What happens to tasks when their model becomes unavailable.</li>
+          <li><code>failed</code> task state: ignored for now.</li>
+          <li>Secret store: if it lives in Postgres, keys need encryption.</li>
+          <li>Possible split of <code>models</code> into base model + deployment.</li>
+          <li>Update <code>ARCHITECTURE.md</code>: <code>task_types</code> → <code>pipelines</code>, YAML files with versions.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// Column: [name, type, nullable, notes, {pk, ref, rule}]
+const GROUPS = [
+  {
+    n: 1, id: "g1", name: "People and access", status: "done",
+    ideas: [
+      "Assignment idea: a link to a person is optional. Deleting a person never deletes work.",
+      "A workspace with tasks can only be archived. Only an empty workspace can be deleted.",
+      "The owner is <code>workspaces.owner_id</code>, not a membership row."
+    ],
+    tables: [
+      { name: "users", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["email", "text", false, "unique on lower(email)"],
+        ["username", "text", false, "unique"],
+        ["display_name", "text", false, ""],
+        ["created_at", "timestamptz", false, "default now()"]
+      ]},
+      { name: "workspaces", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["name", "text", false, ""],
+        ["description", "text", true, ""],
+        ["owner_id", "bigint", true, "NULL = free project", {ref: "users", rule: "SETNULL"}],
+        ["archived_at", "timestamptz", true, "NULL = active"],
+        ["created_at", "timestamptz", false, "default now()"]
+      ]},
+      { name: "roles", cols: [
+        ["id", "smallint", false, "", {pk: true}],
+        ["name", "text", false, "unique: editor, reviewer, viewer"],
+        ["description", "text", true, ""]
+      ]},
+      { name: "memberships", note: "Many roles per person per workspace.", cols: [
+        ["workspace_id", "bigint", false, "", {pk: true, ref: "workspaces", rule: "CASCADE"}],
+        ["user_id", "bigint", false, "", {pk: true, ref: "users", rule: "CASCADE"}],
+        ["role_id", "smallint", false, "", {pk: true, ref: "roles", rule: "RESTRICT"}]
+      ], constraints: ["PK <code>(workspace_id, user_id, role_id)</code>"] }
+    ]
+  },
+  {
+    n: 2, id: "g2", name: "Model catalog", status: "done",
+    ideas: [
+      "One model from one provider = one row. The same model on two providers is two rows.",
+      "Models are never deleted, only marked unavailable.",
+      "No numeric ratings. Capabilities are a shared catalog, linked as strength or weakness."
+    ],
+    tables: [
+      { name: "models", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["provider", "text", false, "'ollama', 'openai', …"],
+        ["name", "text", false, "name the API expects, e.g. llama3.1:8b"],
+        ["base_url", "text", true, "NULL = provider default"],
+        ["secret_id", "text", true, "id in external secret store, no FK"],
+        ["context_length", "integer", false, "> 0"],
+        ["vram_mb", "integer", true, "NULL for cloud"],
+        ["ram_mb", "integer", true, "NULL for cloud"],
+        ["cost_per_1m_input", "numeric(10,4)", true, "NULL = free (local)"],
+        ["cost_per_1m_output", "numeric(10,4)", true, "NULL = free (local)"],
+        ["description", "text", true, "for people"],
+        ["available", "boolean", false, "default true"],
+        ["created_at", "timestamptz", false, "default now()"]
+      ], constraints: ["Unique <code>(provider, name)</code>"] },
+      { name: "capabilities", cols: [
+        ["id", "smallint", false, "", {pk: true}],
+        ["name", "text", false, "unique: json_output, summarize, …"],
+        ["description", "text", true, ""]
+      ]},
+      { name: "model_capabilities", cols: [
+        ["model_id", "bigint", false, "", {pk: true, ref: "models", rule: "CASCADE"}],
+        ["capability_id", "smallint", false, "", {pk: true, ref: "capabilities", rule: "RESTRICT"}],
+        ["kind", "enum", false, "strength | weakness"],
+        ["note", "text", true, "model-specific detail"]
+      ], constraints: ["PK <code>(model_id, capability_id)</code>"] }
+    ]
+  },
+  {
+    n: 3, id: "g3", name: "Tasks", status: "wip",
+    ideas: [
+      "A pipeline is the task type. Pipelines are YAML files; each version row is a fixed snapshot, checked by hash.",
+      "Android-style versions: <code>version_name</code> for people, <code>version_code</code> for sorting. New tasks use the newest.",
+      "No <code>task_type_id</code> on tasks: the type comes from the pipeline version (one source of truth).",
+      "Reviewer = creator by default, set by the backend."
+    ],
+    tables: [
+      { name: "pipelines", note: "= task type: research, study_notes, …", cols: [
+        ["id", "smallint", false, "", {pk: true}],
+        ["name", "text", false, "unique"],
+        ["description", "text", true, ""]
+      ]},
+      { name: "pipeline_versions", note: "One row = one fixed YAML file.", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["pipeline_id", "smallint", false, "", {ref: "pipelines", rule: "RESTRICT"}],
+        ["version_name", "text", false, "'1.0.1', for people"],
+        ["version_code", "integer", false, "1, 2, 3…; newest = MAX"],
+        ["file_path", "text", false, "pipelines/research/1.0.1.yaml"],
+        ["file_hash", "text", false, "sha256; file must never change"],
+        ["created_at", "timestamptz", false, "default now()"]
+      ], constraints: ["Unique <code>(pipeline_id, version_code)</code>", "Unique <code>(pipeline_id, version_name)</code>"] },
+      { name: "tasks", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["workspace_id", "bigint", false, "only empty workspaces can be deleted", {ref: "workspaces", rule: "RESTRICT"}],
+        ["pipeline_version_id", "bigint", false, "", {ref: "pipeline_versions", rule: "RESTRICT"}],
+        ["model_id", "bigint", false, "", {ref: "models", rule: "RESTRICT"}],
+        ["title", "text", false, ""],
+        ["input", "text", false, "the user's request"],
+        ["status", "enum", false, "draft | queued | running | done | cancelled"],
+        ["created_by", "bigint", true, "", {ref: "users", rule: "SETNULL"}],
+        ["reviewer_id", "bigint", true, "default = created_by (backend)", {ref: "users", rule: "SETNULL"}],
+        ["created_at", "timestamptz", false, "default now()"],
+        ["started_at", "timestamptz", true, ""],
+        ["finished_at", "timestamptz", true, ""]
+      ]},
+      { name: "task_steps", cols: [
+        ["task_id", "bigint", false, "", {pk: true, ref: "tasks", rule: "CASCADE"}],
+        ["step_index", "smallint", false, ">= 0", {pk: true}],
+        ["status", "enum", false, "pending | running | done"],
+        ["summary", "text", true, "model's short report"],
+        ["started_at", "timestamptz", true, ""],
+        ["finished_at", "timestamptz", true, ""]
+      ], constraints: ["PK <code>(task_id, step_index)</code>"] }
+    ]
+  },
+  { n: 4, id: "g4", name: "Results and evidence", status: "todo",
+    ideas: ["Works, reviews, sources, claims, claim evidence. Not started."], tables: [] },
+  { n: 5, id: "g5", name: "Audit", status: "todo",
+    ideas: ["History that survives deletes. Not started."], tables: [] },
+  { n: 6, id: "g6", name: "Auth", status: "todo",
+    ideas: ["Login providers (one user, many providers) and the secret store. Not started."], tables: [] }
+];
+
+const STATUS = { done: "done", wip: "in progress", todo: "not started" };
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+document.getElementById("nav").innerHTML = GROUPS.map(g => `
+  <a href="#${g.id}">
+    <span class="gnum">GROUP ${g.n}</span>
+    <span class="gname">${g.name}</span>
+    <span class="pill ${g.status}">${STATUS[g.status]}</span>
+  </a>`).join("");
+
+function row([name, type, nullable, notes, meta = {}]) {
+  const key = meta.pk ? '<span class="key">PK</span>' : "";
+  const ref = meta.ref ? `<span class="ref">→ ${meta.ref}</span>` : "";
+  const rule = meta.rule ? `<span class="rule ${meta.rule}">${meta.rule === "SETNULL" ? "SET NULL" : meta.rule}</span>` : "";
+  return `<tr>
+    <td class="col">${name}${key}</td>
+    <td class="typ">${esc(type)}</td>
+    <td class="nul">${nullable ? "null" : "not null"}</td>
+    <td class="notes">${ref}${rule}${esc(notes)}</td>
+  </tr>`;
+}
+
+function card(t) {
+  return `<div class="tcard">
+    <div class="thead">
+      <span class="tname">${t.name}</span>
+      ${t.note ? `<span class="tnote">${esc(t.note)}</span>` : ""}
+    </div>
+    <div class="scroll"><table><tbody>${t.cols.map(row).join("")}</tbody></table></div>
+    ${t.constraints ? `<div class="constraints">${t.constraints.map(c => `<span>${c}</span>`).join("")}</div>` : ""}
+  </div>`;
+}
+
+document.getElementById("groups").innerHTML = GROUPS.map(g => `
+  <section class="group" id="${g.id}">
+    <div class="ghead">
+      <h2><span class="n">${g.n}</span>${g.name}</h2>
+      <span class="pill ${g.status}">${STATUS[g.status]}</span>
+    </div>
+    <ul class="ideas">${g.ideas.map(i => `<li>${i}</li>`).join("")}</ul>
+    ${g.tables.length ? `<div class="tables">${g.tables.map(card).join("")}</div>` : ""}
+  </section>`).join("");
+</script>

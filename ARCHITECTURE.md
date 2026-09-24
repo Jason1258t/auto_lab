@@ -27,70 +27,95 @@ React (Vite) ──> FastAPI ──> PostgreSQL
 
 ## Data model
 
-Full DDL: `workbench_schema.sql` (source of truth). Diagram source:
-`workbench_schema.dbml` (paste into dbdiagram.io). Keep both files in sync
-whenever the schema changes — edit the `.sql` first, then mirror the
-change into the `.dbml`.
+The schema is being redesigned from scratch (September 2026). The current
+design, table by table, is in `drafts/schema_design.md`. When the design
+is final, it becomes `workbench_schema.sql` (DDL, source of truth) and
+`workbench_schema.dbml` (for dbdiagram.io). After that, keep both files
+in sync: edit the `.sql` first, then mirror the change into the `.dbml`.
+
+Naming: tables are `snake_case` and plural. A table's own key is `id`.
+A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 
 ### Entity groups
 
-- **People and access**: `users`, `workspaces`, `memberships` (role:
-  owner / editor / reviewer / viewer, per workspace).
-- **Model catalog**: `models`, `capabilities`, `model_capabilities`
-  (capability rating 1-5 per model), `llm_calls` (usage/timing per call).
-- **Tasks**: `task_types` (holds `pipeline_template`), `tasks`,
-  `task_steps`, `schedules` (recurring tasks).
-- **Results and evidence**: `works` (versioned, file on disk),
-  `reviews`, `sources`, `task_sources`, `claims`, `claim_evidence`.
-- **Audit**: `audit_log` — intentionally has no foreign keys, so history
-  survives deletes of the entities it references.
+| # | Group | Tables | Status |
+|---|---|---|---|
+| 1 | People and access | `users`, `workspaces`, `roles`, `memberships` | done |
+| 2 | Model catalog | `models`, `capabilities`, `model_capabilities` | done |
+| 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps` (+ `llm_calls`, `schedules` open) | in progress |
+| 4 | Results and evidence | `works`, `reviews`, `sources`, `claims`, `claim_evidence` (planned) | not started |
+| 5 | Audit | `audit_log` (planned, no foreign keys so history survives deletes) | not started |
+| 6 | Auth | login providers, secret store | not started |
 
 ### Key design decisions
 
-- **One task, one primary model** (`tasks.model_id`, required), with an
-  optional per-step override (`task_steps.model_id`, nullable — `NULL`
-  means "use the task's model"). This keeps the UI simple (pick one
-  model per task) while allowing a different model for a specific step
-  later (e.g. a different model to verify claims than the one that wrote
-  them).
-- **Provenance is mandatory, not optional.** A claim
-  (`claims.claim_text`) is only meaningful together with its evidence
-  (`claim_evidence`: source + exact quote + stance: supports /
-  contradicts / unclear). This is the feature that distinguishes AutoLab
-  from a plain summarizer — don't design a path that skips it.
-- **Sources are deduplicated by URL** (`sources.url` unique) and reused
-  across tasks via the `task_sources` join table, so a page is fetched
-  once.
-- **Works are versioned** (`works.version`, unique per task), so a
-  rejected result can be regenerated without losing the previous
-  attempt.
+- **Assignment idea.** A link to a person (workspace owner, task creator,
+  reviewer) is optional and nullable (`ON DELETE SET NULL`). Deleting a
+  user never deletes work; it only removes the link. A workspace without
+  an owner is a "free" project that someone else can take later.
+- **Roles are a table, many roles per person.** `memberships` has the
+  primary key `(workspace_id, user_id, role_id)`. The owner is not a
+  role: it is `workspaces.owner_id`.
+- **Things that are in use are not deleted.** A workspace with tasks can
+  only be archived (`archived_at`); `tasks.workspace_id` is
+  `ON DELETE RESTRICT`, so Postgres blocks the delete. A model is never
+  deleted, only marked `available = false`.
+- **One model from one provider = one `models` row.** `llama3.1:8b` on
+  Ollama and on a cloud provider are two rows. `(provider, name)` is
+  unique.
+- **No secrets in the database.** `models.secret_id` points to an entry
+  in a separate secret store (design not decided). The API key itself is
+  never stored in a `models` row.
 - **Local models cost nothing per token.** `models.cost_per_1m_input` /
-  `cost_per_1m_output` are nullable for exactly this reason — don't
-  make them `NOT NULL` when adding cloud providers later.
+  `cost_per_1m_output` are nullable for exactly this reason. Don't make
+  them `NOT NULL` when adding cloud providers later.
+- **Capabilities without ratings.** A shared `capabilities` catalog,
+  linked to models as `strength` or `weakness`. No numeric scores.
+- **One task, one model** (`tasks.model_id`, required). A per-step model
+  override is an open question (it would be defined in the pipeline file).
+- **Provenance is mandatory, not optional.** A claim is only meaningful
+  together with its evidence (source + exact quote). This is the feature
+  that distinguishes AutoLab from a plain summarizer. Don't design a path
+  that skips it. (Group 4 will define the tables.)
 
-### Views
+## Task types and pipelines
 
-- `v_review_queue` — works currently `in_review`.
-- `v_claims_without_evidence` — claims with zero linked evidence, i.e.
-  claims that should not yet be trusted.
+A **pipeline is the task type**. There is no separate `task_types` table.
 
-## Task types and pipeline
+- A pipeline is a YAML file that lists its steps in order. Step kinds:
+  `plan`, `search`, `fetch`, `summarize`, `synthesize`, `write`, `verify`.
+  We use YAML with our own rules on top, not a custom syntax, so no
+  parser has to be written. The exact rules will be defined together
+  with the orchestrator.
+- `pipelines` stores the name and description (`research`, ...).
+- `pipeline_versions` stores fixed snapshots of the file, Android-style:
+  `version_name` (`1.0.1`, for people) and `version_code` (integer, for
+  sorting). Each row has `file_path` and `file_hash` (sha256). A version
+  file must never change after it is saved; the hash lets the
+  orchestrator detect a changed file and refuse to run it.
+- A task points to one `pipeline_version_id`. New tasks use the newest
+  version (highest `version_code`). Old tasks always know exactly which
+  steps they ran, even after the pipeline is edited.
+- `task_steps` stores only runtime data per step: `step_index`, status,
+  a short summary from the model, and start/finish times. What each step
+  does is in the pipeline file.
 
-Each `task_types` row defines a `pipeline_template`: an ordered list of
-step kinds (`plan`, `search`, `fetch`, `summarize`, `synthesize`, `write`,
-`verify`). A task's `task_steps` rows are created from that template when
-the task starts.
+Planned pipelines:
 
-| Type | Steps used | Notes |
+| Pipeline | Steps used | Notes |
 |---|---|---|
 | `research` | plan, search, fetch, summarize, synthesize, verify | Full pipeline. |
 | `opinion_survey` | plan, search, fetch, summarize, synthesize, verify | Output must be framed as "what sources say", not as a fact about public opinion. |
 | `study_notes` | plan, search, fetch, summarize, write, verify | Search is optional; can run from user-provided material only. |
-| `creative_writing` | plan, write | No search, no verification — nothing to verify against. |
+| `creative_writing` | plan, write | No search, no verification: nothing to verify against. |
 
-Adding a new task type means adding a `task_types` row with its own
-`pipeline_template` — the orchestrator should not need code changes for a
-new template made of existing step kinds.
+Adding a new task type means adding a new pipeline (a row in `pipelines`
+and its first version file). The orchestrator should not need code
+changes for a pipeline made of existing step kinds.
+
+Task status: `draft`, `queued`, `running`, `done`, `cancelled`. Step
+status: `pending`, `running`, `done`. A `failed` state is deliberately
+left out for now.
 
 ## Orchestrator design constraints
 
@@ -137,10 +162,15 @@ data/
   works/<year>/<month>/<task_id>.md   # finished result, path stored in works.file_path
   cache/pages/<url_hash>.txt          # fetched page cache
   logs/<task_id>.jsonl                # full prompts/responses per LLM call
+
+pipelines/<pipeline_name>/<version_name>.yaml   # pipeline versions, in the repo (git)
 ```
 
-`llm_calls` stores only usage numbers (tokens, duration) for querying and
-stats — the full prompt/response content stays in the JSONL logs, not the
+Pipeline files live in the repository, not in `data/`, so they are
+versioned in git. Their path is stored in `pipeline_versions.file_path`.
+
+`llm_calls` (design still open) will store only usage numbers (tokens,
+duration) for querying and stats — the full prompt/response content stays in the JSONL logs, not the
 database.
 
 ## Explicitly out of scope for now

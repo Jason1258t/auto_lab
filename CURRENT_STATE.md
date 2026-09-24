@@ -1,10 +1,31 @@
 # Current state
 
-Last updated: 2026-09-23 (design phase, before any code was written).
+Last updated: 2026-09-24 (schema redesign in progress, no code yet).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
 doesn't have to re-derive context.
+
+## Now: schema redesign from scratch
+
+The schema is being designed again from zero, group by group, together
+with the author. **Source of truth: `drafts/schema_design.md`.** It has
+the finished groups, open questions, and parked items. The old schema
+description below (18 tables, `task_types`, ...) is outdated.
+
+- Done: Group 1 (people and access), Group 2 (model catalog).
+- In progress: Group 3 (tasks). Open: `llm_calls` and work logs,
+  schedules, version code counter.
+- Not started: Group 4 (results and evidence), 5 (audit), 6 (auth).
+- `ARCHITECTURE.md` is updated to match these decisions (2026-09-24).
+  `PROJECT.md` and `AGENTS.md` still mention `task_types` /
+  `pipeline_template` and need the same update.
+
+Next step: finish Group 3 (`llm_calls` and work logs).
+
+Session rules: update `drafts/schema_design.md` after each decision and
+this file at the end; keep answers short.
+`drafts/schema_design.html` is a visual copy, updated only on request.
 
 ## What exists
 
