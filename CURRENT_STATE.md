@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-09-24 (schema redesign in progress, no code yet).
+Last updated: 2026-09-25 (schema redesign in progress; first code: log store).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
@@ -13,15 +13,17 @@ with the author. **Source of truth: `drafts/schema_design.md`.** It has
 the finished groups, open questions, and parked items. The old schema
 description below (18 tables, `task_types`, ...) is outdated.
 
-- Done: Group 1 (people and access), Group 2 (model catalog).
-- In progress: Group 3 (tasks). Open: `llm_calls` and work logs,
-  schedules, version code counter.
+- Done: Group 1 (people and access), 2 (model catalog), 3 (tasks,
+  including `llm_calls` / `llm_responses` / `log_deletions`).
+- LLM manager and log design: `drafts/llm_manager.md`.
 - Not started: Group 4 (results and evidence), 5 (audit), 6 (auth).
+- MongoDB as the LLM log store is under review (overrides the old
+  "no second DB" rule only for logs).
 - `ARCHITECTURE.md` is updated to match these decisions (2026-09-24).
   `PROJECT.md` and `AGENTS.md` still mention `task_types` /
   `pipeline_template` and need the same update.
 
-Next step: finish Group 3 (`llm_calls` and work logs).
+Next step: Group 4 (results and evidence).
 
 Session rules: update `drafts/schema_design.md` after each decision and
 this file at the end; keep answers short.
@@ -44,6 +46,9 @@ this file at the end; keep answers short.
   views, dbdiagram.io doesn't render those well).
 - Ubuntu server set up with Ollama and several models already pulled
   (exact model list not yet recorded here — add it once decided).
+
+- `backend/log_store.py` — `LogStore` interface with `FileLogStore`
+  (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).
 
 ## What is designed but not built
 

@@ -63,7 +63,8 @@ of silently picking one version.
 ## What not to do without asking
 
 - Don't add MongoDB, a second database, or an object store. This was
-  deliberately decided against (see `ARCHITECTURE.md`).
+  deliberately decided against (see `ARCHITECTURE.md`). Exception under
+  review: MongoDB as the LLM log store (`drafts/llm_manager.md`).
 - Don't add cloud GPU provisioning, Terraform/Ansible, or billing code.
   Explicitly out of scope for now.
 - Don't change the schema's delete rules (`CASCADE` / `RESTRICT` /

@@ -42,7 +42,7 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 |---|---|---|---|
 | 1 | People and access | `users`, `workspaces`, `roles`, `memberships` | done |
 | 2 | Model catalog | `models`, `capabilities`, `model_capabilities` | done |
-| 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps` (+ `llm_calls`, `schedules` open) | in progress |
+| 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps`, `llm_calls`, `llm_responses`, `log_deletions` | done |
 | 4 | Results and evidence | `works`, `reviews`, `sources`, `claims`, `claim_evidence` (planned) | not started |
 | 5 | Audit | `audit_log` (planned, no foreign keys so history survives deletes) | not started |
 | 6 | Auth | login providers, secret store | not started |
@@ -161,7 +161,7 @@ Structured data lives in PostgreSQL. Everything else lives on disk:
 data/
   works/<year>/<month>/<task_id>.md   # finished result, path stored in works.file_path
   cache/pages/<url_hash>.txt          # fetched page cache
-  logs/<task_id>.jsonl                # full prompts/responses per LLM call
+  logs/<call_id>.json                 # full prompt/response of one LLM call (FileLogStore)
 
 pipelines/<pipeline_name>/<version_name>.yaml   # pipeline versions, in the repo (git)
 ```
@@ -169,14 +169,17 @@ pipelines/<pipeline_name>/<version_name>.yaml   # pipeline versions, in the repo
 Pipeline files live in the repository, not in `data/`, so they are
 versioned in git. Their path is stored in `pipeline_versions.file_path`.
 
-`llm_calls` (design still open) will store only usage numbers (tokens,
-duration) for querying and stats — the full prompt/response content stays in the JSONL logs, not the
-database.
+`llm_calls` stores call metadata (model, step, timing) and
+`llm_responses` stores tokens. The full prompt/response lives in a log store, keyed by `llm_calls.id`
+(`backend/log_store.py`): files now, MongoDB is being considered. See
+`drafts/llm_manager.md`.
 
 ## Explicitly out of scope for now
 
-- MongoDB or any second database — flexible fields are handled with
+- A second database for core data — flexible fields are handled with
   `jsonb` columns in Postgres instead.
+  (Exception under review: MongoDB as the LLM log store, see
+  `drafts/llm_manager.md`.)
 - Object storage (MinIO, S3) — plain files on disk are enough at this
   scale.
 - Cloud GPU provisioning (Terraform/Ansible, renting servers) and

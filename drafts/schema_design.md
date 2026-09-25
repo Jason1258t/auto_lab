@@ -4,7 +4,7 @@ Working notes for the new schema, designed from scratch group by group.
 This is a draft. When a group is final, it moves into `workbench_schema.sql`
 and `workbench_schema.dbml`.
 
-Last updated: 2026-09-24
+Last updated: 2026-09-25
 
 ## Naming rules
 
@@ -27,7 +27,7 @@ Last updated: 2026-09-24
 |---|---|---|
 | 1 | People and access | done |
 | 2 | Model catalog | done |
-| 3 | Tasks | in progress |
+| 3 | Tasks | done |
 | 4 | Results and evidence | not started |
 | 5 | Audit | not started |
 | 6 | Auth | not started |
@@ -114,7 +114,7 @@ PK: `(model_id, capability_id)`. No numeric ratings (decided: not worth it now).
 
 ---
 
-## Group 3: Tasks (in progress)
+## Group 3: Tasks (done)
 
 ### pipelines
 A pipeline is the task type (`research`, `study_notes`, ...).
@@ -172,14 +172,54 @@ sources of truth).
 
 PK: `(task_id, step_index)`.
 
-### Still open in Group 3
-- `llm_calls` and other work logs (user is thinking about it).
-  Draft idea: one row per model request with tokens, duration, model used;
-  full prompt/response stays in JSONL files.
-- Per-step model override: in the pipeline file?
-- Cost per call: calculate from model price, or save at call time?
-- `schedules`: suggested to postpone.
-- Version code: per pipeline (backend sets MAX + 1) or one global counter?
+### llm_calls
+One row = one request to a model. Details and reasons: `drafts/llm_manager.md`.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK; also the log id in the log store |
+| task_id | bigint | no | → tasks, `CASCADE` |
+| step_index | smallint | no | FK `(task_id, step_index)` → task_steps |
+| model_id | bigint | no | → models, `RESTRICT` |
+| attempt | smallint | no | 1, 2, 3... retry number for the same step |
+| status | enum | no | `queued` / `running` / `done` / `failed` / `cancelled` |
+| response_schema | jsonb | yes | JSON schema for structured output; NULL = free text |
+| params | jsonb | yes | temperature, max_tokens, seed... |
+| error | text | yes | error text when `failed` |
+| created_at | timestamptz | no | request entered the queue |
+| started_at | timestamptz | yes | |
+| finished_at | timestamptz | yes | |
+
+Full prompt and output are not in the DB. They are in the log store
+(`backend/log_store.py`: files or MongoDB), key = `llm_calls.id`.
+
+### llm_responses
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| call_id | bigint | no | PK, → llm_calls, `CASCADE` (0 or 1 response per call) |
+| input_tokens | integer | yes | |
+| output_tokens | integer | yes | |
+| finish_reason | enum | yes | `stop` / `length` / ... |
+| valid_json | boolean | yes | NULL = no schema |
+| created_at | timestamptz | no | |
+
+Cost is not stored: tokens × `models` price, computed when needed.
+
+### log_deletions
+Outbox for the log cleanup worker. Filled by a `BEFORE DELETE` trigger on
+`llm_calls` (also fires on `CASCADE` from `tasks`).
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| call_id | bigint | no | PK; no FK, the call row is already deleted |
+| created_at | timestamptz | no | default `now()` |
+
+### Decided in Group 3 (not tables)
+- LLM manager queues are in memory. On start, the manager marks calls
+  still `queued` / `running` as `failed`.
+- Per-step model override: not now, no DB change needed.
+- Version code: per pipeline, backend sets `MAX + 1`.
+- `schedules`: after MVP.
 
 ---
 
@@ -193,6 +233,7 @@ PK: `(task_id, step_index)`.
 
 - What happens to tasks when their model becomes unavailable (orchestrator logic).
 - `failed` task state: ignored for now.
+- `schedules` (repeat a task by time): after MVP.
 - Secret store design: if it lives in Postgres, keys need encryption
   (otherwise they end up in every DB backup).
 - Possible split of `models` into base model + deployment, so
