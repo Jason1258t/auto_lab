@@ -44,7 +44,7 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 | 2 | Model catalog | `models`, `capabilities`, `model_capabilities` | done |
 | 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps`, `llm_calls`, `llm_responses`, `log_deletions` | done |
 | 4 | Results and evidence | `works`, `work_sources`, `quotes`, `task_reviews`, `publishers`, `publications` | done |
-| 5 | Audit | `audit_log` (planned, no foreign keys so history survives deletes) | not started |
+| 5 | Audit and logging | under review: the old `audit_log` idea may be replaced (see `drafts/schema_design.md`) | next |
 | 6 | Auth | login providers, secret store | not started |
 
 ### Key design decisions

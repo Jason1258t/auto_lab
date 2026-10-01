@@ -31,7 +31,7 @@ Last updated: 2026-10-01
 | 2 | Model catalog | done |
 | 3 | Tasks | done |
 | 4 | Results and evidence | done |
-| 5 | Audit | not started |
+| 5 | Audit and logging | under review (next session) |
 | 6 | Auth | not started |
 
 ---
@@ -327,7 +327,12 @@ Does not depend on workspace visibility.
 
 ## Groups not started
 
-- **5. Audit**: history that survives deletes.
+- **5. Audit and logging (next session)**: big review of all audit and
+  logging. The old single `audit_log` idea is likely out of date, because
+  `llm_calls`, `task_steps` and `task_reviews` already log a lot. May change
+  earlier groups. Ideas so far: `activity_events` for important human
+  actions, SQL views for admin reports, system logs outside the DB, an
+  admin flag (maybe Group 6). The author writes a draft first.
 - **6. Auth**: login providers (one user, many providers), secret store.
 
 ## Parked for later
