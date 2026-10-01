@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-09-25 (schema redesign in progress; first code: log store).
+Last updated: 2026-10-01 (schema redesign in progress; first code: log store).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
@@ -13,17 +13,19 @@ with the author. **Source of truth: `drafts/schema_design.md`.** It has
 the finished groups, open questions, and parked items. The old schema
 description below (18 tables, `task_types`, ...) is outdated.
 
-- Done: Group 1 (people and access), 2 (model catalog), 3 (tasks,
-  including `llm_calls` / `llm_responses` / `log_deletions`).
-- LLM manager and log design: `drafts/llm_manager.md`.
-- Not started: Group 4 (results and evidence), 5 (audit), 6 (auth).
+- Done: Group 1 (people and access; workspace visibility added
+  2026-10-01), 2 (model catalog), 3 (tasks, including `llm_calls` /
+  `llm_responses` / `log_deletions`), 4 (results and evidence).
+- Detail drafts: `drafts/llm_manager.md`, `drafts/workspaces.md`,
+  `drafts/results_and_evidence.md`.
+- Not started: Group 5 (audit), 6 (auth).
 - MongoDB as the LLM log store is under review (overrides the old
   "no second DB" rule only for logs).
 - `ARCHITECTURE.md` is updated to match these decisions (2026-09-24).
   `PROJECT.md` and `AGENTS.md` still mention `task_types` /
   `pipeline_template` and need the same update.
 
-Next step: Group 4 (results and evidence).
+Next step: Group 5 (audit).
 
 Session rules: update `drafts/schema_design.md` after each decision and
 this file at the end; keep answers short.

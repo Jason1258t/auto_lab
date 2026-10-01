@@ -4,7 +4,7 @@ Working notes for the new schema, designed from scratch group by group.
 This is a draft. When a group is final, it moves into `workbench_schema.sql`
 and `workbench_schema.dbml`.
 
-Last updated: 2026-09-25
+Last updated: 2026-10-01
 
 ## Naming rules
 
@@ -20,6 +20,8 @@ Last updated: 2026-09-25
   as a fixed version, and old tasks point to the exact version they used.
 - **No hard delete for used things.** Workspaces with tasks are archived,
   models are marked unavailable.
+- **A workspace is a lab.** It holds many tasks; each task produces one
+  work. Details: `drafts/workspaces.md`.
 
 ## Groups
 
@@ -28,7 +30,7 @@ Last updated: 2026-09-25
 | 1 | People and access | done |
 | 2 | Model catalog | done |
 | 3 | Tasks | done |
-| 4 | Results and evidence | not started |
+| 4 | Results and evidence | done |
 | 5 | Audit | not started |
 | 6 | Auth | not started |
 
@@ -51,9 +53,19 @@ Last updated: 2026-09-25
 | id | bigint | no | PK |
 | name | text | no | |
 | description | text | yes | |
+| created_by | bigint | yes | → users, `SET NULL`; never changes (creator ≠ owner) |
 | owner_id | bigint | yes | → users, `SET NULL` (NULL = free project) |
+| visibility | enum | no | `private` / `public`, default `private` |
 | archived_at | timestamptz | yes | NULL = active |
 | created_at | timestamptz | no | default `now()` |
+
+Rules (details: `drafts/workspaces.md`):
+- Public once, public forever: a `BEFORE UPDATE` trigger blocks
+  `public → private`.
+- Archiving deletes all `memberships` rows of the workspace.
+- Archiving a public workspace sets `owner_id = NULL`. Anyone can then
+  take it: `UPDATE ... SET owner_id = :me WHERE id = :id AND owner_id IS NULL`
+  (0 rows = someone was first). It becomes active again, stays public.
 
 ### roles
 | Column | Type | Null | Notes |
@@ -150,7 +162,7 @@ New tasks use the newest version.
 | model_id | bigint | no | → models, `RESTRICT` |
 | title | text | no | |
 | input | text | no | the user's request |
-| status | enum | no | `draft` / `queued` / `running` / `done` / `cancelled`, default `draft` |
+| status | enum | no | `draft` / `queued` / `running` / `in_review` / `done` / `cancelled`, default `draft` |
 | created_by | bigint | yes | → users, `SET NULL` |
 | reviewer_id | bigint | yes | → users, `SET NULL`; backend sets it = `created_by` by default |
 | created_at | timestamptz | no | default `now()` |
@@ -167,10 +179,16 @@ sources of truth).
 | step_index | smallint | no | `>= 0` |
 | status | enum | no | `pending` / `running` / `done`, default `pending` |
 | summary | text | yes | model's short report about the step |
+| review_id | bigint | yes | → task_reviews, `CASCADE`; NULL = normal pipeline step, not NULL = extra `revise` step caused by this review |
 | started_at | timestamptz | yes | |
 | finished_at | timestamptz | yes | |
 
 PK: `(task_id, step_index)`.
+
+Task flow: `draft → queued → running → in_review → done`. A rejected
+review sends the task back to `queued`, and the orchestrator adds
+`revise` steps (built-in kind, not in the pipeline file). Details:
+`drafts/results_and_evidence.md`.
 
 ### llm_calls
 One row = one request to a model. Details and reasons: `drafts/llm_manager.md`.
@@ -223,9 +241,92 @@ Outbox for the log cleanup worker. Filled by a `BEFORE DELETE` trigger on
 
 ---
 
+## Group 4: Results and evidence (done)
+
+Details and reasons: `drafts/results_and_evidence.md`. Replaces the old
+plan (`sources`, `claims`, `claim_evidence`): claim and quote are one row.
+
+### works
+A task produces one work. Separate table because a task has no work
+until it is finished.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| task_id | bigint | no | PK, → tasks, `CASCADE` (may change, see parked) |
+| summary | text | yes | short summary of the result |
+| file_path | text | no | e.g. `data/works/2026/09/<task_id>.md` |
+| created_at | timestamptz | no | default `now()` |
+| updated_at | timestamptz | no | changes after a revision |
+
+Title = `tasks.title`. Accepted = an `accepted` row in `task_reviews`.
+
+### work_sources
+One row = one source used in one work. Full text is not stored (only a
+temporary cache for `verify`, deleted after it).
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| work_id | bigint | no | → works, `CASCADE` |
+| title | text | no | |
+| kind | enum | no | `web` / `file` |
+| location | text | no | URL, or file name with part of its path in the workspace |
+| accessed_at | timestamptz | no | when it was read |
+
+Unique: `(work_id, location)`.
+
+### quotes
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| work_source_id | bigint | no | → work_sources, `CASCADE` |
+| claim | text | no | statement in the work |
+| quote | text | no | exact text from the source |
+| placement | text | yes | URL with anchor, or "p. 67, line 12" |
+| created_at | timestamptz | no | default `now()` |
+
+A claim with two sources = two rows (claim text repeated; OK for MVP).
+
+### task_reviews
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| task_id | bigint | no | → tasks, `CASCADE` |
+| reviewer_id | bigint | yes | → users, `SET NULL` |
+| result | enum | no | `accepted` / `rejected` |
+| comment | text | yes | |
+| created_at | timestamptz | no | default `now()` |
+
+`CHECK (result = 'accepted' OR comment IS NOT NULL)`: a rejection needs
+a comment (input for the `revise` steps).
+
+### publishers
+A public "signature" for publications. Does not show the workspace.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| name | text | no | unique |
+| description | text | yes | |
+| owner_id | bigint | yes | → users, `SET NULL`; only the owner publishes (MVP) |
+| created_at | timestamptz | no | default `now()` |
+
+### publications
+Does not depend on workspace visibility.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| work_id | bigint | no | → works; unique; delete rule open (see parked) |
+| publisher_id | bigint | no | → publishers, `RESTRICT` |
+| title | text | no | public title |
+| description | text | yes | |
+| published_at | timestamptz | no | default `now()` |
+
+---
+
 ## Groups not started
 
-- **4. Results and evidence**: works, reviews, sources, claims, claim evidence.
 - **5. Audit**: history that survives deletes.
 - **6. Auth**: login providers (one user, many providers), secret store.
 
@@ -236,6 +337,11 @@ Outbox for the log cleanup worker. Filled by a `BEFORE DELETE` trigger on
 - `schedules` (repeat a task by time): after MVP.
 - Secret store design: if it lives in Postgres, keys need encryption
   (otherwise they end up in every DB backup).
+- Delete rule for `works` / `publications`: deleting a task now also
+  deletes its published work. Review later (`RESTRICT` is one option).
+- After MVP: publication reviews, withdrawing a publication, work
+  versions, materials as folders, membership history, global `sources`
+  and `claims` tables.
 - Possible split of `models` into base model + deployment, so
   capabilities are not repeated per provider.
 - `PROJECT.md` and `AGENTS.md` still say `task_types` / `pipeline_template`

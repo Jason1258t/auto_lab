@@ -36,7 +36,7 @@ These are decided, not open for silent revision. If a change seems
 necessary, say so explicitly rather than deviating quietly.
 
 - **Every claim needs evidence.** A claim in a finished work is linked to
-  a source and an exact quote (`claims` → `claim_evidence` → `sources`).
+  a source and an exact quote (`works` → `work_sources` → `quotes`).
   This is what separates AutoLab from a plain summarizer. No output path
   should be able to skip this.
 - **One primary model per task, with optional per-step override.**

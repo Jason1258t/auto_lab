@@ -40,10 +40,10 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 
 | # | Group | Tables | Status |
 |---|---|---|---|
-| 1 | People and access | `users`, `workspaces`, `roles`, `memberships` | done |
+| 1 | People and access | `users`, `workspaces`, `roles`, `memberships` | done (workspace visibility added 2026-10-01) |
 | 2 | Model catalog | `models`, `capabilities`, `model_capabilities` | done |
 | 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps`, `llm_calls`, `llm_responses`, `log_deletions` | done |
-| 4 | Results and evidence | `works`, `reviews`, `sources`, `claims`, `claim_evidence` (planned) | not started |
+| 4 | Results and evidence | `works`, `work_sources`, `quotes`, `task_reviews`, `publishers`, `publications` | done |
 | 5 | Audit | `audit_log` (planned, no foreign keys so history survives deletes) | not started |
 | 6 | Auth | login providers, secret store | not started |
 
@@ -56,6 +56,9 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 - **Roles are a table, many roles per person.** `memberships` has the
   primary key `(workspace_id, user_id, role_id)`. The owner is not a
   role: it is `workspaces.owner_id`.
+- **A workspace is a lab.** It holds many tasks, each task produces one
+  work. Visibility (`private` / `public`, public forever) is separate
+  from archiving. See `drafts/workspaces.md`.
 - **Things that are in use are not deleted.** A workspace with tasks can
   only be archived (`archived_at`); `tasks.workspace_id` is
   `ON DELETE RESTRICT`, so Postgres blocks the delete. A model is never
@@ -76,7 +79,8 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 - **Provenance is mandatory, not optional.** A claim is only meaningful
   together with its evidence (source + exact quote). This is the feature
   that distinguishes AutoLab from a plain summarizer. Don't design a path
-  that skips it. (Group 4 will define the tables.)
+  that skips it. Tables: `works` → `work_sources` → `quotes` (claim +
+  exact quote).
 
 ## Task types and pipelines
 
@@ -113,7 +117,9 @@ Adding a new task type means adding a new pipeline (a row in `pipelines`
 and its first version file). The orchestrator should not need code
 changes for a pipeline made of existing step kinds.
 
-Task status: `draft`, `queued`, `running`, `done`, `cancelled`. Step
+Task status: `draft`, `queued`, `running`, `in_review`, `done`,
+`cancelled`. A rejected review sends the task back to `queued` with extra
+`revise` steps (`task_steps.review_id`). Step
 status: `pending`, `running`, `done`. A `failed` state is deliberately
 left out for now.
 
@@ -132,7 +138,7 @@ The hardware is a single machine with a 4 GB VRAM GPU (GTX 1650 Ti) and
 - **Verification checks quotes, not truth.** Small models are weak at
   general fact-checking but workable at "does this quoted passage support
   this claim?" — so every claim is required to carry an exact quote
-  (see `claim_evidence`), and verification is scoped to checking that
+  (see `quotes`), and verification is scoped to checking that
   link, not judging the claim in the abstract.
 - **Use Ollama's structured output / JSON schema support** wherever a
   step's result needs to be parsed, rather than parsing free text.
