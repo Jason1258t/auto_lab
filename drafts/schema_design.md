@@ -4,7 +4,7 @@ Working notes for the new schema, designed from scratch group by group.
 This is a draft. When a group is final, it moves into `workbench_schema.sql`
 and `workbench_schema.dbml`.
 
-Last updated: 2026-10-01
+Last updated: 2026-10-04
 
 ## Naming rules
 
@@ -31,7 +31,7 @@ Last updated: 2026-10-01
 | 2 | Model catalog | done |
 | 3 | Tasks | done |
 | 4 | Results and evidence | done |
-| 5 | Audit and logging | under review (next session) |
+| 5 | Audit and logging | done |
 | 6 | Auth | not started |
 
 ---
@@ -325,28 +325,47 @@ Does not depend on workspace visibility.
 
 ---
 
+## Group 5: Audit and logging (done)
+
+Details and reasons: `drafts/audit.md`. No copies of deleted rows. System
+logs live in files outside the DB. Reports are SQL views (after MVP).
+
+### activity_events
+Fixed list of important human actions (workspace and admin), like the
+audit log in Discord.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| occurred_at | timestamptz | no | default `now()` |
+| actor_id | bigint | yes | no FK (row survives user delete); NULL = system |
+| actor_name | text | yes | copy of the name at that moment |
+| workspace_id | bigint | yes | no FK; NULL = global action (admin, publisher) |
+| action | enum | no | `member_added`, `role_added`, `task_deleted`, `work_published`, ... (list in `audit.md`) |
+| target_type | enum | yes | `workspace` / `membership` / `task` / `work` / `publication` / `publisher` / `user` |
+| target_id | bigint | yes | |
+| target_label | text | yes | copy of the target's name at that moment |
+| details | jsonb | yes | e.g. `{"role": "reviewer"}` |
+
+Read access: workspace log = owner + editors; global events = admins.
+Subtype tables (PK = FK to `activity_events.id`): later, when needed.
+
+---
+
 ## Groups not started
 
-- **5. Audit and logging (next session)**: big review of all audit and
-  logging. The old single `audit_log` idea is likely out of date, because
-  `llm_calls`, `task_steps` and `task_reviews` already log a lot. May change
-  earlier groups. Ideas so far: `activity_events` for important human
-  actions, SQL views for admin reports, system logs outside the DB, an
-  admin flag (maybe Group 6). The author writes a draft first.
-- **6. Auth**: login providers (one user, many providers), secret store.
+- **6. Auth**: login providers (one user, many providers), secret store,
+  admin flag (boolean, kept apart from `users`).
 
 ## Parked for later
 
 - What happens to tasks when their model becomes unavailable (orchestrator logic).
 - `failed` task state: ignored for now.
-- `schedules` (repeat a task by time): after MVP.
 - Secret store design: if it lives in Postgres, keys need encryption
   (otherwise they end up in every DB backup).
 - Delete rule for `works` / `publications`: deleting a task now also
   deletes its published work. Review later (`RESTRICT` is one option).
-- After MVP: publication reviews, withdrawing a publication, work
-  versions, materials as folders, membership history, global `sources`
-  and `claims` tables.
+- After-MVP features moved to `BACKLOG.md`.
 - Possible split of `models` into base model + deployment, so
   capabilities are not repeated per provider.
 - `PROJECT.md` and `AGENTS.md` still say `task_types` / `pipeline_template`
