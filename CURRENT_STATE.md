@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-04 (schema redesign: Groups 1-5 done; first code: log store).
+Last updated: 2026-10-05 (schema redesign: all 6 groups done, final review next; first code: log store).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
@@ -17,11 +17,13 @@ description below (18 tables, `task_types`, ...) is outdated.
   2026-10-01), 2 (model catalog), 3 (tasks, including `llm_calls` /
   `llm_responses` / `log_deletions`), 4 (results and evidence),
   5 (audit and logging: `activity_events`, system logs in files,
-  reports as SQL views after MVP; 2026-10-04).
+  reports as SQL views after MVP; 2026-10-04), 6 (auth:
+  `password_credentials`, `user_identities`, `admins`, `sessions`,
+  `users.email_verified`; 2026-10-05).
 - Detail drafts: `drafts/llm_manager.md`, `drafts/workspaces.md`,
-  `drafts/results_and_evidence.md`, `drafts/audit.md`.
-- Next: Group 6 (auth, including the admin flag). The author writes a
-  draft first.
+  `drafts/results_and_evidence.md`, `drafts/audit.md`, `drafts/auth.md`.
+- Next: final review of the whole schema, then write
+  `workbench_schema.sql` / `.dbml` from `drafts/schema_design.md`.
 - After-MVP features: `BACKLOG.md`.
 - MongoDB as the LLM log store is under review (overrides the old
   "no second DB" rule only for logs).
@@ -29,8 +31,8 @@ description below (18 tables, `task_types`, ...) is outdated.
   `PROJECT.md` and `AGENTS.md` still mention `task_types` /
   `pipeline_template` and need the same update.
 
-Next step: Group 6 (auth).
-`drafts/schema_design.html` is up to date as of 2026-10-01 (no Group 5 yet).
+Next step: final schema review, then the SQL and DBML files.
+`drafts/schema_design.html` is up to date as of 2026-10-05 (all 6 groups).
 
 Session rules: update `drafts/schema_design.md` after each decision and
 this file at the end; keep answers short.

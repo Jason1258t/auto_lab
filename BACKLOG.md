@@ -16,6 +16,13 @@ open live in `drafts/schema_design.md` ("Parked for later").
 - Materials as folders.
 - Global `sources` and `claims` tables.
 
+## Auth
+
+- Login with GitHub / Google (`user_identities` is already designed).
+- Account linking (external login with an email that already exists).
+- One-time tokens: email confirmation, password reset.
+- Workspace invites (now the owner adds people directly).
+
 ## Audit and logging
 
 - Reports as SQL views: model load, failures, pipeline quality,

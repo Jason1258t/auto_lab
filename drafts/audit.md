@@ -4,7 +4,7 @@ Working notes. Rewritten from the author's draft (`audit.ru.md`,
 2026-10-04). Items marked **(proposal)** are Claude's suggestions and
 are not decided yet.
 
-Last updated: 2026-10-04
+Last updated: 2026-10-05
 
 ## What we track, and where
 
@@ -50,7 +50,8 @@ workspace log page.
 - Workspace: `member_added`, `member_removed`, `role_added`,
   `role_removed`, `workspace_taken`, `made_public`, `archived`,
   `task_deleted`, `work_published`.
-- Global: `publisher_created`, admin actions (list comes with Group 6).
+- Global: `publisher_created`, `admin_granted`, `admin_revoked`,
+  `user_deleted` (id and username only, no email; see `auth.md`).
 
 `task_deleted` logs the event (who, which task, its title), not a copy
 of the task row.
@@ -106,8 +107,8 @@ No new tables, the data is already there.
 
 ## Admin
 
-Admin is a boolean flag in the auth data (Group 6), kept apart from the
-main `users` table. Admin actions are written to `activity_events` with
+Admin = a row in the `admins` table (Group 6, `auth.md`), kept apart
+from the main `users` table. Admin actions are written to `activity_events` with
 `workspace_id = NULL`.
 
 ## Open questions

@@ -4,7 +4,7 @@ Working notes for the new schema, designed from scratch group by group.
 This is a draft. When a group is final, it moves into `workbench_schema.sql`
 and `workbench_schema.dbml`.
 
-Last updated: 2026-10-04
+Last updated: 2026-10-05
 
 ## Naming rules
 
@@ -32,7 +32,7 @@ Last updated: 2026-10-04
 | 3 | Tasks | done |
 | 4 | Results and evidence | done |
 | 5 | Audit and logging | done |
-| 6 | Auth | not started |
+| 6 | Auth | done |
 
 ---
 
@@ -45,6 +45,7 @@ Last updated: 2026-10-04
 | email | text | no | unique on `lower(email)` |
 | username | text | no | unique |
 | display_name | text | no | |
+| email_verified | boolean | no | default `false` (added in Group 6) |
 | created_at | timestamptz | no | default `now()` |
 
 ### workspaces
@@ -352,17 +353,59 @@ Subtype tables (PK = FK to `activity_events.id`): later, when needed.
 
 ---
 
-## Groups not started
+## Group 6: Auth (done)
 
-- **6. Auth**: login providers (one user, many providers), secret store,
-  admin flag (boolean, kept apart from `users`).
+Details and reasons: `drafts/auth.md`. MVP = email + password. No
+one-time tokens, no invites, no account linking (see `BACKLOG.md`).
+
+### password_credentials
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| user_id | bigint | no | PK, → users, `CASCADE` |
+| password_hash | text | no | argon2 |
+| updated_at | timestamptz | no | default `now()` |
+
+Login uses `users.email`.
+
+### user_identities (built later)
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| user_id | bigint | no | → users, `CASCADE` |
+| provider | enum | no | `github` / `google` |
+| provider_user_id | text | no | |
+| created_at | timestamptz | no | default `now()` |
+
+Unique: `(provider, provider_user_id)`.
+
+### admins
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| user_id | bigint | no | PK, → users, `CASCADE`; row = admin |
+| granted_at | timestamptz | no | default `now()` |
+| granted_by | text | yes | plain text for now |
+
+### sessions
+Access token = short JWT, not stored. Refresh token = stored as a hash,
+replaced on each refresh.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| user_id | bigint | no | → users, `CASCADE` |
+| refresh_token_hash | text | no | unique |
+| created_at | timestamptz | no | default `now()` |
+| expires_at | timestamptz | no | |
+| last_used_at | timestamptz | yes | |
+| revoked_at | timestamptz | yes | NULL = active |
 
 ## Parked for later
 
 - What happens to tasks when their model becomes unavailable (orchestrator logic).
 - `failed` task state: ignored for now.
-- Secret store design: if it lives in Postgres, keys need encryption
-  (otherwise they end up in every DB backup).
+- Secret store design: only admins and the system read it; probably
+  not Postgres (`.env` for MVP). If it ever lives in Postgres, keys need
+  encryption (otherwise they end up in every DB backup).
 - Delete rule for `works` / `publications`: deleting a task now also
   deletes its published work. Review later (`RESTRICT` is one option).
 - After-MVP features moved to `BACKLOG.md`.

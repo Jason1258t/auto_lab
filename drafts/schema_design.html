@@ -153,9 +153,9 @@
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-10-01</div>
+    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-10-05</div>
     <h1>AutoLab database schema, group by group</h1>
-    <p class="lede">A working draft, designed from scratch. When a group is final, it moves into <code>workbench_schema.sql</code>. The same content lives in <code>drafts/schema_design.md</code>; reasons and details are in <code>drafts/workspaces.md</code>, <code>drafts/llm_manager.md</code> and <code>drafts/results_and_evidence.md</code>.</p>
+    <p class="lede">A working draft, designed from scratch. When a group is final, it moves into <code>workbench_schema.sql</code>. The same content lives in <code>drafts/schema_design.md</code>; reasons and details are in <code>drafts/workspaces.md</code>, <code>drafts/llm_manager.md</code>, <code>drafts/results_and_evidence.md</code>, <code>drafts/audit.md</code> and <code>drafts/auth.md</code>. After-MVP features are in <code>BACKLOG.md</code>.</p>
     <div class="rules">
       <span>Tables <code>snake_case</code>, plural</span>
       <span>Own key <code>id</code></span>
@@ -179,12 +179,11 @@
     <div class="ghead"><h2>Open and parked</h2></div>
     <div class="later">
       <div class="box">
-        <h3>Next session: Group 5 review</h3>
+        <h3>Next: final review</h3>
         <ul>
-          <li>The old idea (one <code>audit_log</code> table) is likely out of date: <code>llm_calls</code>, <code>task_steps</code> and <code>task_reviews</code> already log a lot.</li>
-          <li>Review all logging and audit together. This may change earlier groups.</li>
-          <li>Ideas on the table: an <code>activity_events</code> table for important human actions, SQL views for admin reports, system logs outside the DB, an admin flag (maybe Group 6).</li>
-          <li>The author writes a draft first.</li>
+          <li>All six groups are designed. Next: one review across all groups (FKs, delete rules, enums).</li>
+          <li>Then write <code>workbench_schema.sql</code> and <code>workbench_schema.dbml</code> from the draft.</li>
+          <li><code>PROJECT.md</code> and <code>AGENTS.md</code> still mention <code>task_types</code> / <code>pipeline_template</code>.</li>
         </ul>
       </div>
       <div class="box">
@@ -193,9 +192,9 @@
           <li>Delete rule for <code>works</code> / <code>publications</code>: deleting a task now also deletes its published work.</li>
           <li>What happens to tasks when their model becomes unavailable.</li>
           <li><code>failed</code> task state: ignored for now.</li>
-          <li>Secret store: if it lives in Postgres, keys need encryption.</li>
+          <li>Secret store: only admins and the system read it; probably not Postgres (<code>.env</code> for MVP).</li>
           <li>Possible split of <code>models</code> into base model + deployment.</li>
-          <li>After MVP: <code>schedules</code>, publication reviews, work versions, membership history, global <code>sources</code> / <code>claims</code> tables.</li>
+          <li>After-MVP features (OAuth login, password reset, invites, reports, <code>schedules</code>, …) are in <code>BACKLOG.md</code>.</li>
         </ul>
       </div>
     </div>
@@ -219,6 +218,7 @@ const GROUPS = [
         ["email", "text", false, "unique on lower(email)"],
         ["username", "text", false, "unique"],
         ["display_name", "text", false, ""],
+        ["email_verified", "boolean", false, "default false (added in Group 6)"],
         ["created_at", "timestamptz", false, "default now()"]
       ]},
       { name: "workspaces", cols: [
@@ -417,13 +417,70 @@ const GROUPS = [
       ]}
     ]
   },
-  { n: 5, id: "g5", name: "Audit and logging", status: "review",
+  {
+    n: 5, id: "g5", name: "Audit and logging", status: "done",
     ideas: [
-      "Big review of all audit and logging, next session. The old single <code>audit_log</code> idea is likely out of date.",
-      "May change earlier groups. The author writes a draft first."
-    ], tables: [] },
-  { n: 6, id: "g6", name: "Auth", status: "todo",
-    ideas: ["Login providers (one user, many providers) and the secret store. Not started."], tables: [] }
+      "One small table for important human actions, like the audit log in Discord. A fixed list of actions, not a copy of every changed row.",
+      "No copies of deleted rows: they take a lot of space and the app does not use them.",
+      "Names are copied into each row, so the log still reads well after the user or task is gone.",
+      "Workspace log: owner and editors read it. Global events (<code>workspace_id</code> NULL): admins only.",
+      "System logs live in files outside the DB (daily files, a separate errors file). Each line carries <code>task_id</code> / <code>call_id</code>.",
+      "<code>llm_calls.error</code> is a short message safe for users; details are in system logs, found by the call id.",
+      "Reports (model load, failures, pipeline quality) are SQL views, after MVP."
+    ],
+    tables: [
+      { name: "activity_events", note: "Important human actions: workspace and admin.", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["occurred_at", "timestamptz", false, "default now()"],
+        ["actor_id", "bigint", true, "no FK, row survives user delete; NULL = system"],
+        ["actor_name", "text", true, "copy of the name at that moment"],
+        ["workspace_id", "bigint", true, "no FK; NULL = global action"],
+        ["action", "enum", false, "member_added | role_added | task_deleted | admin_granted | user_deleted | …"],
+        ["target_type", "enum", true, "workspace | membership | task | work | publication | publisher | user"],
+        ["target_id", "bigint", true, ""],
+        ["target_label", "text", true, "copy of the target's name at that moment"],
+        ["details", "jsonb", true, "e.g. {\"role\": \"reviewer\"}"]
+      ], constraints: ["Subtype tables (PK = FK to <code>activity_events.id</code>): later, when an area needs real columns"] }
+    ]
+  },
+  {
+    n: 6, id: "g6", name: "Auth", status: "done",
+    ideas: [
+      "Three separate things: who the person is (<code>users</code>), how they prove it (credentials, identities), proof they are logged in now (<code>sessions</code>).",
+      "MVP: email + password only. GitHub / Google login is designed now and built later.",
+      "Access token = short JWT, not stored. Refresh token = stored as a hash, replaced on each refresh.",
+      "No one-time tokens, no invites, no account linking for now: an admin resets passwords by hand, the owner adds people directly.",
+      "Deleting a user cascades to all auth rows. A <code>user_deleted</code> event keeps only id and username, no email."
+    ],
+    tables: [
+      { name: "password_credentials", note: "Login uses users.email.", cols: [
+        ["user_id", "bigint", false, "one password per user", {pk: true, ref: "users", rule: "CASCADE"}],
+        ["password_hash", "text", false, "argon2, never the password"],
+        ["updated_at", "timestamptz", false, "default now()"]
+      ]},
+      { name: "user_identities", note: "External providers. Built later.", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["user_id", "bigint", false, "", {ref: "users", rule: "CASCADE"}],
+        ["provider", "enum", false, "github | google"],
+        ["provider_user_id", "text", false, "the user's id at that provider"],
+        ["created_at", "timestamptz", false, "default now()"]
+      ], constraints: ["Unique <code>(provider, provider_user_id)</code>"] },
+      { name: "admins", note: "A row here = an admin.", cols: [
+        ["user_id", "bigint", false, "", {pk: true, ref: "users", rule: "CASCADE"}],
+        ["granted_at", "timestamptz", false, "default now()"],
+        ["granted_by", "text", true, "plain text for now, no FK"]
+      ]},
+      { name: "sessions", cols: [
+        ["id", "bigint", false, "", {pk: true}],
+        ["user_id", "bigint", false, "", {ref: "users", rule: "CASCADE"}],
+        ["refresh_token_hash", "text", false, "unique"],
+        ["created_at", "timestamptz", false, "default now()"],
+        ["expires_at", "timestamptz", false, ""],
+        ["last_used_at", "timestamptz", true, ""],
+        ["revoked_at", "timestamptz", true, "NULL = active"]
+      ]}
+    ]
+  }
 ];
 
 const STATUS = { done: "done", wip: "in progress", review: "under review", todo: "not started" };
