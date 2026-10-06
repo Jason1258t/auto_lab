@@ -59,6 +59,11 @@ class WorkspaceAccess:
     def can_read_activity(self) -> bool:
         return self.is_owner or EDITOR in self.roles or self.is_admin
 
+    @property
+    def can_edit_tasks(self) -> bool:
+        """Create, edit, queue, cancel, delete tasks; change the reviewer."""
+        return self.is_owner or EDITOR in self.roles
+
     def can_manage_role(self, role: str) -> bool:
         if role == EDITOR:
             return self.is_owner
@@ -115,6 +120,11 @@ def require_owner(access: WorkspaceAccess) -> User:
 def require_inside(access: WorkspaceAccess) -> None:
     if not access.can_see_inside:
         raise forbidden("Only members can see this")
+
+
+def require_task_editor(access: WorkspaceAccess) -> None:
+    if not access.can_edit_tasks:
+        raise forbidden("Only the owner and editors can change tasks")
 
 
 def require_not_archived(access: WorkspaceAccess) -> None:

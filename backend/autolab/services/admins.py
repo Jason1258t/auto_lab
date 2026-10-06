@@ -33,3 +33,24 @@ async def grant_admin(
     )
     await db.commit()
     return admin
+
+
+async def revoke_admin(db: AsyncSession, user_id: int, *, actor: User) -> None:
+    """An admin cannot remove themselves, so the last admin cannot lock
+    everyone out by mistake."""
+    if user_id == actor.id:
+        raise AppError(409, "cannot_revoke_self", "You cannot remove your own admin rights")
+    admin = await db.get(Admin, user_id)
+    if admin is None:
+        raise AppError(404, "admin_not_found", f"User {user_id} is not an admin")
+    user = await db.get(User, user_id)
+    await db.delete(admin)
+    activity.record(
+        db,
+        "admin_revoked",
+        actor=actor,
+        target_type="user",
+        target_id=user_id,
+        target_label=user.username if user else None,
+    )
+    await db.commit()

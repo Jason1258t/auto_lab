@@ -143,6 +143,12 @@ async def remove_member(
     await members_service.remove_member(db, access, user_id)
 
 
+@router.post("/{workspace_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+async def leave(workspace_id: int, principal: CurrentPrincipal, db: DbSession) -> None:
+    access = await load_access(db, workspace_id, principal.user)
+    await members_service.leave(db, access)
+
+
 @router.put("/{workspace_id}/members/{user_id}/roles/{role}")
 async def grant_role(
     workspace_id: int, user_id: int, role: str, principal: CurrentPrincipal, db: DbSession
