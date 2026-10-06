@@ -45,6 +45,16 @@ After `--autogenerate`, always read the new file. Autogenerate does not
 see triggers, seed data, or new ENUM values (`ALTER TYPE ... ADD VALUE`);
 write those by hand.
 
+## Run the API
+
+```bash
+uv run uvicorn autolab.api.app:app --reload   # http://localhost:8000/docs
+uv run autolab create-admin <user_id>          # give a user admin rights
+```
+
+`JWT_SECRET` in `.env` must be at least 32 characters, or the API does
+not start.
+
 ## Checks
 
 ```bash
