@@ -1,8 +1,8 @@
 # Pipeline spec (draft)
 
 How a pipeline file looks and how the worker runs it. Written by Claude
-on 2026-10-07 as a proposal for the author to accept or change. Open
-questions are at the end.
+on 2026-10-07; accepted by the author the same day, with the decisions
+in "Decided" at the end.
 
 Example: `pipelines/research/1.0.0.yaml`.
 
@@ -191,18 +191,19 @@ A file is valid when:
 - `ARCHITECTURE.md` lists `research` as plan, search, fetch, summarize,
   synthesize, verify. This spec adds `write` and moves `verify` before
   `synthesize`, so only checked facts reach the text.
-- New config: the search service URL (open question 1).
+- New config: the search service URL (`SEARXNG_URL`).
 
-## Open questions
+## Decided (2026-10-07)
 
-1. **Search service.** Proposal: SearxNG (free, self-hosted, in Docker
-   next to Postgres). No API key and no cost. Other option: a paid search
-   API.
-2. **A failed task.** There is no `failed` task status yet (parked). If a
-   step fails, the task needs an end state. Proposal: add `failed` to the
-   `task_status` enum (one `ALTER TYPE ... ADD VALUE` migration). Until
-   then: the worker sets it to `cancelled` with an error summary.
-3. **Long pages.** MVP: cut to `config.max_chars`. Later: split into
-   chunks and run `summarize` per chunk.
-4. **User files as sources** (`study_notes` with the user's own
-   material): needs file upload, not designed yet.
+1. **Search service: SearxNG**, self-hosted in Docker next to Postgres
+   (no API key, no cost). Config: `SEARXNG_URL`.
+2. **A failed task gets the status `failed`** (new value of the
+   `task_status` enum, migration 0003). It is final, like `cancelled`.
+   The worker sets it when a step fails; the step summary says why.
+3. **Long pages:** MVP cuts the text to `config.max_chars`. Later:
+   chunks, with `summarize` per chunk.
+4. **User files:** a workspace has its own files (`workspace_files`,
+   migration 0003). A file is copied into the workspace folder
+   `data/workspaces/<id>/files/` and the table keeps its original name,
+   original path and current file name. How a task picks files as
+   sources (a `files` step kind) is designed later.
