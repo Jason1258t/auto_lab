@@ -50,6 +50,8 @@ workspace log page.
 - Workspace: `member_added`, `member_removed`, `role_added`,
   `role_removed`, `workspace_taken`, `made_public`, `archived`,
   `task_deleted`, `work_published`.
+- Added later: `unarchived`, `workspace_deleted` (migration 0002),
+  `file_added`, `file_removed` and target type `file` (migration 0003).
 - Global: `publisher_created`, `admin_granted`, `admin_revoked`,
   `user_deleted` (id and username only, no email; see `auth.md`).
 

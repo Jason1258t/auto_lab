@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E4
 
 from autolab.api.app import create_app  # noqa: E402
 from autolab.api.deps import get_session  # noqa: E402
-from autolab.config import get_settings  # noqa: E402
+from autolab.config import Settings, get_settings  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -77,13 +77,21 @@ async def db(migrated_db: str) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-async def client(db: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
+def settings(tmp_path) -> Settings:
+    """App settings with a temp data folder, so tests never write into
+    the real data/. Tests may change fields (e.g. max_upload_bytes)."""
+    return get_settings().model_copy(update={"data_dir": str(tmp_path / "data")})
+
+
+@pytest.fixture
+async def client(db: AsyncSession, settings: Settings) -> AsyncIterator[httpx.AsyncClient]:
     app = create_app()
 
     async def same_session() -> AsyncIterator[AsyncSession]:
         yield db
 
     app.dependency_overrides[get_session] = same_session
+    app.dependency_overrides[get_settings] = lambda: settings
     # https: the refresh cookie is Secure, so it is only sent over https.
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:

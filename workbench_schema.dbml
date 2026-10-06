@@ -28,6 +28,7 @@ Enum task_status {
   in_review
   done
   cancelled
+  failed
 }
 
 Enum task_step_status {
@@ -69,6 +70,7 @@ TableGroup people_and_access {
   workspaces
   roles
   memberships
+  workspace_files
 }
 
 Table users {
@@ -118,6 +120,28 @@ Table memberships {
 Ref: memberships.workspace_id > workspaces.id [delete: cascade]
 Ref: memberships.user_id > users.id [delete: cascade]
 Ref: memberships.role_id > roles.id [delete: restrict]
+
+Table workspace_files {
+  id bigint [pk, increment]
+  workspace_id bigint [not null]
+  original_name text [not null]
+  original_path text [note: 'for people only, never used to open a file']
+  file_name text [not null, note: "current name on disk: '<id>_<safe name>'"]
+  size_bytes bigint [not null, note: '>= 0']
+  sha256 text [not null]
+  content_type text
+  uploaded_by bigint
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (workspace_id, file_name) [unique]
+  }
+
+  Note: 'Files live in data/workspaces/<workspace_id>/files/ (migration 0003)'
+}
+
+Ref: workspace_files.workspace_id > workspaces.id [delete: cascade]
+Ref: workspace_files.uploaded_by > users.id [delete: set null]
 
 // ---------------------------------------------------------------------
 // Group 2: Model catalog

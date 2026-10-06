@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from autolab.api.routers import auth, catalog, me, tasks, workspaces
+from autolab.api.routers import auth, catalog, files, me, tasks, workspaces
 from autolab.config import get_settings
 from autolab.db.engine import make_engine, make_session_factory
 from autolab.errors import install_error_handlers
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
         auth.router,
         me.router,
         workspaces.router,
+        files.router,
         tasks.router,
         catalog.router,
         catalog.admin_router,

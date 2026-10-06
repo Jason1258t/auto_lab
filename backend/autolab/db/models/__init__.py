@@ -11,6 +11,7 @@ from autolab.db.models.auth import (
 )
 from autolab.db.models.base import Base
 from autolab.db.models.catalog import Capability, Model, ModelCapability, ModelProvider
+from autolab.db.models.files import WorkspaceFile
 from autolab.db.models.people import Membership, Role, User, Workspace
 from autolab.db.models.results import Publication, Publisher, Quote, TaskReview, Work, WorkSource
 from autolab.db.models.tasks import (
@@ -52,4 +53,5 @@ __all__ = [
     "Work",
     "WorkSource",
     "Workspace",
+    "WorkspaceFile",
 ]

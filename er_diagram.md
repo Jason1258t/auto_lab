@@ -25,6 +25,8 @@ erDiagram
     workspaces ||--o{ memberships : "has"
     users ||--o{ memberships : "is member"
     roles ||--o{ memberships : "grants"
+    workspaces ||--o{ workspace_files : "stores"
+    users |o--o{ workspace_files : "uploads"
 
     model_providers ||--o{ models : "serves"
     models ||--o{ model_capabilities : "has"
@@ -99,6 +101,18 @@ erDiagram
         bigint user_id PK, FK
         smallint role_id PK, FK
     }
+    workspace_files {
+        bigint id PK
+        bigint workspace_id FK "CASCADE"
+        text original_name
+        text original_path "for people only"
+        text file_name "UK with workspace_id"
+        bigint size_bytes
+        text sha256
+        text content_type
+        bigint uploaded_by FK "SET NULL"
+        timestamptz created_at
+    }
     model_providers {
         smallint id PK
         text name UK
@@ -152,7 +166,7 @@ erDiagram
         bigint model_id FK
         text title
         text input
-        task_status status "draft | queued | running | in_review | done | cancelled"
+        task_status status "draft | queued | running | in_review | done | cancelled | failed"
         bigint created_by FK "SET NULL"
         bigint reviewer_id FK "SET NULL"
         timestamptz created_at
@@ -288,6 +302,8 @@ erDiagram
     workspaces ||--o{ memberships : "has"
     users ||--o{ memberships : "is member"
     roles ||--o{ memberships : "grants"
+    workspaces ||--o{ workspace_files : "stores"
+    users |o--o{ workspace_files : "uploads"
     model_providers ||--o{ models : "serves"
     models ||--o{ model_capabilities : "has"
     capabilities ||--o{ model_capabilities : "describes"

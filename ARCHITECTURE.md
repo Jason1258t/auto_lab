@@ -40,7 +40,7 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 
 | # | Group | Tables | Status |
 |---|---|---|---|
-| 1 | People and access | `users`, `workspaces`, `roles`, `memberships` | done (workspace visibility added 2026-10-01) |
+| 1 | People and access | `users`, `workspaces`, `roles`, `memberships`, `workspace_files` | done (workspace visibility added 2026-10-01) |
 | 2 | Model catalog | `model_providers`, `models`, `capabilities`, `model_capabilities` | done |
 | 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps`, `llm_calls`, `llm_responses`, `log_deletions` | done |
 | 4 | Results and evidence | `works`, `work_sources`, `quotes`, `task_reviews`, `publishers`, `publications` | done |
@@ -169,6 +169,8 @@ data/
   works/<year>/<month>/<task_id>.md   # finished result, path stored in works.file_path
   cache/pages/<url_hash>.txt          # fetched page cache
   logs/<call_id>.json                 # full prompt/response of one LLM call (FileLogStore)
+  workspaces/<id>/files/<id>_<name>   # user files, rows in workspace_files
+  tasks/<task_id>/<index>_<step>.json # step outputs while a task runs (pipeline_spec.md)
 
 pipelines/<pipeline_name>/<version_name>.yaml   # pipeline versions, in the repo (git)
 ```

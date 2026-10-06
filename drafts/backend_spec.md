@@ -153,6 +153,7 @@ check roles themselves.
 | Review a task | the assigned `reviewer_id`, or any member with the `editor` or `reviewer` role |
 | Publish a work | workspace owner only; the task must be `done` (accepted review); the user must own the publisher |
 | Read the workspace activity log | owner, editor |
+| Add / remove workspace files | owner, editor (members list and download) |
 | Archive, make public | owner |
 | Global activity log, models, providers, admins | admins |
 
@@ -196,6 +197,7 @@ the API does not reveal that it exists.
 | Publishers | `GET /publishers/mine`, `POST /publishers`, `GET /publishers/{id}` |
 | Publications | `GET /publications` (public feed), `GET /publications/{id}`, `POST /publications` |
 | Activity | `GET /workspaces/{id}/activity`, `GET /admin/activity` |
+| Files | `GET /workspaces/{id}/files`, `POST /workspaces/{id}/files` (multipart: `file`, optional `original_path`), `GET /workspaces/{id}/files/{file_id}/download`, `DELETE /workspaces/{id}/files/{file_id}` |
 | Catalog | `GET /models`, `GET /pipelines` (newest versions) |
 | Admin | `POST/PATCH /admin/models`, `POST/PATCH /admin/model-providers`, `POST/DELETE /admin/admins/{user_id}` |
 

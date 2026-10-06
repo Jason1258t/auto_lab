@@ -37,10 +37,9 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: the author reviews `drafts/pipeline_spec.md` and the example
-`pipelines/research/1.0.0.yaml` (PR #6), then backend step 6 (worker:
-pipeline sync, taking tasks, LLM manager, Ollama adapter, log store).
-Steps 1-5 are merged into `main` (PRs #1-#5). How to run: `DEVELOPMENT.md`.
+Next step: backend step 6 (worker: pipeline sync, taking tasks, LLM
+manager, Ollama adapter, log store, SearxNG). The pipeline spec is
+accepted (PR #6). Steps 1-5 are merged into `main` (PRs #1-#5). How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
@@ -94,6 +93,11 @@ this file at the end; keep answers short.
   cancel, delete; published work blocks delete), catalog (`GET /models`,
   `GET /pipelines`) and admin routes (models, providers, admins, global
   activity). Tests: `tests/test_tasks.py`, `tests/test_catalog.py`.
+- 2026-10-07: pipeline spec accepted (`drafts/pipeline_spec.md`,
+  `pipelines/research/1.0.0.yaml`; SearxNG as search service). Migration
+  0003: task status `failed`, table `workspace_files` (user files copied
+  into `data/workspaces/<id>/files/`), API for files and
+  `autolab add-file <workspace_id> <path> [--move]`.
 - Not built yet: `GET /tasks/{id}/calls` and `/calls/{id}/log` (come with
   the worker and the log store, step 6).
 - `DEVELOPMENT.md` — how to run everything locally.

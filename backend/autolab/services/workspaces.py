@@ -1,16 +1,19 @@
 """Workspaces: create, list, edit, archive, make public, take, delete.
 Each change is one transaction together with its activity event."""
 
+import asyncio
 from typing import Literal
 
 from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from autolab.config import Settings
 from autolab.db.models import ActivityEvent, Membership, Role, User, Workspace
 from autolab.db.models.enums import WorkspaceVisibility
 from autolab.errors import AppError
 from autolab.services import activity
+from autolab.services.files import remove_workspace_folder
 from autolab.services.permissions import (
     WorkspaceAccess,
     forbidden,
@@ -164,9 +167,9 @@ async def take(db: AsyncSession, user: User, workspace_id: int) -> Workspace:
     return workspace
 
 
-async def delete_workspace(db: AsyncSession, access: WorkspaceAccess) -> None:
-    """Only an empty workspace can be deleted (tasks.workspace_id is
-    RESTRICT). Otherwise: archive it."""
+async def delete_workspace(db: AsyncSession, settings: Settings, access: WorkspaceAccess) -> None:
+    """Only a workspace without tasks can be deleted (tasks.workspace_id
+    is RESTRICT). Otherwise: archive it. Its files are deleted too."""
     actor = require_owner(access)
     workspace = access.workspace
     try:  # memberships go with it (CASCADE)
@@ -179,6 +182,7 @@ async def delete_workspace(db: AsyncSession, access: WorkspaceAccess) -> None:
         ) from exc
     _event(db, "workspace_deleted", actor, workspace)
     await db.commit()
+    await asyncio.to_thread(remove_workspace_folder, settings, workspace.id)
 
 
 async def list_activity(

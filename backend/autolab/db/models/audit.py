@@ -26,8 +26,19 @@ ACTIONS = (
     "user_deleted",
     "unarchived",
     "workspace_deleted",
+    "file_added",
+    "file_removed",
 )
-TARGET_TYPES = ("workspace", "membership", "task", "work", "publication", "publisher", "user")
+TARGET_TYPES = (
+    "workspace",
+    "membership",
+    "task",
+    "work",
+    "publication",
+    "publisher",
+    "user",
+    "file",
+)
 
 
 def _in_list(column: str, values: tuple[str, ...]) -> str:
