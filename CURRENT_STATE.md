@@ -37,9 +37,9 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 6 (worker: pipeline sync, taking tasks, LLM
-manager, Ollama adapter, log store, SearxNG). The pipeline spec is
-accepted (PR #6). Steps 1-5 are merged into `main` (PRs #1-#5). How to run: `DEVELOPMENT.md`.
+Next step: backend step 6b (research step kinds: SearxNG search, safe
+fetch, summarize with quote check, verify, synthesize, write, assembling
+the work). Step 6a (worker frame) is PR #8. How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
@@ -98,6 +98,12 @@ this file at the end; keep answers short.
   0003: task status `failed`, table `workspace_files` (user files copied
   into `data/workspaces/<id>/files/`), API for files and
   `autolab add-file <workspace_id> <path> [--move]`.
+- Backend step 6a (2026-10-07): worker frame (`autolab-worker`):
+  recovery at start, pipeline sync, `SKIP LOCKED` claim, LLM manager
+  (one queue per model), Ollama adapter, async log store (MongoDB in
+  Docker; `backend/log_store.py` moved to `autolab/logstore.py`),
+  generic LLM step, kind `plan`, cancel, failed tasks, log cleanup,
+  clean stop on SIGTERM. Tested with a fake model; no real Ollama run yet.
 - Not built yet: `GET /tasks/{id}/calls` and `/calls/{id}/log` (come with
   the worker and the log store, step 6).
 - `DEVELOPMENT.md` — how to run everything locally.

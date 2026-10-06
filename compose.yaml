@@ -23,5 +23,19 @@ services:
       timeout: 3s
       retries: 15
 
+  # Log store for full LLM prompts and outputs (LOG_STORE=mongo).
+  mongo:
+    image: mongo:8
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
 volumes:
   pgdata:
+  mongodata:

@@ -5,13 +5,17 @@ write the log. The id comes from Postgres, not from the store, so we can
 switch between files and MongoDB without changing the database.
 
 One log = one LLM call: {"request": {...}, "response": {...} or None}.
+Async, because the worker is async.
 """
 
+import asyncio
 import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
+
+from autolab.config import Settings
 
 
 def _check_id(log_id: int) -> None:
@@ -25,16 +29,16 @@ def _now() -> str:
 
 
 class LogStore(Protocol):
-    def create(self, log_id: int, request: dict) -> None:
+    async def create(self, log_id: int, request: dict) -> None:
         """Save the request under the given id (= llm_calls.id)."""
 
-    def add_response(self, log_id: int, response: dict) -> None:
+    async def add_response(self, log_id: int, response: dict) -> None:
         """Add the model response to an existing log."""
 
-    def get(self, log_id: int) -> dict | None:
+    async def get(self, log_id: int) -> dict | None:
         """Return the log, or None if it does not exist."""
 
-    def delete(self, log_id: int) -> None:
+    async def delete(self, log_id: int) -> None:
         """Delete the log. No error if it is already gone."""
 
 
@@ -56,56 +60,70 @@ class FileLogStore:
         tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         os.replace(tmp, path)
 
-    def create(self, log_id: int, request: dict) -> None:
-        self._write(log_id, {"request": request, "response": None, "created_at": _now()})
-
-    def add_response(self, log_id: int, response: dict) -> None:
-        data = self.get(log_id)
-        if data is None:
-            raise KeyError(log_id)
-        data["response"] = response
-        data["answered_at"] = _now()
-        self._write(log_id, data)
-
-    def get(self, log_id: int) -> dict | None:
+    def _read(self, log_id: int) -> dict | None:
         try:
             return json.loads(self._path(log_id).read_text(encoding="utf-8"))
         except FileNotFoundError:
             return None
 
-    def delete(self, log_id: int) -> None:
-        self._path(log_id).unlink(missing_ok=True)
+    async def create(self, log_id: int, request: dict) -> None:
+        data = {"request": request, "response": None, "created_at": _now()}
+        await asyncio.to_thread(self._write, log_id, data)
+
+    async def add_response(self, log_id: int, response: dict) -> None:
+        data = await self.get(log_id)
+        if data is None:
+            raise KeyError(log_id)
+        data["response"] = response
+        data["answered_at"] = _now()
+        await asyncio.to_thread(self._write, log_id, data)
+
+    async def get(self, log_id: int) -> dict | None:
+        return await asyncio.to_thread(self._read, log_id)
+
+    async def delete(self, log_id: int) -> None:
+        await asyncio.to_thread(self._path(log_id).unlink, missing_ok=True)
 
 
 class MongoLogStore:
     """One document per log, `_id` = llm_calls.id."""
 
     def __init__(self, url: str, db: str = "autolab", collection: str = "llm_logs") -> None:
-        from pymongo import MongoClient  # only needed if Mongo is used
+        from pymongo import AsyncMongoClient  # only needed if Mongo is used
 
-        self.col = MongoClient(url)[db][collection]
+        self.client = AsyncMongoClient(url)
+        self.col = self.client[db][collection]
 
-    def create(self, log_id: int, request: dict) -> None:
+    async def create(self, log_id: int, request: dict) -> None:
         _check_id(log_id)
-        self.col.insert_one(
+        await self.col.insert_one(
             {"_id": log_id, "request": request, "response": None, "created_at": _now()}
         )
 
-    def add_response(self, log_id: int, response: dict) -> None:
+    async def add_response(self, log_id: int, response: dict) -> None:
         _check_id(log_id)
-        res = self.col.update_one(
+        res = await self.col.update_one(
             {"_id": log_id}, {"$set": {"response": response, "answered_at": _now()}}
         )
         if res.matched_count == 0:
             raise KeyError(log_id)
 
-    def get(self, log_id: int) -> dict | None:
+    async def get(self, log_id: int) -> dict | None:
         _check_id(log_id)
-        doc = self.col.find_one({"_id": log_id})
+        doc = await self.col.find_one({"_id": log_id})
         if doc is not None:
             doc.pop("_id")
         return doc
 
-    def delete(self, log_id: int) -> None:
+    async def delete(self, log_id: int) -> None:
         _check_id(log_id)
-        self.col.delete_one({"_id": log_id})
+        await self.col.delete_one({"_id": log_id})
+
+    async def close(self) -> None:
+        await self.client.close()
+
+
+def make_log_store(settings: Settings) -> LogStore:
+    if settings.log_store == "mongo":
+        return MongoLogStore(settings.mongo_url, db=settings.mongo_db)
+    return FileLogStore(Path(settings.data_dir) / "logs")

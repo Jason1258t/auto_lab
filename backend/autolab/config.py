@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     # Log store for full LLM prompts and outputs.
     log_store: Literal["mongo", "file"] = "file"
     mongo_url: str = "mongodb://localhost:27017"
+    mongo_db: str = "autolab"
+
+    # Worker
+    worker_poll_seconds: float = 3.0  # wait between checks for queued tasks
+    log_cleanup_seconds: float = 300.0
+    llm_timeout_seconds: float = 300.0  # small GPU: one call can be slow
 
     data_dir: str = "data"
     max_upload_bytes: int = 50 * 1024 * 1024  # one workspace file

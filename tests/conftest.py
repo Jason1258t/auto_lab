@@ -157,3 +157,16 @@ async def catalog(db: AsyncSession) -> Catalog:
     db.add_all([version, model])
     await db.commit()
     return Catalog(pipeline_id, version.id, model.id)
+
+
+@pytest.fixture
+def session_factory(db: AsyncSession):
+    """New sessions on the test connection, for code that opens its own
+    sessions (the worker). Their commits are savepoints too."""
+
+    def make() -> AsyncSession:
+        return AsyncSession(
+            bind=db.bind, expire_on_commit=False, join_transaction_mode="create_savepoint"
+        )
+
+    return make
