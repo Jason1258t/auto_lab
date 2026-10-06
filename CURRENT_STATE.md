@@ -37,8 +37,10 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 7b (publishers and publications). Step 7a
-(reviews, revise, works, calls) = PR #13. Deployed on the test server
+Next step: the backend build order (steps 1-7) is done (PRs #1-#14).
+Next big part: the React frontend. Smaller backend items: a revise run
+with a real model on the server, `openai_compatible` / `anthropic`
+adapters, report views (after MVP). Deployed on the test server
 (`DEPLOY.md`).
 
 **Test server (2026-10-07):** `http://192.168.0.101:8000` (local network),
@@ -129,6 +131,10 @@ this file at the end; keep answers short.
   every prompt, earlier outputs reused), `GET /tasks/{id}/work`,
   `GET /workspaces/{id}/works`, `GET /tasks/{id}/calls`,
   `GET /calls/{id}/log`.
+- Backend step 7b (2026-10-07): publishers (unique name, owner) and
+  publications (workspace owner only, accepted work only, own publisher
+  only, once per work), public feed and detail (work text, sources,
+  quotes; never the workspace), admin delete.
 - `DEVELOPMENT.md` — how to run everything locally.
 - `backend/log_store.py` — `LogStore` interface with `FileLogStore`
   (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).
