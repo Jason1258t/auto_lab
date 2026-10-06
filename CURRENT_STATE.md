@@ -38,8 +38,8 @@ description below (18 tables, `task_types`, ...) is outdated.
   decisions (2026-10-06).
 
 Next step: start the backend, step 1 of the build order in
-`drafts/backend_spec.md` (section 13). `drafts/schema_design.html` does
-not show the ENUM change yet (update on request).
+`drafts/backend_spec.md` (section 13). `drafts/schema_design.html` is
+up to date (ENUM types, ER diagram section).
 `drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
 
 Session rules: update `drafts/schema_design.md` after each decision and

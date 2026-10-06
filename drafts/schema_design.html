@@ -148,19 +148,21 @@
   .box li { margin: 4px 0; }
   .box code, .ideas code { font-family: var(--mono); font-size: 12.5px; }
 
+  .er { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; overflow-x: auto; }
+  .er pre { margin: 0; }
   .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12.5px; color: var(--muted); margin-bottom: 28px; }
 </style>
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-10-06 · FINAL REVIEW DONE</div>
+    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-10-06 · FINAL</div>
     <h1>AutoLab database schema, group by group</h1>
-    <p class="lede">A working draft, designed from scratch. When a group is final, it moves into <code>workbench_schema.sql</code>. The same content lives in <code>drafts/schema_design.md</code>; reasons and details are in <code>drafts/workspaces.md</code>, <code>drafts/llm_manager.md</code>, <code>drafts/results_and_evidence.md</code>, <code>drafts/audit.md</code> and <code>drafts/auth.md</code>. After-MVP features are in <code>BACKLOG.md</code>.</p>
+    <p class="lede">Designed from scratch, group by group, and final. The DDL is in <code>workbench_schema.sql</code>, the diagram source in <code>er_diagram.md</code>. The same content lives in <code>drafts/schema_design.md</code>; reasons and details are in <code>drafts/workspaces.md</code>, <code>drafts/llm_manager.md</code>, <code>drafts/results_and_evidence.md</code>, <code>drafts/audit.md</code> and <code>drafts/auth.md</code>. After-MVP features are in <code>BACKLOG.md</code>.</p>
     <div class="rules">
       <span>Tables <code>snake_case</code>, plural</span>
       <span>Own key <code>id</code></span>
       <span>Links <code>user_id</code>, <code>workspace_id</code>…</span>
-      <span>No ENUM: <code>text</code> + CHECK, or a lookup table</span>
+      <span>Fixed lists: ENUM; growing lists: <code>text</code> + CHECK; admin data: lookup table</span>
     </div>
   </header>
 
@@ -174,6 +176,59 @@
   </div>
 
   <main id="groups"></main>
+
+  <section class="group" id="er">
+    <div class="ghead"><h2>ER diagram</h2><span class="pill done">overview</span></div>
+    <ul class="ideas">
+      <li>Crow's foot notation: <code>||</code> exactly one, <code>|o</code> zero or one (the FK can be NULL), <code>o{</code> zero or many.</li>
+      <li><code>activity_events</code> and <code>log_deletions</code> have no FKs on purpose: their rows must survive deletes.</li>
+      <li>The full diagram with all attributes is in <code>er_diagram.md</code>.</li>
+    </ul>
+    <div class="er"><pre class="mermaid">
+erDiagram
+    users |o--o{ workspaces : "owns / created"
+    workspaces ||--o{ memberships : "has"
+    users ||--o{ memberships : "is member"
+    roles ||--o{ memberships : "grants"
+
+    model_providers ||--o{ models : "serves"
+    models ||--o{ model_capabilities : "has"
+    capabilities ||--o{ model_capabilities : "describes"
+
+    pipelines ||--o{ pipeline_versions : "has versions"
+    workspaces ||--o{ tasks : "holds"
+    pipeline_versions ||--o{ tasks : "runs"
+    models ||--o{ tasks : "used by"
+    users |o--o{ tasks : "creates / reviews"
+    tasks ||--o{ task_steps : "has"
+    task_reviews |o--o{ task_steps : "causes revise"
+    task_steps ||--o{ llm_calls : "makes"
+    models ||--o{ llm_calls : "answers"
+    llm_calls ||--o| llm_responses : "gets"
+
+    tasks ||--o| works : "produces"
+    works ||--o{ work_sources : "uses"
+    work_sources ||--o{ quotes : "backs"
+    tasks ||--o{ task_reviews : "is reviewed"
+    users |o--o{ task_reviews : "writes"
+    users |o--o{ publishers : "owns"
+    publishers ||--o{ publications : "signs"
+    works ||--o| publications : "is published as"
+
+    users ||--o| password_credentials : "logs in with"
+    users ||--o{ user_identities : "logs in with"
+    auth_providers ||--o{ user_identities : "provides"
+    users ||--o| admins : "is"
+    users ||--o{ sessions : "has"
+
+    activity_events {
+        bigint id PK
+    }
+    log_deletions {
+        bigint call_id PK
+    }
+</pre></div>
+  </section>
 
   <section class="group" id="later">
     <div class="ghead"><h2>Open and parked</h2></div>
@@ -249,7 +304,7 @@ const GROUPS = [
         ["description", "text", true, ""],
         ["created_by", "bigint", true, "creator, never changes", {ref: "users", rule: "SETNULL"}],
         ["owner_id", "bigint", true, "NULL = free project", {ref: "users", rule: "SETNULL"}],
-        ["visibility", "text", false, "CHECK: private | public, default private"],
+        ["visibility", "workspace_visibility", false, "enum: private | public, default private"],
         ["archived_at", "timestamptz", true, "NULL = active"],
         ["created_at", "timestamptz", false, "default now()"]
       ], constraints: [
@@ -307,7 +362,7 @@ const GROUPS = [
       { name: "model_capabilities", cols: [
         ["model_id", "bigint", false, "", {pk: true, ref: "models", rule: "CASCADE"}],
         ["capability_id", "smallint", false, "", {pk: true, ref: "capabilities", rule: "RESTRICT"}],
-        ["kind", "text", false, "CHECK: strength | weakness"],
+        ["kind", "capability_kind", false, "enum: strength | weakness"],
         ["note", "text", true, "model-specific detail"]
       ], constraints: ["PK <code>(model_id, capability_id)</code>"] }
     ]
@@ -345,7 +400,7 @@ const GROUPS = [
         ["model_id", "bigint", false, "", {ref: "models", rule: "RESTRICT"}],
         ["title", "text", false, ""],
         ["input", "text", false, "the user's request"],
-        ["status", "text", false, "CHECK: draft | queued | running | in_review | done | cancelled"],
+        ["status", "task_status", false, "enum: draft | queued | running | in_review | done | cancelled"],
         ["created_by", "bigint", true, "", {ref: "users", rule: "SETNULL"}],
         ["reviewer_id", "bigint", true, "default = created_by (backend)", {ref: "users", rule: "SETNULL"}],
         ["created_at", "timestamptz", false, "default now()"],
@@ -355,7 +410,7 @@ const GROUPS = [
       { name: "task_steps", cols: [
         ["task_id", "bigint", false, "", {pk: true, ref: "tasks", rule: "CASCADE"}],
         ["step_index", "smallint", false, ">= 0", {pk: true}],
-        ["status", "text", false, "CHECK: pending | running | done; cancelled task → running step back to pending"],
+        ["status", "task_step_status", false, "enum: pending | running | done; cancelled task → running step back to pending"],
         ["summary", "text", true, "model's short report"],
         ["review_id", "bigint", true, "NULL = normal step; set = revise step", {ref: "task_reviews", rule: "RESTRICT"}],
         ["started_at", "timestamptz", true, ""],
@@ -367,7 +422,7 @@ const GROUPS = [
         ["step_index", "smallint", false, "FK (task_id, step_index)", {ref: "task_steps", rule: "CASCADE"}],
         ["model_id", "bigint", false, "", {ref: "models", rule: "RESTRICT"}],
         ["attempt", "smallint", false, "1, 2, 3… retry number"],
-        ["status", "text", false, "CHECK: queued | running | done | failed | cancelled"],
+        ["status", "llm_call_status", false, "enum: queued | running | done | failed | cancelled"],
         ["response_schema", "jsonb", true, "NULL = free text"],
         ["params", "jsonb", true, "temperature, max_tokens, seed…"],
         ["error", "text", true, "when failed"],
@@ -379,7 +434,7 @@ const GROUPS = [
         ["call_id", "bigint", false, "", {pk: true, ref: "llm_calls", rule: "CASCADE"}],
         ["input_tokens", "integer", true, ""],
         ["output_tokens", "integer", true, ""],
-        ["finish_reason", "text", true, "CHECK: stop | length | other (raw value in log store)"],
+        ["finish_reason", "finish_reason", true, "enum: stop | length | other (raw value in log store)"],
         ["valid_json", "boolean", true, "NULL = no schema"],
         ["created_at", "timestamptz", false, ""]
       ]},
@@ -409,7 +464,7 @@ const GROUPS = [
         ["id", "bigint", false, "", {pk: true}],
         ["work_id", "bigint", false, "", {ref: "works", rule: "CASCADE"}],
         ["title", "text", false, ""],
-        ["kind", "text", false, "CHECK: web | file"],
+        ["kind", "source_kind", false, "enum: web | file"],
         ["location", "text", false, "URL, or file name with part of its path"],
         ["accessed_at", "timestamptz", false, "when it was read"]
       ], constraints: ["Unique <code>(work_id, location)</code>"] },
@@ -425,7 +480,7 @@ const GROUPS = [
         ["id", "bigint", false, "", {pk: true}],
         ["task_id", "bigint", false, "", {ref: "tasks", rule: "CASCADE"}],
         ["reviewer_id", "bigint", true, "", {ref: "users", rule: "SETNULL"}],
-        ["result", "text", false, "CHECK: accepted | rejected"],
+        ["result", "review_result", false, "enum: accepted | rejected"],
         ["comment", "text", true, "required when rejected"],
         ["created_at", "timestamptz", false, "default now()"]
       ], constraints: ["<code>CHECK (result = 'accepted' OR comment IS NOT NULL)</code>"] },
@@ -525,7 +580,12 @@ document.getElementById("nav").innerHTML = GROUPS.map(g => `
     <span class="gnum">GROUP ${g.n}</span>
     <span class="gname">${g.name}</span>
     <span class="pill ${g.status}">${STATUS[g.status]}</span>
-  </a>`).join("");
+  </a>`).join("") + `
+  <a href="#er">
+    <span class="gnum">OVERVIEW</span>
+    <span class="gname">ER diagram</span>
+    <span class="pill done">diagram</span>
+  </a>`;
 
 function row([name, type, nullable, notes, meta = {}]) {
   const key = meta.pk ? '<span class="key">PK</span>' : "";
