@@ -50,3 +50,18 @@ async def get_principal(
 
 
 CurrentPrincipal = Annotated[Principal, Depends(get_principal)]
+
+
+async def get_optional_user(
+    db: DbSession,
+    settings: SettingsDep,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> User | None:
+    """For routes that also work without login (public workspaces). No
+    token = None; a broken or expired token is still an error."""
+    if credentials is None:
+        return None
+    return (await get_principal(db, settings, credentials)).user
+
+
+OptionalUser = Annotated[User | None, Depends(get_optional_user)]

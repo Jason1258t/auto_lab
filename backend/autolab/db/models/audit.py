@@ -24,6 +24,8 @@ ACTIONS = (
     "admin_granted",
     "admin_revoked",
     "user_deleted",
+    "unarchived",
+    "workspace_deleted",
 )
 TARGET_TYPES = ("workspace", "membership", "task", "work", "publication", "publisher", "user")
 

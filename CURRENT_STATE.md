@@ -37,9 +37,9 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 4 (workspaces, members, permissions,
-`activity_events`), see the build order in `drafts/backend_spec.md`
-(section 13). How to run: `DEVELOPMENT.md`.
+Next step: backend step 5 (tasks API), see the build order in
+`drafts/backend_spec.md` (section 13). Step 4 (workspaces) is on
+`feature/workspaces`. How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
@@ -82,6 +82,12 @@ this file at the end; keep answers short.
   one JSON error shape, `autolab create-admin <user_id>` (writes
   `admin_granted` to `activity_events`). Tests: `tests/test_auth.py`;
   each test runs in a rolled-back transaction (`tests/conftest.py`).
+- Backend step 3 (2026-10-06): CI on GitHub Actions (PR #3).
+- Backend step 4 (2026-10-06): workspaces (create, list by scope
+  mine/public/free, edit, archive, unarchive, make public, take, delete
+  if empty), members and roles (Discord-like `member` base role, migration
+  0002), workspace activity log. All access rules in
+  `services/permissions.py`; one test per rule in `tests/test_workspaces.py`.
 - `DEVELOPMENT.md` — how to run everything locally.
 - `backend/log_store.py` — `LogStore` interface with `FileLogStore`
   (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).

@@ -45,4 +45,4 @@ def test_seed_data(test_url: str, alembic_config: Config) -> None:
     with engine.connect() as conn:
         roles = conn.execute(text("SELECT name FROM roles ORDER BY name")).scalars().all()
     engine.dispose()
-    assert roles == ["editor", "reviewer", "viewer"]
+    assert roles == ["editor", "member", "reviewer"]

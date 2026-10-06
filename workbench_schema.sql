@@ -1,8 +1,8 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migration 0001 (checked with pg_dump on 2026-10-06). After the next
--- migration, rebuild it with pg_dump --schema-only.
+-- migrations 0001-0002 (checked with a pg_dump diff on 2026-10-06). After
+-- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
 -- Rules used everywhere:
@@ -329,7 +329,8 @@ CREATE TABLE activity_events (
                                  'task_deleted', 'work_published',
                                  'publisher_created',
                                  'admin_granted', 'admin_revoked',
-                                 'user_deleted')),
+                                 'user_deleted',
+                                 'unarchived', 'workspace_deleted')),
     target_type  text        CHECK (target_type IN (
                                  'workspace', 'membership', 'task', 'work',
                                  'publication', 'publisher', 'user')),
@@ -414,7 +415,7 @@ CREATE INDEX user_identities_user_id_idx ON user_identities (user_id);
 INSERT INTO roles (name, description) VALUES
     ('editor',   'Can create and edit tasks'),
     ('reviewer', 'Can review results'),
-    ('viewer',   'Can only read');
+    ('member',   'Is in the workspace; can read');
 
 INSERT INTO model_providers (name, adapter, base_url) VALUES
     ('ollama', 'ollama', 'http://localhost:11434');
