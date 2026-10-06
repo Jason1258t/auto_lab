@@ -28,7 +28,7 @@ jobs:
           --health-retries 15
       # Log store tests (MongoLogStore).
       mongo:
-        image: mongo:8
+        image: mongo:8.2  # 8.0 and latest refuse Linux kernel 6.19+ (SERVER-121912)
         ports:
           - 27017:27017
         options: >-

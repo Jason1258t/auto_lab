@@ -46,7 +46,7 @@ services:
         condition: service_started
 
   mongo:
-    image: mongo:8
+    image: mongo:8.2  # 8.0 and latest refuse Linux kernel 6.19+ (SERVER-121912)
     volumes:
       - mongodata:/data/db
     restart: unless-stopped
