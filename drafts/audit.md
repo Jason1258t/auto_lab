@@ -33,8 +33,8 @@ changed row. This keeps it small and easy to read.
 | actor_id | bigint | yes | user who did it; **no FK**, so the row survives when the user is deleted; NULL = the system |
 | actor_name | text | yes | copy of the user's name at that moment |
 | workspace_id | bigint | yes | **no FK**, same reason; NULL = global action (admin, publisher) |
-| action | enum | no | see the list below |
-| target_type | enum | yes | `workspace` / `membership` / `task` / `work` / `publication` / `publisher` / `user` |
+| action | text | no | CHECK: see the list below |
+| target_type | text | yes | CHECK: `workspace` / `membership` / `task` / `work` / `publication` / `publisher` / `user` |
 | target_id | bigint | yes | id of the changed object |
 | target_label | text | yes | copy of its name at that moment (task title, user name...) |
 | details | jsonb | yes | extra data, e.g. `{"role": "reviewer"}` |

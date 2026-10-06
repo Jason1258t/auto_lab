@@ -43,7 +43,7 @@ row would give many NULL columns.
 | step_index | smallint | no | with `task_id` → task_steps |
 | model_id | bigint | no | → models, `RESTRICT` |
 | attempt | smallint | no | 1, 2, 3... retry number for the same step |
-| status | enum | no | `queued` / `running` / `done` / `failed` / `cancelled` |
+| status | text | no | CHECK: `queued` / `running` / `done` / `failed` / `cancelled` |
 | response_schema | jsonb | yes | JSON schema for structured output; NULL = free text |
 | params | jsonb | yes | temperature, max_tokens, seed... |
 | error | text | yes | error text when `failed` |
@@ -59,7 +59,7 @@ Queue wait = `started_at - created_at`. Run time = `finished_at - started_at`.
 | call_id | bigint | no | PK and FK → llm_calls (one call has 0 or 1 response) |
 | input_tokens | integer | yes | from the provider |
 | output_tokens | integer | yes | from the provider |
-| finish_reason | enum | yes | `stop` / `length` (output was cut) / ... |
+| finish_reason | text | yes | CHECK: `stop` / `length` (output was cut) / ... |
 | valid_json | boolean | yes | output matched `response_schema`; NULL = no schema |
 | created_at | timestamptz | no | |
 

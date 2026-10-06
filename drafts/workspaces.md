@@ -57,7 +57,7 @@ Later: importing materials, transferring rights.
 |---|---|---|---|
 | created_by | bigint | yes | **new**, → users, `SET NULL`; never changes (creator ≠ owner) |
 | owner_id | bigint | yes | unchanged; NULL = free (public archived) workspace |
-| visibility | enum | no | **new**, `private` / `public`, default `private` |
+| visibility | text | no | CHECK: **new**, `private` / `public`, default `private` |
 | archived_at | timestamptz | yes | unchanged |
 
 Rules:
@@ -73,5 +73,8 @@ Rules:
    or public) deletes all its `memberships` rows. Later: a membership
    history. Links like `tasks.reviewer_id` / `created_by` stay.
 2. ~~Two people take at once~~ Decided: one
-   `UPDATE workspaces SET owner_id = :me WHERE id = :id AND owner_id IS NULL`;
-   0 rows updated = someone was first.
+   `UPDATE workspaces SET owner_id = :me WHERE id = :id AND owner_id IS NULL
+   AND visibility = 'public' AND archived_at IS NOT NULL`;
+   0 rows updated = someone was first. The extra checks were added on
+   2026-10-05: `owner_id` is also NULL after the owner's account is
+   deleted, and such a private workspace must not be free.

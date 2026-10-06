@@ -3,7 +3,7 @@
 Working notes. Rewritten from the author's draft (`auth.ru.md`,
 2026-10-05).
 
-Last updated: 2026-10-05
+Last updated: 2026-10-06
 
 ## Main idea
 
@@ -44,11 +44,23 @@ Login uses `users.email`, so the email is not stored twice.
 |---|---|---|---|
 | id | bigint | no | PK |
 | user_id | bigint | no | → users, `CASCADE` |
-| provider | enum | no | `github` / `google` |
+| provider_id | smallint | no | → auth_providers, `RESTRICT` |
 | provider_user_id | text | no | the user's id at that provider |
 | created_at | timestamptz | no | default `now()` |
 
-Unique: `(provider, provider_user_id)`.
+Unique: `(provider_id, provider_user_id)`.
+
+## auth_providers (designed now, built later)
+
+A lookup table, not an enum: an admin can turn a provider on or off.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | smallint | no | PK |
+| name | text | no | unique: `github`, `google` |
+| enabled | boolean | no | default `false` |
+
+OAuth client secrets live in the secret store, not here.
 
 ## admins
 

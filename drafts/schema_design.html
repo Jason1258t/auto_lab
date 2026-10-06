@@ -153,13 +153,14 @@
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-10-05</div>
+    <div class="eyebrow">AUTOLAB · SCHEMA DRAFT · UPDATED 2026-10-06 · FINAL REVIEW DONE</div>
     <h1>AutoLab database schema, group by group</h1>
     <p class="lede">A working draft, designed from scratch. When a group is final, it moves into <code>workbench_schema.sql</code>. The same content lives in <code>drafts/schema_design.md</code>; reasons and details are in <code>drafts/workspaces.md</code>, <code>drafts/llm_manager.md</code>, <code>drafts/results_and_evidence.md</code>, <code>drafts/audit.md</code> and <code>drafts/auth.md</code>. After-MVP features are in <code>BACKLOG.md</code>.</p>
     <div class="rules">
       <span>Tables <code>snake_case</code>, plural</span>
       <span>Own key <code>id</code></span>
       <span>Links <code>user_id</code>, <code>workspace_id</code>…</span>
+      <span>No ENUM: <code>text</code> + CHECK, or a lookup table</span>
     </div>
   </header>
 
@@ -170,7 +171,6 @@
     <span><span class="rule CASCADE">CASCADE</span>delete this row too</span>
     <span><span class="rule RESTRICT">RESTRICT</span>block the delete</span>
     <span><span class="rule SETNULL">SET NULL</span>keep row, clear the link</span>
-    <span><span class="rule OPEN">OPEN</span>rule not decided yet</span>
   </div>
 
   <main id="groups"></main>
@@ -179,17 +179,39 @@
     <div class="ghead"><h2>Open and parked</h2></div>
     <div class="later">
       <div class="box">
-        <h3>Next: final review</h3>
+        <h3>Next: SQL and DBML</h3>
         <ul>
-          <li>All six groups are designed. Next: one review across all groups (FKs, delete rules, enums).</li>
-          <li>Then write <code>workbench_schema.sql</code> and <code>workbench_schema.dbml</code> from the draft.</li>
-          <li><code>PROJECT.md</code> and <code>AGENTS.md</code> still mention <code>task_types</code> / <code>pipeline_template</code>.</li>
+          <li>Final review is done (delete rules, no ENUM types, indexes, normalization).</li>
+          <li>Next: write <code>workbench_schema.sql</code> and <code>workbench_schema.dbml</code> from the draft and run the SQL on a real database.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Normalization (3NF)</h3>
+        <ul>
+          <li><code>quotes.claim</code> repeats when a claim has two sources. Accepted for MVP; a <code>claims</code> table is in the backlog.</li>
+          <li><code>activity_events</code> name copies are historical facts, not current values.</li>
+          <li><code>llm_calls.model_id</code> records the model actually used.</li>
+          <li><code>task_reviews.reviewer_id</code> (who reviewed) differs from <code>tasks.reviewer_id</code> (who is assigned).</li>
+          <li>The backend keeps statuses in sync: task <code>done</code> ⇔ an accepted review; call <code>done</code> ⇔ a response row.</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>Indexes (besides PK and UNIQUE)</h3>
+        <ul>
+          <li><code>memberships (user_id)</code>, <code>workspaces (owner_id)</code></li>
+          <li><code>tasks (workspace_id, created_at DESC)</code></li>
+          <li><code>tasks (status) WHERE status IN ('queued', 'running')</code> (partial)</li>
+          <li><code>tasks (reviewer_id) WHERE status = 'in_review'</code> (partial)</li>
+          <li><code>task_steps (review_id)</code>, <code>llm_calls (task_id, step_index)</code>, <code>task_reviews (task_id)</code>, <code>quotes (work_source_id)</code></li>
+          <li><code>publications (publisher_id, published_at DESC)</code>, <code>activity_events (workspace_id, occurred_at DESC)</code></li>
+          <li><code>sessions (user_id)</code>, <code>user_identities (user_id)</code></li>
+          <li>Not indexed on purpose: FKs used only when a user is deleted.</li>
         </ul>
       </div>
       <div class="box">
         <h3>Parked for later</h3>
         <ul>
-          <li>Delete rule for <code>works</code> / <code>publications</code>: deleting a task now also deletes its published work.</li>
+          <li>Reviewer deleted while a task is <code>in_review</code>: nobody can review it (backend logic).</li>
           <li>What happens to tasks when their model becomes unavailable.</li>
           <li><code>failed</code> task state: ignored for now.</li>
           <li>Secret store: only admins and the system read it; probably not Postgres (<code>.env</code> for MVP).</li>
@@ -227,13 +249,14 @@ const GROUPS = [
         ["description", "text", true, ""],
         ["created_by", "bigint", true, "creator, never changes", {ref: "users", rule: "SETNULL"}],
         ["owner_id", "bigint", true, "NULL = free project", {ref: "users", rule: "SETNULL"}],
-        ["visibility", "enum", false, "private | public, default private"],
+        ["visibility", "text", false, "CHECK: private | public, default private"],
         ["archived_at", "timestamptz", true, "NULL = active"],
         ["created_at", "timestamptz", false, "default now()"]
       ], constraints: [
         "Public forever: a <code>BEFORE UPDATE</code> trigger blocks public → private",
         "Archiving deletes all memberships; a public archive also sets <code>owner_id = NULL</code>",
-        "Take a free workspace: <code>UPDATE … WHERE owner_id IS NULL</code> (first one wins)"
+        "Take a free workspace: <code>UPDATE … WHERE owner_id IS NULL AND visibility = 'public' AND archived_at IS NOT NULL</code> (first one wins)",
+        "<code>owner_id</code> is also NULL after the owner's account is deleted; such a workspace is not free"
       ] },
       { name: "roles", cols: [
         ["id", "smallint", false, "", {pk: true}],
@@ -255,12 +278,18 @@ const GROUPS = [
       "No numeric ratings. Capabilities are a shared catalog, linked as strength or weakness."
     ],
     tables: [
+      { name: "model_providers", note: "Lookup table: an admin can add a provider if its adapter exists in code.", cols: [
+        ["id", "smallint", false, "", {pk: true}],
+        ["name", "text", false, "unique: ollama, openai, openrouter, …"],
+        ["adapter", "text", false, "CHECK: ollama | openai_compatible | anthropic"],
+        ["base_url", "text", true, "default URL for its models"],
+        ["secret_id", "text", true, "API key id in external secret store, no FK"]
+      ]},
       { name: "models", cols: [
         ["id", "bigint", false, "", {pk: true}],
-        ["provider", "text", false, "'ollama', 'openai', …"],
+        ["provider_id", "smallint", false, "", {ref: "model_providers", rule: "RESTRICT"}],
         ["name", "text", false, "name the API expects, e.g. llama3.1:8b"],
-        ["base_url", "text", true, "NULL = provider default"],
-        ["secret_id", "text", true, "id in external secret store, no FK"],
+        ["base_url", "text", true, "NULL = model_providers.base_url"],
         ["context_length", "integer", false, "> 0"],
         ["vram_mb", "integer", true, "NULL for cloud"],
         ["ram_mb", "integer", true, "NULL for cloud"],
@@ -269,7 +298,7 @@ const GROUPS = [
         ["description", "text", true, "for people"],
         ["available", "boolean", false, "default true"],
         ["created_at", "timestamptz", false, "default now()"]
-      ], constraints: ["Unique <code>(provider, name)</code>"] },
+      ], constraints: ["Unique <code>(provider_id, name)</code>"] },
       { name: "capabilities", cols: [
         ["id", "smallint", false, "", {pk: true}],
         ["name", "text", false, "unique: json_output, summarize, …"],
@@ -278,7 +307,7 @@ const GROUPS = [
       { name: "model_capabilities", cols: [
         ["model_id", "bigint", false, "", {pk: true, ref: "models", rule: "CASCADE"}],
         ["capability_id", "smallint", false, "", {pk: true, ref: "capabilities", rule: "RESTRICT"}],
-        ["kind", "enum", false, "strength | weakness"],
+        ["kind", "text", false, "CHECK: strength | weakness"],
         ["note", "text", true, "model-specific detail"]
       ], constraints: ["PK <code>(model_id, capability_id)</code>"] }
     ]
@@ -316,7 +345,7 @@ const GROUPS = [
         ["model_id", "bigint", false, "", {ref: "models", rule: "RESTRICT"}],
         ["title", "text", false, ""],
         ["input", "text", false, "the user's request"],
-        ["status", "enum", false, "draft | queued | running | in_review | done | cancelled"],
+        ["status", "text", false, "CHECK: draft | queued | running | in_review | done | cancelled"],
         ["created_by", "bigint", true, "", {ref: "users", rule: "SETNULL"}],
         ["reviewer_id", "bigint", true, "default = created_by (backend)", {ref: "users", rule: "SETNULL"}],
         ["created_at", "timestamptz", false, "default now()"],
@@ -326,19 +355,19 @@ const GROUPS = [
       { name: "task_steps", cols: [
         ["task_id", "bigint", false, "", {pk: true, ref: "tasks", rule: "CASCADE"}],
         ["step_index", "smallint", false, ">= 0", {pk: true}],
-        ["status", "enum", false, "pending | running | done"],
+        ["status", "text", false, "CHECK: pending | running | done; cancelled task → running step back to pending"],
         ["summary", "text", true, "model's short report"],
-        ["review_id", "bigint", true, "NULL = normal step; set = revise step", {ref: "task_reviews", rule: "CASCADE"}],
+        ["review_id", "bigint", true, "NULL = normal step; set = revise step", {ref: "task_reviews", rule: "RESTRICT"}],
         ["started_at", "timestamptz", true, ""],
         ["finished_at", "timestamptz", true, ""]
       ], constraints: ["PK <code>(task_id, step_index)</code>"] },
       { name: "llm_calls", note: "One row = one request to a model. Also the log id.", cols: [
         ["id", "bigint", false, "key in the log store", {pk: true}],
         ["task_id", "bigint", false, "", {ref: "tasks", rule: "CASCADE"}],
-        ["step_index", "smallint", false, "FK (task_id, step_index) → task_steps"],
+        ["step_index", "smallint", false, "FK (task_id, step_index)", {ref: "task_steps", rule: "CASCADE"}],
         ["model_id", "bigint", false, "", {ref: "models", rule: "RESTRICT"}],
         ["attempt", "smallint", false, "1, 2, 3… retry number"],
-        ["status", "enum", false, "queued | running | done | failed | cancelled"],
+        ["status", "text", false, "CHECK: queued | running | done | failed | cancelled"],
         ["response_schema", "jsonb", true, "NULL = free text"],
         ["params", "jsonb", true, "temperature, max_tokens, seed…"],
         ["error", "text", true, "when failed"],
@@ -350,7 +379,7 @@ const GROUPS = [
         ["call_id", "bigint", false, "", {pk: true, ref: "llm_calls", rule: "CASCADE"}],
         ["input_tokens", "integer", true, ""],
         ["output_tokens", "integer", true, ""],
-        ["finish_reason", "enum", true, "stop | length | …"],
+        ["finish_reason", "text", true, "CHECK: stop | length | other (raw value in log store)"],
         ["valid_json", "boolean", true, "NULL = no schema"],
         ["created_at", "timestamptz", false, ""]
       ]},
@@ -370,7 +399,7 @@ const GROUPS = [
     ],
     tables: [
       { name: "works", note: "Exists only after the task is finished.", cols: [
-        ["task_id", "bigint", false, "may change, see parked", {pk: true, ref: "tasks", rule: "CASCADE"}],
+        ["task_id", "bigint", false, "", {pk: true, ref: "tasks", rule: "CASCADE"}],
         ["summary", "text", true, ""],
         ["file_path", "text", false, "data/works/2026/09/<task_id>.md"],
         ["created_at", "timestamptz", false, "default now()"],
@@ -380,7 +409,7 @@ const GROUPS = [
         ["id", "bigint", false, "", {pk: true}],
         ["work_id", "bigint", false, "", {ref: "works", rule: "CASCADE"}],
         ["title", "text", false, ""],
-        ["kind", "enum", false, "web | file"],
+        ["kind", "text", false, "CHECK: web | file"],
         ["location", "text", false, "URL, or file name with part of its path"],
         ["accessed_at", "timestamptz", false, "when it was read"]
       ], constraints: ["Unique <code>(work_id, location)</code>"] },
@@ -396,7 +425,7 @@ const GROUPS = [
         ["id", "bigint", false, "", {pk: true}],
         ["task_id", "bigint", false, "", {ref: "tasks", rule: "CASCADE"}],
         ["reviewer_id", "bigint", true, "", {ref: "users", rule: "SETNULL"}],
-        ["result", "enum", false, "accepted | rejected"],
+        ["result", "text", false, "CHECK: accepted | rejected"],
         ["comment", "text", true, "required when rejected"],
         ["created_at", "timestamptz", false, "default now()"]
       ], constraints: ["<code>CHECK (result = 'accepted' OR comment IS NOT NULL)</code>"] },
@@ -409,7 +438,7 @@ const GROUPS = [
       ]},
       { name: "publications", cols: [
         ["id", "bigint", false, "", {pk: true}],
-        ["work_id", "bigint", false, "unique; delete rule not decided", {ref: "works", rule: "OPEN"}],
+        ["work_id", "bigint", false, "unique; a published work protects its task", {ref: "works", rule: "RESTRICT"}],
         ["publisher_id", "bigint", false, "", {ref: "publishers", rule: "RESTRICT"}],
         ["title", "text", false, "public title"],
         ["description", "text", true, ""],
@@ -435,8 +464,8 @@ const GROUPS = [
         ["actor_id", "bigint", true, "no FK, row survives user delete; NULL = system"],
         ["actor_name", "text", true, "copy of the name at that moment"],
         ["workspace_id", "bigint", true, "no FK; NULL = global action"],
-        ["action", "enum", false, "member_added | role_added | task_deleted | admin_granted | user_deleted | …"],
-        ["target_type", "enum", true, "workspace | membership | task | work | publication | publisher | user"],
+        ["action", "text", false, "CHECK: member_added | role_added | task_deleted | admin_granted | user_deleted | …"],
+        ["target_type", "text", true, "CHECK: workspace | membership | task | work | publication | publisher | user"],
         ["target_id", "bigint", true, ""],
         ["target_label", "text", true, "copy of the target's name at that moment"],
         ["details", "jsonb", true, "e.g. {\"role\": \"reviewer\"}"]
@@ -461,10 +490,15 @@ const GROUPS = [
       { name: "user_identities", note: "External providers. Built later.", cols: [
         ["id", "bigint", false, "", {pk: true}],
         ["user_id", "bigint", false, "", {ref: "users", rule: "CASCADE"}],
-        ["provider", "enum", false, "github | google"],
+        ["provider_id", "smallint", false, "", {ref: "auth_providers", rule: "RESTRICT"}],
         ["provider_user_id", "text", false, "the user's id at that provider"],
         ["created_at", "timestamptz", false, "default now()"]
-      ], constraints: ["Unique <code>(provider, provider_user_id)</code>"] },
+      ], constraints: ["Unique <code>(provider_id, provider_user_id)</code>"] },
+      { name: "auth_providers", note: "Lookup table. Built later.", cols: [
+        ["id", "smallint", false, "", {pk: true}],
+        ["name", "text", false, "unique: github, google"],
+        ["enabled", "boolean", false, "default false"]
+      ]},
       { name: "admins", note: "A row here = an admin.", cols: [
         ["user_id", "bigint", false, "", {pk: true, ref: "users", rule: "CASCADE"}],
         ["granted_at", "timestamptz", false, "default now()"],

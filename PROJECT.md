@@ -25,10 +25,11 @@ here.
 | `study_notes` | Notes/summary on a topic, optionally source-backed. | Optional | Yes |
 | `creative_writing` | Fiction, humor, other creative text. | No | No |
 
-Each type maps to a `pipeline_template` on `task_types`: an ordered list
-of step kinds (`plan`, `search`, `fetch`, `summarize`, `synthesize`,
-`write`, `verify`). A new task type is a new row with its own template,
-not new orchestrator code, as long as it reuses existing step kinds.
+Each type is a **pipeline**: a YAML file with an ordered list of step
+kinds (`plan`, `search`, `fetch`, `summarize`, `synthesize`, `write`,
+`verify`), saved as fixed versions in `pipeline_versions`. A new task
+type is a new pipeline, not new orchestrator code, as long as it reuses
+existing step kinds. Details: `ARCHITECTURE.md`.
 
 ## Core design commitments
 

@@ -41,11 +41,11 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
 | # | Group | Tables | Status |
 |---|---|---|---|
 | 1 | People and access | `users`, `workspaces`, `roles`, `memberships` | done (workspace visibility added 2026-10-01) |
-| 2 | Model catalog | `models`, `capabilities`, `model_capabilities` | done |
+| 2 | Model catalog | `model_providers`, `models`, `capabilities`, `model_capabilities` | done |
 | 3 | Tasks | `pipelines`, `pipeline_versions`, `tasks`, `task_steps`, `llm_calls`, `llm_responses`, `log_deletions` | done |
 | 4 | Results and evidence | `works`, `work_sources`, `quotes`, `task_reviews`, `publishers`, `publications` | done |
-| 5 | Audit and logging | under review: the old `audit_log` idea may be replaced (see `drafts/schema_design.md`) | next |
-| 6 | Auth | login providers, secret store | not started |
+| 5 | Audit and logging | `activity_events` (system logs live in files) | done |
+| 6 | Auth | `password_credentials`, `user_identities`, `auth_providers`, `admins`, `sessions` | done |
 
 ### Key design decisions
 
@@ -64,11 +64,12 @@ A link to another table is `<entity>_id` (`user_id`, `workspace_id`).
   `ON DELETE RESTRICT`, so Postgres blocks the delete. A model is never
   deleted, only marked `available = false`.
 - **One model from one provider = one `models` row.** `llama3.1:8b` on
-  Ollama and on a cloud provider are two rows. `(provider, name)` is
-  unique.
-- **No secrets in the database.** `models.secret_id` points to an entry
-  in a separate secret store (design not decided). The API key itself is
-  never stored in a `models` row.
+  Ollama and on a cloud provider are two rows. `(provider_id, name)` is
+  unique. Providers are rows in `model_providers` (an admin can add one
+  if its adapter exists in code).
+- **No secrets in the database.** `model_providers.secret_id` points to an
+  entry in a separate secret store (design not decided). The API key
+  itself is never stored in the database.
 - **Local models cost nothing per token.** `models.cost_per_1m_input` /
   `cost_per_1m_output` are nullable for exactly this reason. Don't make
   them `NOT NULL` when adding cloud providers later.
