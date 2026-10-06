@@ -1,0 +1,16 @@
+.venv
+.git
+.github
+.idea
+.obsidian
+.pytest_cache
+.ruff_cache
+**/__pycache__
+.env
+.env.*
+data
+drafts
+tests
+docker
+*.md
+!README.md
