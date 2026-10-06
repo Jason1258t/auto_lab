@@ -9,6 +9,10 @@
   assembled (file + works, work_sources, quotes); then 'in_review'.
 - A cancelled task's step files are deleted. A failed task keeps them,
   to see what went wrong.
+- Revise (pipeline_spec.md, 7): for each rejected review, extra step rows
+  (review_id set) re-run the steps from `revise.rerun_from` to the end,
+  with the reviewer's comment added to every prompt. Earlier outputs are
+  reused from their files.
 """
 
 import json
@@ -22,16 +26,28 @@ import httpx
 from sqlalchemy import select, update
 
 from autolab.config import Settings
-from autolab.db.models import PipelineVersion, Task, TaskStep
-from autolab.db.models.enums import TaskStatus, TaskStepStatus
+from autolab.db.models import PipelineVersion, Task, TaskReview, TaskStep
+from autolab.db.models.enums import ReviewResult, TaskStatus, TaskStepStatus
 from autolab.worker import templates
 from autolab.worker.assemble import assemble_work
 from autolab.worker.kinds import HANDLERS, StepContext, StepFailed
 from autolab.worker.llm_manager import LlmManager, SessionFactory, TaskCancelled
-from autolab.worker.pipelines import PipelineError, PipelineFile, file_hash, load_pipeline
+from autolab.worker.pipelines import (
+    PipelineError,
+    PipelineFile,
+    Step,
+    file_hash,
+    load_pipeline,
+)
 from autolab.worker.web import Resolver, resolve
 
 log = logging.getLogger(__name__)
+
+DEFAULT_REVISE_NOTE = (
+    "A reviewer rejected the previous version of this work.\n"
+    "Their comment: {{ review.comment }}\n"
+    "Fix this in your answer."
+)
 
 
 def task_dir(settings: Settings, task_id: int) -> Path:
@@ -66,10 +82,11 @@ class TaskRunner:
         status: in_review, failed or cancelled."""
         try:
             task, pipeline = await self._load(task_id)
-            await self._create_steps(task_id, pipeline)
+            plan = await self._plan_steps(task_id, pipeline)
             outputs: dict[str, dict[str, Any]] = {}
-            for index, step in enumerate(pipeline.steps):
-                outputs[step.id] = await self._run_step(task, pipeline, index, outputs)
+            for index, step, note in plan:
+                # A revise step replaces the output of the same step id.
+                outputs[step.id] = await self._run_step(task, pipeline, index, step, note, outputs)
             if any(step.kind == "write" for step in pipeline.steps):
                 async with self.session_factory() as db:
                     await assemble_work(db, self.settings, task, pipeline, outputs)
@@ -99,22 +116,53 @@ class TaskRunner:
             log.error("task %s: cannot load %s: %s", task_id, path, exc)
             raise StepFailed("the pipeline file cannot be loaded") from exc
 
-    async def _create_steps(self, task_id: int, pipeline: PipelineFile) -> None:
-        """Rows for all steps, once. After a restart they already exist."""
+    async def _plan_steps(
+        self, task_id: int, pipeline: PipelineFile
+    ) -> list[tuple[int, Step, str | None]]:
+        """(step_index, step, note) for every row, creating missing rows.
+
+        Rows 0..n-1 are the pipeline steps. Each rejected review (oldest
+        first) adds rows for the steps from rerun_from to the end. Same file
+        (the hash is checked) -> same mapping after a restart.
+        """
+        steps = pipeline.steps
+        start = rerun_start(pipeline)
+        template = pipeline.revise.note if pipeline.revise else DEFAULT_REVISE_NOTE
         async with self.session_factory() as db:
-            existing = await db.scalar(
-                select(TaskStep.task_id).where(TaskStep.task_id == task_id).limit(1)
+            rows = {
+                r.step_index: r
+                for r in await db.scalars(select(TaskStep).where(TaskStep.task_id == task_id))
+            }
+            rejected = await db.scalars(
+                select(TaskReview)
+                .where(TaskReview.task_id == task_id, TaskReview.result == ReviewResult.REJECTED)
+                .order_by(TaskReview.id)
             )
-            if existing is None:
-                db.add_all(
-                    TaskStep(task_id=task_id, step_index=i) for i in range(len(pipeline.steps))
-                )
-                await db.commit()
+            plan: list[tuple[int, Step, str | None]] = []
+            for index, step in enumerate(steps):
+                if index not in rows:
+                    db.add(TaskStep(task_id=task_id, step_index=index))
+                plan.append((index, step, None))
+            index = len(steps)
+            for review in rejected:
+                note = templates.render(template, {"review": {"comment": review.comment}})
+                for step in steps[start:]:
+                    if index not in rows:
+                        db.add(TaskStep(task_id=task_id, step_index=index, review_id=review.id))
+                    plan.append((index, step, note))
+                    index += 1
+            await db.commit()
+        return plan
 
     async def _run_step(
-        self, task: Task, pipeline: PipelineFile, index: int, outputs: dict[str, dict[str, Any]]
+        self,
+        task: Task,
+        pipeline: PipelineFile,
+        index: int,
+        step: Step,
+        note: str | None,
+        outputs: dict[str, dict[str, Any]],
     ) -> dict[str, Any]:
-        step = pipeline.steps[index]
         path = output_path(self.settings, task.id, index, step.id)
         async with self.session_factory() as db:
             row = await db.get(TaskStep, (task.id, index))
@@ -140,6 +188,7 @@ class TaskRunner:
             self.settings,
             http=self.http,
             resolver=self.resolver,
+            note=note if step.llm else None,
         )
         output = await handler(ctx)
 
@@ -195,3 +244,15 @@ class TaskRunner:
                 .values(status=TaskStatus.IN_REVIEW)
             )
             await db.commit()
+
+
+def rerun_start(pipeline: PipelineFile) -> int:
+    """Where revise starts: revise.rerun_from, else the first synthesize
+    step, else the first step that calls a model."""
+    if pipeline.revise:
+        return pipeline.step_index(pipeline.revise.rerun_from)
+    for kind in ("synthesize", None):
+        for index, step in enumerate(pipeline.steps):
+            if (kind and step.kind == kind) or (kind is None and step.llm):
+                return index
+    return 0

@@ -150,7 +150,8 @@ check roles themselves.
 | Un-archive a private workspace | owner |
 | Create, edit, queue, cancel a task | owner, editor |
 | Change a task's `reviewer_id` | owner, editor |
-| Review a task | the assigned `reviewer_id`, or any member with the `editor` or `reviewer` role |
+| Review a task | the assigned `reviewer_id`, the owner, or any member with the `editor` or `reviewer` role |
+| Read a work (text, sources, quotes) | members; in a public workspace anyone, but only works of accepted (`done`) tasks |
 | Publish a work | workspace owner only; the task must be `done` (accepted review); the user must own the publisher |
 | Read the workspace activity log | owner, editor |
 | Add / remove workspace files | owner, editor (members list and download) |
@@ -193,7 +194,7 @@ the API does not reveal that it exists.
 | Tasks | `GET /workspaces/{id}/tasks`, `POST /workspaces/{id}/tasks`, `GET /tasks/{id}` (with steps), `PATCH /tasks/{id}` (only `draft`), `POST /tasks/{id}/queue`, `POST /tasks/{id}/cancel`, `DELETE /tasks/{id}` |
 | Calls | `GET /tasks/{id}/calls` (metadata + `error`), `GET /calls/{id}/log` (full prompt and output from the log store) |
 | Reviews | `GET /tasks/{id}/reviews`, `POST /tasks/{id}/reviews` |
-| Works | `GET /tasks/{id}/work` (summary, text, sources, quotes) |
+| Works | `GET /tasks/{id}/work` (summary, text, sources, quotes), `GET /workspaces/{id}/works` |
 | Publishers | `GET /publishers/mine`, `POST /publishers`, `GET /publishers/{id}` |
 | Publications | `GET /publications` (public feed), `GET /publications/{id}`, `POST /publications` |
 | Activity | `GET /workspaces/{id}/activity`, `GET /admin/activity` |
@@ -313,7 +314,9 @@ a new file every day, a separate errors file. Each line has `task_id`,
      (public addresses only), `summarize` (quote check), `verify`,
      `synthesize`, `write`, and assembling the work with `work_sources`
      and `quotes`.
-7. Reviews, works, publications.
+7. Results, in two parts:
+   - 7a. ~~Reviews, revise, works and calls endpoints~~ Done (PR #13).
+   - 7b. Publishers and publications.
 
 ## Open questions
 

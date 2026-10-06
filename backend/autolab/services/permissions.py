@@ -77,6 +77,19 @@ class WorkspaceAccess:
         return False
 
 
+def can_review(access: WorkspaceAccess, reviewer_id: int | None) -> bool:
+    """The assigned reviewer, the owner, or any member with the editor or
+    reviewer role (backend_spec.md, section 6)."""
+    if access.user is None:
+        return False
+    return (
+        access.user.id == reviewer_id
+        or access.is_owner
+        or EDITOR in access.roles
+        or REVIEWER in access.roles
+    )
+
+
 def workspace_not_found(workspace_id: int) -> AppError:
     return AppError(404, "workspace_not_found", f"Workspace {workspace_id} not found")
 

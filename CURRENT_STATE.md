@@ -37,8 +37,9 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 7 (reviews with revise, work and calls
-endpoints, publications). Deployed on the test server (`DEPLOY.md`).
+Next step: backend step 7b (publishers and publications). Step 7a
+(reviews, revise, works, calls) = PR #13. Deployed on the test server
+(`DEPLOY.md`).
 
 **Test server (2026-10-07):** `http://192.168.0.101:8000` (local network),
 `~/autolab` on `master@192.168.0.101`, `compose.server.yaml`: api,
@@ -122,8 +123,12 @@ this file at the end; keep answers short.
   with a fake model and fake web; search and fetch also checked live.
   Known limit: some sites keep menus inside `<main>` (Wikipedia's
   language list), which costs part of the 6000-character budget.
-- Not built yet: `GET /tasks/{id}/calls` and `/calls/{id}/log` (come with
-  the worker and the log store, step 6).
+- Backend step 7a (2026-10-07): reviews (accept -> `done`, step files
+  deleted; reject needs a comment -> `queued`), revise in the worker
+  (rows with `review_id` for the steps from `rerun_from`, the comment in
+  every prompt, earlier outputs reused), `GET /tasks/{id}/work`,
+  `GET /workspaces/{id}/works`, `GET /tasks/{id}/calls`,
+  `GET /calls/{id}/log`.
 - `DEVELOPMENT.md` — how to run everything locally.
 - `backend/log_store.py` — `LogStore` interface with `FileLogStore`
   (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).

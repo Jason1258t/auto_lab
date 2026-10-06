@@ -174,8 +174,8 @@ async def test_cancel_between_steps(setup, db: AsyncSession, session_factory) ->
 
     original = worker.runner._run_step
 
-    async def run_step(task, pipeline, index, outputs):
-        result = await original(task, pipeline, index, outputs)
+    async def run_step(task, pipeline, index, step, note, outputs):
+        result = await original(task, pipeline, index, step, note, outputs)
         if index == 0:
             async with session_factory() as s:
                 await s.execute(
