@@ -137,6 +137,8 @@ async def synthesize(ctx: StepContext) -> dict[str, Any]:
 
 
 _MARK = re.compile(r"\[(\d+)\]")
+# A mark with the spaces before it, so removing it leaves no " ." behind.
+_MARK_WITH_SPACE = re.compile(r"\s*\[(\d+)\]")
 
 
 async def write(ctx: StepContext) -> dict[str, Any]:
@@ -149,7 +151,7 @@ async def write(ctx: StepContext) -> dict[str, Any]:
         def check_mark(match: re.Match, allowed: set[int] = allowed) -> str:
             return match.group(0) if int(match.group(1)) in allowed else ""
 
-        text = _MARK.sub(check_mark, answer["paragraph"]).strip()
+        text = _MARK_WITH_SPACE.sub(check_mark, answer["paragraph"]).strip()
         used = sorted({int(n) for n in _MARK.findall(text)})
         paragraphs.append({"heading": section["heading"], "text": text, "fact_numbers": used})
     return {"paragraphs": paragraphs}

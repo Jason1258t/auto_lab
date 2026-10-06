@@ -214,7 +214,7 @@ async def test_research_pipeline(
     work = await db.get(Work, task_id)
     assert work.summary == "The sky is blue because of Rayleigh scattering."
     text = Path(work.file_path).read_text()
-    assert "Rayleigh scattering makes the sky blue [1]. Also ." in text  # [5] removed
+    assert "Rayleigh scattering makes the sky blue [1]. Also." in text  # [5] removed
     assert '"The sky looks blue because of Rayleigh scattering."' in text
 
     sources = (await db.scalars(select(WorkSource))).all()

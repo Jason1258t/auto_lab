@@ -37,9 +37,19 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: a first real run of `research` with Ollama on the server
-(nothing has run against a real model yet), then backend step 7
-(reviews with revise, works, publications). Steps 6a/6b = PRs #8/#9. How to run: `DEVELOPMENT.md`.
+Next step: backend step 7 (reviews with revise, work and calls
+endpoints, publications). Deployed on the test server (`DEPLOY.md`).
+
+**Test server (2026-10-07):** `http://192.168.0.101:8000` (local network),
+`~/autolab` on `master@192.168.0.101`, `compose.server.yaml`: api,
+worker, MongoDB 8.2, SearxNG; the server's own Postgres 16 container
+(database `autolab`, role `autolab_app`) and Ollama on the host.
+First real run: task 1 (`research`, `qwen2.5:3b`) finished in ~105 s,
+18 calls, all valid JSON (~3.5 s per call); 2 invented quotes dropped by
+code, 4 "partly" facts dropped by verify; work with 3 sources and 4
+quotes. Seen limit: `write` sometimes adds wording without a citation
+(left to the reviewer, see revise in step 7). No user accounts on the
+server yet. How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
