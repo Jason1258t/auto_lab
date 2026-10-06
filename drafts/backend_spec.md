@@ -143,6 +143,7 @@ check roles themselves.
 | See tasks, steps, reviews, LLM calls and logs | owner, members (also in a public workspace) |
 | See a private workspace | owner, members; admins only by direct link (see below) |
 | Add / remove members (= the `member` role) | owner |
+| Leave a workspace | the member themselves (not the owner) |
 | Grant / remove the `editor` role | owner |
 | Grant / remove the `reviewer` role | owner, editor |
 | Edit name and description, delete an empty workspace | owner |

@@ -219,3 +219,19 @@ async def test_admin_sees_private_by_link_only(
     # Not in lists, and read-only.
     assert (await client.get(W, params={"scope": "public"}, headers=root.headers)).json() == []
     assert (await add(client, ws, root, "ann")).status_code == 403
+
+
+async def test_member_leaves(client: httpx.AsyncClient, make_user) -> None:
+    ann, bob = await make_user("ann"), await make_user("bob")
+    ws = await create(client, ann)
+    await add(client, ws, ann, "bob")
+    await grant(client, ws, ann, bob, "editor")
+
+    assert (await client.post(f"{W}/{ws}/leave", headers=bob.headers)).status_code == 204
+    assert (await client.get(f"{W}/{ws}", headers=bob.headers)).status_code == 404
+    log = await client.get(f"{W}/{ws}/activity", headers=ann.headers)
+    assert log.json()[0]["action"] == "member_removed"
+    assert log.json()[0]["details"] == {"left": True}
+
+    # The owner cannot leave (not a member); they archive or delete instead.
+    assert code(await client.post(f"{W}/{ws}/leave", headers=ann.headers)) == "member_not_found"

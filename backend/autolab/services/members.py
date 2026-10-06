@@ -121,6 +121,30 @@ async def remove_member(db: AsyncSession, access: WorkspaceAccess, user_id: int)
     await db.commit()
 
 
+async def leave(db: AsyncSession, access: WorkspaceAccess) -> None:
+    """A member leaves the workspace by themselves (all their roles go).
+    The owner cannot leave: they archive or delete the workspace."""
+    user = access.user
+    if user is None or not access.is_member:
+        raise AppError(404, "member_not_found", "You are not a member of this workspace")
+    await db.execute(
+        delete(Membership).where(
+            Membership.workspace_id == access.workspace.id, Membership.user_id == user.id
+        )
+    )
+    activity.record(
+        db,
+        "member_removed",
+        actor=user,
+        workspace_id=access.workspace.id,
+        target_type="user",
+        target_id=user.id,
+        target_label=user.username,
+        details={"left": True},
+    )
+    await db.commit()
+
+
 async def _check_role_change(
     db: AsyncSession, access: WorkspaceAccess, user_id: int, role: str
 ) -> tuple[User, set[str]]:
