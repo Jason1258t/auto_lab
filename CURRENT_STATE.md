@@ -37,9 +37,9 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 5 (tasks API), see the build order in
-`drafts/backend_spec.md` (section 13). Step 4 (workspaces) is on
-`feature/workspaces`. How to run: `DEVELOPMENT.md`.
+Next step: backend step 6 (worker: pipeline sync, taking tasks, LLM
+manager, Ollama adapter, log store), see the build order in
+`drafts/backend_spec.md` (section 13). Step 4 = PR #4, step 5 = PR #5. How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
@@ -88,6 +88,13 @@ this file at the end; keep answers short.
   if empty), members and roles (Discord-like `member` base role, migration
   0002), workspace activity log. All access rules in
   `services/permissions.py`; one test per rule in `tests/test_workspaces.py`.
+- Backend step 5 (2026-10-06): tasks API (create with the newest pipeline
+  version, list, get with steps, edit drafts, change reviewer, queue,
+  cancel, delete; published work blocks delete), catalog (`GET /models`,
+  `GET /pipelines`) and admin routes (models, providers, admins, global
+  activity). Tests: `tests/test_tasks.py`, `tests/test_catalog.py`.
+- Not built yet: `GET /tasks/{id}/calls` and `/calls/{id}/log` (come with
+  the worker and the log store, step 6).
 - `DEVELOPMENT.md` — how to run everything locally.
 - `backend/log_store.py` — `LogStore` interface with `FileLogStore`
   (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).

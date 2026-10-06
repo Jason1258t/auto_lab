@@ -12,6 +12,7 @@ from autolab.config import Settings, get_settings
 from autolab.db.models import User
 from autolab.errors import AppError
 from autolab.security import decode_access_token
+from autolab.services.admins import is_admin
 
 
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
@@ -65,3 +66,12 @@ async def get_optional_user(
 
 
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+
+
+async def get_admin(principal: CurrentPrincipal, db: DbSession) -> Principal:
+    if not await is_admin(db, principal.user.id):
+        raise AppError(403, "forbidden", "Admins only")
+    return principal
+
+
+AdminPrincipal = Annotated[Principal, Depends(get_admin)]

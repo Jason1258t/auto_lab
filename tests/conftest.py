@@ -114,6 +114,38 @@ def make_user(client: httpx.AsyncClient):
             },
         )
         login = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        assert signup.status_code == 201, signup.text
         return ApiUser(signup.json()["id"], username, login.json()["access_token"])
 
     return make
+
+
+class Catalog:
+    """Ids of a ready pipeline version and model, for task tests."""
+
+    def __init__(self, pipeline_id: int, version_id: int, model_id: int) -> None:
+        self.pipeline_id = pipeline_id
+        self.version_id = version_id
+        self.model_id = model_id
+
+
+@pytest.fixture
+async def catalog(db: AsyncSession) -> Catalog:
+    """The seed has pipelines but no versions or models (the worker adds
+    versions from the pipelines/ folder later), so tests add their own."""
+    from sqlalchemy import select
+
+    from autolab.db.models import Model, Pipeline, PipelineVersion
+
+    pipeline_id = await db.scalar(select(Pipeline.id).where(Pipeline.name == "research"))
+    version = PipelineVersion(
+        pipeline_id=pipeline_id,
+        version_name="1.0.0",
+        version_code=1,
+        file_path="pipelines/research/1.0.0.yaml",
+        file_hash="test",
+    )
+    model = Model(provider_id=1, name="test-model", context_length=4096)
+    db.add_all([version, model])
+    await db.commit()
+    return Catalog(pipeline_id, version.id, model.id)
