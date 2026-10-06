@@ -66,7 +66,8 @@ erDiagram
 
 ## 2. Full diagram (with attributes)
 
-`PK` = primary key, `FK` = foreign key, `UK` = unique.
+`PK` = primary key, `FK` = foreign key, `UK` = unique. Types like
+`task_status` are PostgreSQL ENUM types (fixed lists).
 
 ```mermaid
 erDiagram
@@ -84,7 +85,7 @@ erDiagram
         text description
         bigint created_by FK "SET NULL"
         bigint owner_id FK "SET NULL; NULL = free"
-        text visibility "private | public"
+        workspace_visibility visibility "private | public"
         timestamptz archived_at "NULL = active"
         timestamptz created_at
     }
@@ -127,7 +128,7 @@ erDiagram
     model_capabilities {
         bigint model_id PK, FK
         smallint capability_id PK, FK
-        text kind "strength | weakness"
+        capability_kind kind "strength | weakness"
         text note
     }
     pipelines {
@@ -151,7 +152,7 @@ erDiagram
         bigint model_id FK
         text title
         text input
-        text status "draft | queued | running | in_review | done | cancelled"
+        task_status status "draft | queued | running | in_review | done | cancelled"
         bigint created_by FK "SET NULL"
         bigint reviewer_id FK "SET NULL"
         timestamptz created_at
@@ -161,7 +162,7 @@ erDiagram
     task_steps {
         bigint task_id PK, FK
         smallint step_index PK
-        text status "pending | running | done"
+        task_step_status status "pending | running | done"
         text summary
         bigint review_id FK "NULL = normal step"
         timestamptz started_at
@@ -173,7 +174,7 @@ erDiagram
         smallint step_index FK
         bigint model_id FK
         smallint attempt
-        text status "queued | running | done | failed | cancelled"
+        llm_call_status status "queued | running | done | failed | cancelled"
         jsonb response_schema
         jsonb params
         text error
@@ -185,7 +186,7 @@ erDiagram
         bigint call_id PK, FK
         integer input_tokens
         integer output_tokens
-        text finish_reason "stop | length | other"
+        finish_reason finish_reason "stop | length | other"
         boolean valid_json
         timestamptz created_at
     }
@@ -204,7 +205,7 @@ erDiagram
         bigint id PK
         bigint work_id FK
         text title
-        text kind "web | file"
+        source_kind kind "web | file"
         text location "UK with work_id"
         timestamptz accessed_at
     }
@@ -220,7 +221,7 @@ erDiagram
         bigint id PK
         bigint task_id FK
         bigint reviewer_id FK "SET NULL"
-        text result "accepted | rejected"
+        review_result result "accepted | rejected"
         text comment "required when rejected"
         timestamptz created_at
     }

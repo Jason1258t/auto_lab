@@ -57,7 +57,7 @@ Later: importing materials, transferring rights.
 |---|---|---|---|
 | created_by | bigint | yes | **new**, → users, `SET NULL`; never changes (creator ≠ owner) |
 | owner_id | bigint | yes | unchanged; NULL = free (public archived) workspace |
-| visibility | text | no | CHECK: **new**, `private` / `public`, default `private` |
+| visibility | enum `workspace_visibility` | no | `private` / `public`, default `private` |
 | archived_at | timestamptz | yes | unchanged |
 
 Rules:

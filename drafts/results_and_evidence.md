@@ -56,7 +56,7 @@ One row = one source used in one work.
 | id | bigint | no | PK |
 | work_id | bigint | no | → works, `CASCADE` |
 | title | text | no | |
-| kind | text | no | CHECK: `web` / `file` (decided 2026-09-26) |
+| kind | enum `source_kind` | no | `web` / `file` (decided 2026-09-26) |
 | location | text | no | URL for `web`; file name with part of its path in the workspace for `file` |
 | accessed_at | timestamptz | no | **(proposal)** when the page was read; pages change over time |
 
@@ -81,7 +81,7 @@ because publication reviews will be a different table later.
 | id | bigint | no | PK |
 | task_id | bigint | no | → tasks, `CASCADE` |
 | reviewer_id | bigint | yes | → users, `SET NULL` |
-| result | text | no | CHECK: `accepted` / `rejected` |
+| result | enum `review_result` | no | `accepted` / `rejected` |
 | comment | text | yes | required for `rejected`: `CHECK (result = 'accepted' OR comment IS NOT NULL)` |
 | created_at | timestamptz | no | default `now()` |
 

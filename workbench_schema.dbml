@@ -4,7 +4,60 @@
 
 Project autolab {
   database_type: 'PostgreSQL'
-  Note: 'No ENUM types: text + CHECK, or lookup tables.'
+  Note: 'ENUM types for fixed lists; text + CHECK for growing lists; lookup tables for admin data.'
+}
+
+// ---------------------------------------------------------------------
+// Types (fixed lists)
+// ---------------------------------------------------------------------
+
+Enum workspace_visibility {
+  private
+  public
+}
+
+Enum capability_kind {
+  strength
+  weakness
+}
+
+Enum task_status {
+  draft
+  queued
+  running
+  in_review
+  done
+  cancelled
+}
+
+Enum task_step_status {
+  pending
+  running
+  done
+}
+
+Enum llm_call_status {
+  queued
+  running
+  done
+  failed
+  cancelled
+}
+
+Enum finish_reason {
+  stop
+  length
+  other
+}
+
+Enum source_kind {
+  web
+  file
+}
+
+Enum review_result {
+  accepted
+  rejected
 }
 
 // ---------------------------------------------------------------------
@@ -33,7 +86,7 @@ Table workspaces {
   description text
   created_by bigint [note: 'never changes']
   owner_id bigint [note: 'NULL = free (public + archived) or owner deleted']
-  visibility text [not null, default: 'private', note: 'CHECK: private | public; trigger blocks public -> private']
+  visibility workspace_visibility [not null, default: 'private', note: 'trigger blocks public -> private']
   archived_at timestamptz [note: 'NULL = active']
   created_at timestamptz [not null, default: `now()`]
 
@@ -115,7 +168,7 @@ Table capabilities {
 Table model_capabilities {
   model_id bigint [not null]
   capability_id smallint [not null]
-  kind text [not null, note: 'CHECK: strength | weakness']
+  kind capability_kind [not null]
   note text
 
   indexes {
@@ -170,7 +223,7 @@ Table tasks {
   model_id bigint [not null]
   title text [not null]
   input text [not null]
-  status text [not null, default: 'draft', note: 'CHECK: draft | queued | running | in_review | done | cancelled']
+  status task_status [not null, default: 'draft']
   created_by bigint
   reviewer_id bigint
   created_at timestamptz [not null, default: `now()`]
@@ -193,7 +246,7 @@ Ref: tasks.reviewer_id > users.id [delete: set null]
 Table task_steps {
   task_id bigint [not null]
   step_index smallint [not null, note: '>= 0']
-  status text [not null, default: 'pending', note: 'CHECK: pending | running | done']
+  status task_step_status [not null, default: 'pending']
   summary text
   review_id bigint [note: 'NULL = normal step; set = revise step']
   started_at timestamptz
@@ -214,7 +267,7 @@ Table llm_calls {
   step_index smallint [not null]
   model_id bigint [not null]
   attempt smallint [not null, default: 1]
-  status text [not null, default: 'queued', note: 'CHECK: queued | running | done | failed | cancelled']
+  status llm_call_status [not null, default: 'queued']
   response_schema jsonb [note: 'NULL = free text']
   params jsonb
   error text
@@ -235,7 +288,7 @@ Table llm_responses {
   call_id bigint [pk]
   input_tokens integer
   output_tokens integer
-  finish_reason text [note: 'CHECK: stop | length | other']
+  finish_reason finish_reason
   valid_json boolean [note: 'NULL = no schema']
   created_at timestamptz [not null, default: `now()`]
 }
@@ -274,7 +327,7 @@ Table work_sources {
   id bigint [pk, increment]
   work_id bigint [not null]
   title text [not null]
-  kind text [not null, note: 'CHECK: web | file']
+  kind source_kind [not null]
   location text [not null]
   accessed_at timestamptz [not null]
 
@@ -304,7 +357,7 @@ Table task_reviews {
   id bigint [pk, increment]
   task_id bigint [not null]
   reviewer_id bigint
-  result text [not null, note: 'CHECK: accepted | rejected']
+  result review_result [not null]
   comment text [note: "CHECK: required when result = 'rejected'"]
   created_at timestamptz [not null, default: `now()`]
 

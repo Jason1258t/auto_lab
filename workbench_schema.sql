@@ -4,11 +4,27 @@
 --
 -- Rules used everywhere:
 -- - Tables are snake_case and plural. Own key = id, links = <entity>_id.
--- - No ENUM types: text + CHECK for values the code depends on,
---   lookup tables for values an admin may add.
+-- - ENUM types for short fixed lists (statuses, kinds). text + CHECK
+--   for lists that will grow with code soon (adapters, activity
+--   actions). Lookup tables for values an admin may add.
 -- - Deleting a person never deletes work: links to users are SET NULL.
 
 BEGIN;
+
+-- =====================================================================
+-- Types (fixed lists)
+-- =====================================================================
+
+CREATE TYPE workspace_visibility AS ENUM ('private', 'public');
+CREATE TYPE capability_kind      AS ENUM ('strength', 'weakness');
+CREATE TYPE task_status          AS ENUM ('draft', 'queued', 'running',
+                                          'in_review', 'done', 'cancelled');
+CREATE TYPE task_step_status     AS ENUM ('pending', 'running', 'done');
+CREATE TYPE llm_call_status      AS ENUM ('queued', 'running', 'done',
+                                          'failed', 'cancelled');
+CREATE TYPE finish_reason        AS ENUM ('stop', 'length', 'other');
+CREATE TYPE source_kind          AS ENUM ('web', 'file');
+CREATE TYPE review_result        AS ENUM ('accepted', 'rejected');
 
 -- =====================================================================
 -- Group 1: People and access
@@ -34,8 +50,7 @@ CREATE TABLE workspaces (
     -- (public + archived) or the owner's account was deleted.
     created_by  bigint      REFERENCES users (id) ON DELETE SET NULL,
     owner_id    bigint      REFERENCES users (id) ON DELETE SET NULL,
-    visibility  text        NOT NULL DEFAULT 'private'
-                            CHECK (visibility IN ('private', 'public')),
+    visibility  workspace_visibility NOT NULL DEFAULT 'private',
     archived_at timestamptz,  -- NULL = active
     created_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -113,7 +128,7 @@ CREATE TABLE capabilities (
 CREATE TABLE model_capabilities (
     model_id      bigint   NOT NULL REFERENCES models (id) ON DELETE CASCADE,
     capability_id smallint NOT NULL REFERENCES capabilities (id) ON DELETE RESTRICT,
-    kind          text     NOT NULL CHECK (kind IN ('strength', 'weakness')),
+    kind          capability_kind NOT NULL,
     note          text,
     PRIMARY KEY (model_id, capability_id)
 );
@@ -152,9 +167,7 @@ CREATE TABLE tasks (
     title               text        NOT NULL,
     input               text        NOT NULL,  -- the user's request
     -- 'done' <=> an accepted row in task_reviews (kept in sync by the backend).
-    status              text        NOT NULL DEFAULT 'draft'
-                                    CHECK (status IN ('draft', 'queued', 'running',
-                                                      'in_review', 'done', 'cancelled')),
+    status              task_status NOT NULL DEFAULT 'draft',
     created_by          bigint      REFERENCES users (id) ON DELETE SET NULL,
     reviewer_id         bigint      REFERENCES users (id) ON DELETE SET NULL,
     created_at          timestamptz NOT NULL DEFAULT now(),
@@ -168,7 +181,7 @@ CREATE TABLE task_reviews (
     id          bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     task_id     bigint      NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
     reviewer_id bigint      REFERENCES users (id) ON DELETE SET NULL,
-    result      text        NOT NULL CHECK (result IN ('accepted', 'rejected')),
+    result      review_result NOT NULL,
     comment     text,
     created_at  timestamptz NOT NULL DEFAULT now(),
     -- A rejection needs a comment: it is the input for the revise steps.
@@ -179,8 +192,7 @@ CREATE TABLE task_steps (
     task_id     bigint      NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
     step_index  smallint    NOT NULL CHECK (step_index >= 0),
     -- A cancelled task puts its running step back to 'pending'.
-    status      text        NOT NULL DEFAULT 'pending'
-                            CHECK (status IN ('pending', 'running', 'done')),
+    status      task_step_status NOT NULL DEFAULT 'pending',
     summary     text,       -- the model's short report about the step
     -- NULL = normal pipeline step; set = extra revise step caused by
     -- this review. RESTRICT: a review is deleted only with its task.
@@ -199,9 +211,7 @@ CREATE TABLE llm_calls (
     model_id        bigint      NOT NULL REFERENCES models (id) ON DELETE RESTRICT,
     attempt         smallint    NOT NULL DEFAULT 1 CHECK (attempt >= 1),
     -- 'done' <=> a row in llm_responses (kept in sync by the backend).
-    status          text        NOT NULL DEFAULT 'queued'
-                                CHECK (status IN ('queued', 'running', 'done',
-                                                  'failed', 'cancelled')),
+    status          llm_call_status NOT NULL DEFAULT 'queued',
     response_schema jsonb,      -- NULL = free text
     params          jsonb,      -- temperature, max_tokens, seed, ...
     error           text,       -- short message, safe to show to users
@@ -218,7 +228,7 @@ CREATE TABLE llm_responses (
     input_tokens  integer     CHECK (input_tokens >= 0),
     output_tokens integer     CHECK (output_tokens >= 0),
     -- The adapter maps the provider's value; the raw value is in the log store.
-    finish_reason text        CHECK (finish_reason IN ('stop', 'length', 'other')),
+    finish_reason finish_reason,
     valid_json    boolean,    -- NULL = no schema
     created_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -261,7 +271,7 @@ CREATE TABLE work_sources (
     id          bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     work_id     bigint      NOT NULL REFERENCES works (task_id) ON DELETE CASCADE,
     title       text        NOT NULL,
-    kind        text        NOT NULL CHECK (kind IN ('web', 'file')),
+    kind        source_kind NOT NULL,
     location    text        NOT NULL,  -- URL, or file name with part of its path
     accessed_at timestamptz NOT NULL,
     UNIQUE (work_id, location)

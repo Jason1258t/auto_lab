@@ -20,21 +20,26 @@ description below (18 tables, `task_types`, ...) is outdated.
   reports as SQL views after MVP; 2026-10-04), 6 (auth:
   `password_credentials`, `user_identities`, `admins`, `sessions`,
   `users.email_verified`; 2026-10-05).
-- Final review done (2026-10-06): delete rules fixed, no ENUM types
-  (`text` + CHECK or lookup tables `model_providers`, `auth_providers`),
+- Final review done (2026-10-06): delete rules fixed, fixed lists
+  (ENUM for stable lists, `text` + CHECK for growing ones, lookup tables
+  `model_providers`, `auth_providers`),
   index list, normalization notes. All in `drafts/schema_design.md`.
 - Detail drafts: `drafts/llm_manager.md`, `drafts/workspaces.md`,
   `drafts/results_and_evidence.md`, `drafts/audit.md`, `drafts/auth.md`.
 - SQL, DBML and ER diagram written from the draft (2026-10-06). From
   now on `workbench_schema.sql` is the source of truth for the DDL;
-  `drafts/schema_design.md` keeps the reasons.
+  `drafts/schema_design.md` keeps the reasons. Once Alembic exists,
+  the migrations become the source of truth and the SQL file becomes a
+  `pg_dump` snapshot (decided 2026-10-06).
 - After-MVP features: `BACKLOG.md`.
 - MongoDB as the LLM log store is under review (overrides the old
   "no second DB" rule only for logs).
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: run `workbench_schema.sql` on the server's real database.
+Next step: start the backend, step 1 of the build order in
+`drafts/backend_spec.md` (section 13). `drafts/schema_design.html` does
+not show the ENUM change yet (update on request).
 `drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
 
 Session rules: update `drafts/schema_design.md` after each decision and
@@ -48,8 +53,8 @@ this file at the end; keep answers short.
 - `ARCHITECTURE.md` — data model, pipeline design, orchestrator
   constraints, model gateway design, file storage layout.
 - `AGENTS.md` — instructions for coding agents working in this repo.
-- `workbench_schema.sql` — full PostgreSQL DDL: 27 tables, no ENUM
-  types (`text` + CHECK), 2 triggers (public workspace stays public;
+- `workbench_schema.sql` — full PostgreSQL DDL: 27 tables, 8 ENUM
+  types for fixed lists (`text` + CHECK for growing lists), 2 triggers (public workspace stays public;
   `log_deletions` outbox), 13 extra indexes, seed data (`roles`,
   `model_providers` = ollama, `capabilities`, `pipelines`,
   `auth_providers`). Tested on 2026-10-06 on a local PostgreSQL 14:
@@ -101,12 +106,11 @@ this file at the end; keep answers short.
 
 ## Open questions (not yet decided)
 
-- SQLAlchemy vs another approach for the ORM/DB layer in FastAPI —
-  not discussed yet.
-- Exact job queue mechanism for the orchestrator (simple polling on
-  `tasks.status = 'queued'` vs a real queue library) — leaning toward
-  simple polling given the single-worker, single-GPU constraint, but not
-  finalized.
+- ~~ORM / DB layer~~ Decided 2026-10-06: SQLAlchemy 2.0 async ORM +
+  Alembic (`drafts/backend_spec.md`).
+- ~~Job queue mechanism~~ Decided 2026-10-06: polling `tasks` with
+  `FOR UPDATE SKIP LOCKED` (`drafts/backend_spec.md`).
+- Backend spec: `drafts/backend_spec.md` (no open questions left).
 - Whether `DEVELOPMENT.md` should also cover the SSH-tunnel DataGrip
   setup already worked out in chat, or only app-level setup.
 - University course requirements (exact DBMS version, required topics

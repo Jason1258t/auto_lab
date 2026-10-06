@@ -12,12 +12,16 @@ Last updated: 2026-10-06
 - Tables: `snake_case`, plural.
 - Primary key: `id` inside its own table.
 - Foreign key: `<entity>_id` in other tables (`user_id`, `workspace_id`).
-- **No ENUM types** (final review, 2026-10-06). Two replacements:
-  - **Lookup table** when the values are data and an admin may add them:
-    `roles`, `capabilities`, `model_providers`, `auth_providers`.
-  - **`text` + `CHECK (col IN (...))`** when the code depends on the
-    values (statuses, kinds). Same safety as an enum, easy to change
-    (replace the constraint), no join.
+- **Fixed lists** (final review, 2026-10-06; changed the same day):
+  - **ENUM type** when the list is short and unlikely to change soon:
+    statuses, kinds, results. Typed column, 4 bytes, maps to a Python
+    `Enum` in the ORM. Adding a value needs a hand-written
+    `ALTER TYPE ... ADD VALUE` in a migration.
+  - **`text` + `CHECK (col IN (...))`** when the list will grow with
+    code soon: `model_providers.adapter`, `activity_events.action`,
+    `target_type`.
+  - **Lookup table** when the values are data and an admin may add
+    them: `roles`, `capabilities`, `model_providers`, `auth_providers`.
 
 ## Design ideas
 
@@ -63,7 +67,7 @@ Last updated: 2026-10-06
 | description | text | yes | |
 | created_by | bigint | yes | → users, `SET NULL`; never changes (creator ≠ owner) |
 | owner_id | bigint | yes | → users, `SET NULL` (NULL = free project) |
-| visibility | text | no | CHECK: `private` / `public`, default `private` |
+| visibility | enum `workspace_visibility` | no | `private` / `public`, default `private` |
 | archived_at | timestamptz | yes | NULL = active |
 | created_at | timestamptz | no | default `now()` |
 
@@ -142,7 +146,7 @@ long as it uses an adapter that exists in code.
 |---|---|---|---|
 | model_id | bigint | no | → models, `CASCADE` |
 | capability_id | smallint | no | → capabilities, `RESTRICT` |
-| kind | text | no | CHECK: `strength` / `weakness` |
+| kind | enum `capability_kind` | no | `strength` / `weakness` |
 | note | text | yes | model-specific detail |
 
 PK: `(model_id, capability_id)`. No numeric ratings (decided: not worth it now).
@@ -185,7 +189,7 @@ New tasks use the newest version.
 | model_id | bigint | no | → models, `RESTRICT` |
 | title | text | no | |
 | input | text | no | the user's request |
-| status | text | no | CHECK: `draft` / `queued` / `running` / `in_review` / `done` / `cancelled`, default `draft` |
+| status | enum `task_status` | no | `draft` / `queued` / `running` / `in_review` / `done` / `cancelled`, default `draft` |
 | created_by | bigint | yes | → users, `SET NULL` |
 | reviewer_id | bigint | yes | → users, `SET NULL`; backend sets it = `created_by` by default |
 | created_at | timestamptz | no | default `now()` |
@@ -200,7 +204,7 @@ sources of truth).
 |---|---|---|---|
 | task_id | bigint | no | → tasks, `CASCADE` |
 | step_index | smallint | no | `>= 0` |
-| status | text | no | CHECK: `pending` / `running` / `done`, default `pending`; a cancelled task puts its `running` step back to `pending` |
+| status | enum `task_step_status` | no | `pending` / `running` / `done`, default `pending`; a cancelled task puts its `running` step back to `pending` |
 | summary | text | yes | model's short report about the step |
 | review_id | bigint | yes | → task_reviews, `RESTRICT` (a review is deleted only with its task); NULL = normal pipeline step, not NULL = extra `revise` step caused by this review |
 | started_at | timestamptz | yes | |
@@ -223,7 +227,7 @@ One row = one request to a model. Details and reasons: `drafts/llm_manager.md`.
 | step_index | smallint | no | FK `(task_id, step_index)` → task_steps, `CASCADE` |
 | model_id | bigint | no | → models, `RESTRICT` |
 | attempt | smallint | no | 1, 2, 3... retry number for the same step |
-| status | text | no | CHECK: `queued` / `running` / `done` / `failed` / `cancelled` |
+| status | enum `llm_call_status` | no | `queued` / `running` / `done` / `failed` / `cancelled` |
 | response_schema | jsonb | yes | JSON schema for structured output; NULL = free text |
 | params | jsonb | yes | temperature, max_tokens, seed... |
 | error | text | yes | error text when `failed` |
@@ -240,7 +244,7 @@ Full prompt and output are not in the DB. They are in the log store
 | call_id | bigint | no | PK, → llm_calls, `CASCADE` (0 or 1 response per call) |
 | input_tokens | integer | yes | |
 | output_tokens | integer | yes | |
-| finish_reason | text | yes | CHECK: `stop` / `length` / `other`; the adapter maps the provider's value, the raw value is in the log store |
+| finish_reason | enum `finish_reason` | yes | `stop` / `length` / `other`; the adapter maps the provider's value, the raw value is in the log store |
 | valid_json | boolean | yes | NULL = no schema |
 | created_at | timestamptz | no | |
 
@@ -292,7 +296,7 @@ temporary cache for `verify`, deleted after it).
 | id | bigint | no | PK |
 | work_id | bigint | no | → works, `CASCADE` |
 | title | text | no | |
-| kind | text | no | CHECK: `web` / `file` |
+| kind | enum `source_kind` | no | `web` / `file` |
 | location | text | no | URL, or file name with part of its path in the workspace |
 | accessed_at | timestamptz | no | when it was read |
 
@@ -316,7 +320,7 @@ A claim with two sources = two rows (claim text repeated; OK for MVP).
 | id | bigint | no | PK |
 | task_id | bigint | no | → tasks, `CASCADE` |
 | reviewer_id | bigint | yes | → users, `SET NULL` |
-| result | text | no | CHECK: `accepted` / `rejected` |
+| result | enum `review_result` | no | `accepted` / `rejected` |
 | comment | text | yes | |
 | created_at | timestamptz | no | default `now()` |
 
