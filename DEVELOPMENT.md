@@ -26,6 +26,7 @@ docker compose down -v        # stop and DELETE all data
 ```
 
 Two databases: `autolab` (dev) and `autolab_test` (pytest only).
+MongoDB (LLM log store, `LOG_STORE=mongo`) runs on port 27017.
 Connect with DataGrip or psql: `localhost:5433`, user `autolab`,
 password `autolab`.
 
@@ -51,7 +52,12 @@ write those by hand.
 uv run uvicorn autolab.api.app:app --reload   # http://localhost:8000/docs
 uv run autolab create-admin <user_id>          # give a user admin rights
 uv run autolab add-file <workspace_id> <path>  # copy a server file into a workspace (--move: delete the original)
+uv run autolab-worker                          # runs queued tasks; needs Ollama on localhost:11434
 ```
+
+The worker syncs `pipelines/` at start. A changed or broken pipeline file
+stops it with a clear error. Stop it with Ctrl+C or SIGTERM; a task that
+was running is queued again at the next start.
 
 `JWT_SECRET` in `.env` must be at least 32 characters, or the API does
 not start.
