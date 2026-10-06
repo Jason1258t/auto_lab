@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-06 (backend step 1 done: project, ORM models, Alembic, Docker Postgres).
+Last updated: 2026-10-06 (backend steps 1-2 done: project, models, Alembic, Docker, auth).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
@@ -37,8 +37,11 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 2 (auth + `create-admin`), see the build order
-in `drafts/backend_spec.md` (section 13). How to run: `DEVELOPMENT.md`. `drafts/schema_design.html` is
+Next step: backend step 3 (workspaces, members, permissions,
+`activity_events`), see the build order in `drafts/backend_spec.md`
+(section 13). How to run: `DEVELOPMENT.md`.
+Git: GitHub flow. Step 1 is on `feature/backend-setup` (pushed), step 2
+on `feature/auth`; neither is merged into `main` yet. `drafts/schema_design.html` is
 up to date (ENUM types, ER diagram section).
 `drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
 
@@ -73,6 +76,11 @@ this file at the end; keep answers short.
   `compose.yaml` (PostgreSQL 17 in Docker, port 5433, dev + test DB),
   `tests/test_migrations.py` (migrations = models, downgrade works).
   Checked: the migrated DB equals `workbench_schema.sql` (pg_dump diff).
+- Backend step 2 (2026-10-06): auth. Sign-up, login, refresh (rotation;
+  reuse of an old token ends the session), logout, logout-all, `/me`,
+  one JSON error shape, `autolab create-admin <user_id>` (writes
+  `admin_granted` to `activity_events`). Tests: `tests/test_auth.py`;
+  each test runs in a rolled-back transaction (`tests/conftest.py`).
 - `DEVELOPMENT.md` — how to run everything locally.
 - `backend/log_store.py` — `LogStore` interface with `FileLogStore`
   (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).

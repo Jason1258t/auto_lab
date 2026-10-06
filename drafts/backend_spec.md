@@ -119,7 +119,10 @@ rules and the transaction. Models only describe tables.
   `sessions.refresh_token_hash`. Sent as an `httpOnly`, `Secure`,
   `SameSite=Strict` cookie, scoped to `/api/v1/auth`. Lifetime 30 days
   **(proposal)**.
-- **Refresh** replaces the token in the same `sessions` row (rotation).
+- **Refresh** gives a new access + refresh pair and replaces the token in
+  the same `sessions` row (rotation). It also moves `expires_at` 30 days
+  forward (sliding window, decided 2026-10-06): an active user never has
+  to log in again.
   If an old, already replaced token is used again, the backend revokes
   that session (somebody may have stolen it) **(proposal)**.
 - **Logout** sets `revoked_at`. "Log out everywhere" revokes all

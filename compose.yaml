@@ -1,5 +1,9 @@
 # Local services for development. Start: docker compose up -d
 # Port 5433, not 5432, so it does not clash with a Postgres on the host.
+# Fixed project name: the container and volume names do not depend on
+# the folder name.
+name: autolab
+
 services:
   postgres:
     image: postgres:17-alpine

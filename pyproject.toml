@@ -10,6 +10,7 @@ dependencies = [
     "fastapi>=0.142.2",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
+    "pydantic[email]>=2.13.5",
     "pyjwt>=2.15.1",
     "pymongo>=4.18.2",
     "sqlalchemy[asyncio]>=2.1.3",
