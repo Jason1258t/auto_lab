@@ -1,8 +1,9 @@
 # Schema design (draft)
 
 Working notes for the new schema, designed from scratch group by group.
-This is a draft. When a group is final, it moves into `workbench_schema.sql`
-and `workbench_schema.dbml`.
+All groups are final and written into `workbench_schema.sql` (source of
+truth for the DDL) and `workbench_schema.dbml` (2026-10-06). This file
+keeps the reasons. Change the SQL and this file together.
 
 Last updated: 2026-10-06
 

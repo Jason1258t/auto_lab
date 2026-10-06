@@ -1,0 +1,434 @@
+// AutoLab database schema for dbdiagram.io.
+// Keep in sync with workbench_schema.sql (the SQL is the source of truth).
+// Triggers, partial indexes and some CHECKs are only in the SQL.
+
+Project autolab {
+  database_type: 'PostgreSQL'
+  Note: 'No ENUM types: text + CHECK, or lookup tables.'
+}
+
+// ---------------------------------------------------------------------
+// Group 1: People and access
+// ---------------------------------------------------------------------
+
+TableGroup people_and_access {
+  users
+  workspaces
+  roles
+  memberships
+}
+
+Table users {
+  id bigint [pk, increment]
+  email text [not null, note: 'unique on lower(email)']
+  username text [not null, unique]
+  display_name text [not null]
+  email_verified boolean [not null, default: false]
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table workspaces {
+  id bigint [pk, increment]
+  name text [not null]
+  description text
+  created_by bigint [note: 'never changes']
+  owner_id bigint [note: 'NULL = free (public + archived) or owner deleted']
+  visibility text [not null, default: 'private', note: 'CHECK: private | public; trigger blocks public -> private']
+  archived_at timestamptz [note: 'NULL = active']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    owner_id
+  }
+}
+
+Ref: workspaces.created_by > users.id [delete: set null]
+Ref: workspaces.owner_id > users.id [delete: set null]
+
+Table roles {
+  id smallint [pk, increment]
+  name text [not null, unique, note: 'editor, reviewer, viewer']
+  description text
+}
+
+Table memberships {
+  workspace_id bigint [not null]
+  user_id bigint [not null]
+  role_id smallint [not null]
+
+  indexes {
+    (workspace_id, user_id, role_id) [pk]
+    user_id
+  }
+}
+
+Ref: memberships.workspace_id > workspaces.id [delete: cascade]
+Ref: memberships.user_id > users.id [delete: cascade]
+Ref: memberships.role_id > roles.id [delete: restrict]
+
+// ---------------------------------------------------------------------
+// Group 2: Model catalog
+// ---------------------------------------------------------------------
+
+TableGroup model_catalog {
+  model_providers
+  models
+  capabilities
+  model_capabilities
+}
+
+Table model_providers {
+  id smallint [pk, increment]
+  name text [not null, unique, note: 'ollama, openai, openrouter, ...']
+  adapter text [not null, note: 'CHECK: ollama | openai_compatible | anthropic']
+  base_url text
+  secret_id text [note: 'key id in the external secret store, no FK']
+}
+
+Table models {
+  id bigint [pk, increment]
+  provider_id smallint [not null]
+  name text [not null, note: 'name the provider API expects']
+  base_url text [note: 'NULL = model_providers.base_url']
+  context_length integer [not null, note: '> 0']
+  vram_mb integer [note: 'NULL for cloud']
+  ram_mb integer [note: 'NULL for cloud']
+  cost_per_1m_input "numeric(10,4)" [note: 'NULL = free']
+  cost_per_1m_output "numeric(10,4)" [note: 'NULL = free']
+  description text
+  available boolean [not null, default: true]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (provider_id, name) [unique]
+  }
+}
+
+Ref: models.provider_id > model_providers.id [delete: restrict]
+
+Table capabilities {
+  id smallint [pk, increment]
+  name text [not null, unique]
+  description text
+}
+
+Table model_capabilities {
+  model_id bigint [not null]
+  capability_id smallint [not null]
+  kind text [not null, note: 'CHECK: strength | weakness']
+  note text
+
+  indexes {
+    (model_id, capability_id) [pk]
+  }
+}
+
+Ref: model_capabilities.model_id > models.id [delete: cascade]
+Ref: model_capabilities.capability_id > capabilities.id [delete: restrict]
+
+// ---------------------------------------------------------------------
+// Group 3: Tasks
+// ---------------------------------------------------------------------
+
+TableGroup tasks_group {
+  pipelines
+  pipeline_versions
+  tasks
+  task_steps
+  llm_calls
+  llm_responses
+  log_deletions
+}
+
+Table pipelines {
+  id smallint [pk, increment]
+  name text [not null, unique, note: 'pipeline = task type']
+  description text
+}
+
+Table pipeline_versions {
+  id bigint [pk, increment]
+  pipeline_id smallint [not null]
+  version_name text [not null, note: "'1.0.1', for people"]
+  version_code integer [not null, note: 'for sorting; newest = MAX']
+  file_path text [not null]
+  file_hash text [not null, note: 'sha256']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (pipeline_id, version_code) [unique]
+    (pipeline_id, version_name) [unique]
+  }
+}
+
+Ref: pipeline_versions.pipeline_id > pipelines.id [delete: restrict]
+
+Table tasks {
+  id bigint [pk, increment]
+  workspace_id bigint [not null]
+  pipeline_version_id bigint [not null]
+  model_id bigint [not null]
+  title text [not null]
+  input text [not null]
+  status text [not null, default: 'draft', note: 'CHECK: draft | queued | running | in_review | done | cancelled']
+  created_by bigint
+  reviewer_id bigint
+  created_at timestamptz [not null, default: `now()`]
+  started_at timestamptz
+  finished_at timestamptz
+
+  indexes {
+    (workspace_id, created_at)
+    status [note: "partial: WHERE status IN ('queued', 'running')"]
+    reviewer_id [note: "partial: WHERE status = 'in_review'"]
+  }
+}
+
+Ref: tasks.workspace_id > workspaces.id [delete: restrict]
+Ref: tasks.pipeline_version_id > pipeline_versions.id [delete: restrict]
+Ref: tasks.model_id > models.id [delete: restrict]
+Ref: tasks.created_by > users.id [delete: set null]
+Ref: tasks.reviewer_id > users.id [delete: set null]
+
+Table task_steps {
+  task_id bigint [not null]
+  step_index smallint [not null, note: '>= 0']
+  status text [not null, default: 'pending', note: 'CHECK: pending | running | done']
+  summary text
+  review_id bigint [note: 'NULL = normal step; set = revise step']
+  started_at timestamptz
+  finished_at timestamptz
+
+  indexes {
+    (task_id, step_index) [pk]
+    review_id
+  }
+}
+
+Ref: task_steps.task_id > tasks.id [delete: cascade]
+Ref: task_steps.review_id > task_reviews.id [delete: restrict]
+
+Table llm_calls {
+  id bigint [pk, increment, note: 'also the key in the log store']
+  task_id bigint [not null]
+  step_index smallint [not null]
+  model_id bigint [not null]
+  attempt smallint [not null, default: 1]
+  status text [not null, default: 'queued', note: 'CHECK: queued | running | done | failed | cancelled']
+  response_schema jsonb [note: 'NULL = free text']
+  params jsonb
+  error text
+  created_at timestamptz [not null, default: `now()`]
+  started_at timestamptz
+  finished_at timestamptz
+
+  indexes {
+    (task_id, step_index)
+  }
+}
+
+Ref: llm_calls.task_id > tasks.id [delete: cascade]
+Ref: llm_calls.(task_id, step_index) > task_steps.(task_id, step_index) [delete: cascade]
+Ref: llm_calls.model_id > models.id [delete: restrict]
+
+Table llm_responses {
+  call_id bigint [pk]
+  input_tokens integer
+  output_tokens integer
+  finish_reason text [note: 'CHECK: stop | length | other']
+  valid_json boolean [note: 'NULL = no schema']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Ref: llm_responses.call_id - llm_calls.id [delete: cascade]
+
+Table log_deletions {
+  call_id bigint [pk, note: 'no FK: the call is already deleted; filled by a trigger on llm_calls']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------------
+// Group 4: Results and evidence
+// ---------------------------------------------------------------------
+
+TableGroup results_and_evidence {
+  works
+  work_sources
+  quotes
+  task_reviews
+  publishers
+  publications
+}
+
+Table works {
+  task_id bigint [pk]
+  summary text
+  file_path text [not null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Ref: works.task_id - tasks.id [delete: cascade]
+
+Table work_sources {
+  id bigint [pk, increment]
+  work_id bigint [not null]
+  title text [not null]
+  kind text [not null, note: 'CHECK: web | file']
+  location text [not null]
+  accessed_at timestamptz [not null]
+
+  indexes {
+    (work_id, location) [unique]
+  }
+}
+
+Ref: work_sources.work_id > works.task_id [delete: cascade]
+
+Table quotes {
+  id bigint [pk, increment]
+  work_source_id bigint [not null]
+  claim text [not null]
+  quote text [not null, note: 'exact text from the source']
+  placement text
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    work_source_id
+  }
+}
+
+Ref: quotes.work_source_id > work_sources.id [delete: cascade]
+
+Table task_reviews {
+  id bigint [pk, increment]
+  task_id bigint [not null]
+  reviewer_id bigint
+  result text [not null, note: 'CHECK: accepted | rejected']
+  comment text [note: "CHECK: required when result = 'rejected'"]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    task_id
+  }
+}
+
+Ref: task_reviews.task_id > tasks.id [delete: cascade]
+Ref: task_reviews.reviewer_id > users.id [delete: set null]
+
+Table publishers {
+  id bigint [pk, increment]
+  name text [not null, unique]
+  description text
+  owner_id bigint
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Ref: publishers.owner_id > users.id [delete: set null]
+
+Table publications {
+  id bigint [pk, increment]
+  work_id bigint [not null, unique]
+  publisher_id bigint [not null]
+  title text [not null]
+  description text
+  published_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (publisher_id, published_at)
+  }
+}
+
+Ref: publications.work_id - works.task_id [delete: restrict]
+Ref: publications.publisher_id > publishers.id [delete: restrict]
+
+// ---------------------------------------------------------------------
+// Group 5: Audit and logging
+// ---------------------------------------------------------------------
+
+TableGroup audit_and_logging {
+  activity_events
+}
+
+Table activity_events {
+  id bigint [pk, increment]
+  occurred_at timestamptz [not null, default: `now()`]
+  actor_id bigint [note: 'no FK; NULL = system']
+  actor_name text [note: 'copy of the name at that moment']
+  workspace_id bigint [note: 'no FK; NULL = global action']
+  action text [not null, note: 'CHECK: fixed list, see SQL']
+  target_type text [note: 'CHECK: workspace | membership | task | work | publication | publisher | user']
+  target_id bigint
+  target_label text
+  details jsonb
+
+  indexes {
+    (workspace_id, occurred_at)
+  }
+}
+
+// ---------------------------------------------------------------------
+// Group 6: Auth
+// ---------------------------------------------------------------------
+
+TableGroup auth {
+  password_credentials
+  auth_providers
+  user_identities
+  admins
+  sessions
+}
+
+Table password_credentials {
+  user_id bigint [pk]
+  password_hash text [not null, note: 'argon2']
+  updated_at timestamptz [not null, default: `now()`]
+}
+
+Ref: password_credentials.user_id - users.id [delete: cascade]
+
+Table auth_providers {
+  id smallint [pk, increment]
+  name text [not null, unique, note: 'github, google']
+  enabled boolean [not null, default: false]
+}
+
+Table user_identities {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  provider_id smallint [not null]
+  provider_user_id text [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (provider_id, provider_user_id) [unique]
+    user_id
+  }
+}
+
+Ref: user_identities.user_id > users.id [delete: cascade]
+Ref: user_identities.provider_id > auth_providers.id [delete: restrict]
+
+Table admins {
+  user_id bigint [pk]
+  granted_at timestamptz [not null, default: `now()`]
+  granted_by text
+}
+
+Ref: admins.user_id - users.id [delete: cascade]
+
+Table sessions {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  refresh_token_hash text [not null, unique]
+  created_at timestamptz [not null, default: `now()`]
+  expires_at timestamptz [not null]
+  last_used_at timestamptz
+  revoked_at timestamptz [note: 'NULL = active']
+
+  indexes {
+    user_id
+  }
+}
+
+Ref: sessions.user_id > users.id [delete: cascade]

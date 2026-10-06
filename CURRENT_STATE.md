@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-06 (schema redesign done and reviewed; next: SQL + DBML; first code: log store).
+Last updated: 2026-10-06 (schema done: SQL, DBML and ER diagram written; first code: log store).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
@@ -25,15 +25,16 @@ description below (18 tables, `task_types`, ...) is outdated.
   index list, normalization notes. All in `drafts/schema_design.md`.
 - Detail drafts: `drafts/llm_manager.md`, `drafts/workspaces.md`,
   `drafts/results_and_evidence.md`, `drafts/audit.md`, `drafts/auth.md`.
-- Next: write `workbench_schema.sql` / `.dbml` from
-  `drafts/schema_design.md`, then run the SQL on a real database.
+- SQL, DBML and ER diagram written from the draft (2026-10-06). From
+  now on `workbench_schema.sql` is the source of truth for the DDL;
+  `drafts/schema_design.md` keeps the reasons.
 - After-MVP features: `BACKLOG.md`.
 - MongoDB as the LLM log store is under review (overrides the old
   "no second DB" rule only for logs).
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: write the SQL and DBML files.
+Next step: run `workbench_schema.sql` on the server's real database.
 `drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
 
 Session rules: update `drafts/schema_design.md` after each decision and
@@ -47,14 +48,17 @@ this file at the end; keep answers short.
 - `ARCHITECTURE.md` — data model, pipeline design, orchestrator
   constraints, model gateway design, file storage layout.
 - `AGENTS.md` — instructions for coding agents working in this repo.
-- **Note (2026-09-23):** the two schema files below are described here
-  but are **not in the repository yet**. They must be added before
-  step 1 of "Immediate next steps" can start.
-- `workbench_schema.sql` — full PostgreSQL DDL: 18 tables, enums,
-  constraints, indexes, 2 views, seed data for `capabilities`, a few
-  `models`, and `task_types`. Not yet run against a real database.
-- `workbench_schema.dbml` — same schema for dbdiagram.io (no constraints/
-  views, dbdiagram.io doesn't render those well).
+- `workbench_schema.sql` — full PostgreSQL DDL: 27 tables, no ENUM
+  types (`text` + CHECK), 2 triggers (public workspace stays public;
+  `log_deletions` outbox), 13 extra indexes, seed data (`roles`,
+  `model_providers` = ollama, `capabilities`, `pipelines`,
+  `auth_providers`). Tested on 2026-10-06 on a local PostgreSQL 14:
+  applies cleanly; constraints, triggers and delete rules work as
+  designed. No `models` or `pipeline_versions` seed yet.
+- `workbench_schema.dbml` — same schema for dbdiagram.io (33 FKs, same
+  as the SQL). Triggers and partial indexes only as notes.
+- `er_diagram.md` — ER diagram for the course (Mermaid, crow's foot):
+  an overview and a full version with attributes.
 - Ubuntu server set up with Ollama and several models already pulled
   (exact model list not yet recorded here — add it once decided).
 
@@ -67,9 +71,9 @@ this file at the end; keep answers short.
 - React frontend: no code yet. Not scaffolded.
 - Orchestrator / worker process: no code yet.
 - Model gateway interface: designed in `ARCHITECTURE.md`, not implemented.
-- PostgreSQL database: schema written, **not yet created or tested** on
-  the server. Needs to be run with DataGrip or `psql` and verified
-  (18 tables + 2 views expected under `public`).
+- PostgreSQL database on the server: not created yet. Run
+  `workbench_schema.sql` with DataGrip or `psql` (27 tables expected
+  under `public`).
 
 ## Immediate next steps (in rough order)
 
