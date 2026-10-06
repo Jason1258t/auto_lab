@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     mongo_url: str = "mongodb://localhost:27017"
 
     data_dir: str = "data"
+    max_upload_bytes: int = 50 * 1024 * 1024  # one workspace file
     pipelines_dir: str = "pipelines"
     cors_origins: list[str] = ["http://localhost:5173"]
 

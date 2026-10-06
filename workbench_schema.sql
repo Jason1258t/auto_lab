@@ -1,7 +1,7 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migrations 0001-0002 (checked with a pg_dump diff on 2026-10-06). After
+-- migrations 0001-0003 (checked with a pg_dump diff on 2026-10-07). After
 -- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
@@ -21,7 +21,8 @@ BEGIN;
 CREATE TYPE workspace_visibility AS ENUM ('private', 'public');
 CREATE TYPE capability_kind      AS ENUM ('strength', 'weakness');
 CREATE TYPE task_status          AS ENUM ('draft', 'queued', 'running',
-                                          'in_review', 'done', 'cancelled');
+                                          'in_review', 'done', 'cancelled',
+                                          'failed');
 CREATE TYPE task_step_status     AS ENUM ('pending', 'running', 'done');
 CREATE TYPE llm_call_status      AS ENUM ('queued', 'running', 'done',
                                           'failed', 'cancelled');
@@ -87,6 +88,22 @@ CREATE TABLE memberships (
     user_id      bigint   NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     role_id      smallint NOT NULL REFERENCES roles (id) ON DELETE RESTRICT,
     PRIMARY KEY (workspace_id, user_id, role_id)
+);
+
+-- User files of a workspace (added in migration 0003). A file is copied
+-- into data/workspaces/<workspace_id>/files/<file_name>.
+CREATE TABLE workspace_files (
+    id            bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    workspace_id  bigint      NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
+    original_name text        NOT NULL,
+    original_path text,       -- for people only, never used to open a file
+    file_name     text        NOT NULL,  -- current name on disk: '<id>_<safe name>'
+    size_bytes    bigint      NOT NULL CHECK (size_bytes >= 0),
+    sha256        text        NOT NULL,
+    content_type  text,
+    uploaded_by   bigint      REFERENCES users (id) ON DELETE SET NULL,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (workspace_id, file_name)
 );
 
 -- =====================================================================
@@ -330,10 +347,11 @@ CREATE TABLE activity_events (
                                  'publisher_created',
                                  'admin_granted', 'admin_revoked',
                                  'user_deleted',
-                                 'unarchived', 'workspace_deleted')),
+                                 'unarchived', 'workspace_deleted',
+                                 'file_added', 'file_removed')),
     target_type  text        CHECK (target_type IN (
                                  'workspace', 'membership', 'task', 'work',
-                                 'publication', 'publisher', 'user')),
+                                 'publication', 'publisher', 'user', 'file')),
     target_id    bigint,
     target_label text,
     details      jsonb

@@ -64,6 +64,11 @@ class WorkspaceAccess:
         """Create, edit, queue, cancel, delete tasks; change the reviewer."""
         return self.is_owner or EDITOR in self.roles
 
+    @property
+    def can_edit_files(self) -> bool:
+        """Add and remove workspace files."""
+        return self.is_owner or EDITOR in self.roles
+
     def can_manage_role(self, role: str) -> bool:
         if role == EDITOR:
             return self.is_owner

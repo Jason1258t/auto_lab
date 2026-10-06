@@ -105,6 +105,26 @@ the base role `member` (like `@everyone`). Adding a person = granting
 `member`; removing a person = deleting all their rows. `editor` and
 `reviewer` are granted on top of `member` (the backend checks this).
 
+### workspace_files
+User files of a workspace (decided 2026-10-07, migration 0003). A file is
+copied into `data/workspaces/<workspace_id>/files/<file_name>`.
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| id | bigint | no | PK |
+| workspace_id | bigint | no | → workspaces, `CASCADE` (files go with the workspace) |
+| original_name | text | no | name the user gave, e.g. `Chapter 1.pdf` |
+| original_path | text | yes | where it came from, for people only; never used to open a file |
+| file_name | text | no | current name on disk: `<id>_<safe name>` |
+| size_bytes | bigint | no | `>= 0` |
+| sha256 | text | no | |
+| content_type | text | yes | |
+| uploaded_by | bigint | yes | → users, `SET NULL`; NULL = added by the CLI |
+| created_at | timestamptz | no | default `now()` |
+
+Unique: `(workspace_id, file_name)` (also the index for "files of a
+workspace"). Add / remove: owner, editor. List / download: members.
+
 ---
 
 ## Group 2: Model catalog (done)
@@ -194,7 +214,7 @@ New tasks use the newest version.
 | model_id | bigint | no | → models, `RESTRICT` |
 | title | text | no | |
 | input | text | no | the user's request |
-| status | enum `task_status` | no | `draft` / `queued` / `running` / `in_review` / `done` / `cancelled`, default `draft` |
+| status | enum `task_status` | no | `draft` / `queued` / `running` / `in_review` / `done` / `cancelled` / `failed` (added in 0003; final, set by the worker), default `draft` |
 | created_by | bigint | yes | → users, `SET NULL` |
 | reviewer_id | bigint | yes | → users, `SET NULL`; backend sets it = `created_by` by default |
 | created_at | timestamptz | no | default `now()` |

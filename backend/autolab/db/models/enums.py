@@ -20,6 +20,7 @@ class TaskStatus(StrEnum):
     IN_REVIEW = "in_review"
     DONE = "done"
     CANCELLED = "cancelled"
+    FAILED = "failed"  # a step failed; final, like cancelled (migration 0003)
 
 
 class TaskStepStatus(StrEnum):

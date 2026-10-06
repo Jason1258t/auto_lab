@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, status
 
-from autolab.api.deps import CurrentPrincipal, DbSession, OptionalUser
+from autolab.api.deps import CurrentPrincipal, DbSession, OptionalUser, SettingsDep
 from autolab.api.schemas.workspaces import (
     ActivityEventOut,
     MemberIn,
@@ -84,9 +84,11 @@ async def update_workspace(
 
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_workspace(workspace_id: int, principal: CurrentPrincipal, db: DbSession) -> None:
+async def delete_workspace(
+    workspace_id: int, principal: CurrentPrincipal, db: DbSession, settings: SettingsDep
+) -> None:
     access = await load_access(db, workspace_id, principal.user)
-    await workspaces_service.delete_workspace(db, access)
+    await workspaces_service.delete_workspace(db, settings, access)
 
 
 @router.post("/{workspace_id}/archive")

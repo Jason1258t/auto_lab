@@ -195,3 +195,26 @@ async def test_delete(
     await db.commit()
     blocked = await client.delete(f"{API}/tasks/{published}", headers=ann.headers)
     assert code(blocked) == "task_published"
+
+
+async def test_failed_task(
+    client: httpx.AsyncClient, make_user, catalog: Catalog, db: AsyncSession
+) -> None:
+    """The worker sets 'failed'; it is final like 'cancelled'."""
+    from autolab.db.models import Task
+    from autolab.db.models.enums import TaskStatus
+
+    ann = await make_user("ann")
+    ws = await workspace(client, ann)
+    task_id = (await new_task(client, ws, ann, catalog)).json()["id"]
+    task = await db.get(Task, task_id)
+    task.status = TaskStatus.FAILED
+    await db.commit()
+
+    assert (await client.get(f"{API}/tasks/{task_id}", headers=ann.headers)).json()["status"] == (
+        "failed"
+    )
+    assert code(await client.post(f"{API}/tasks/{task_id}/cancel", headers=ann.headers)) == (
+        "task_not_cancellable"
+    )
+    assert (await client.delete(f"{API}/tasks/{task_id}", headers=ann.headers)).status_code == 204
