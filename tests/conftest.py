@@ -11,6 +11,7 @@ import os
 os.environ["JWT_SECRET"] = "test-secret-that-is-long-enough-0123456789"
 
 from collections.abc import AsyncIterator  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -22,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E4
 from autolab.api.app import create_app  # noqa: E402
 from autolab.api.deps import get_session  # noqa: E402
 from autolab.config import Settings, get_settings  # noqa: E402
+from autolab.logstore import FileLogStore  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -92,6 +94,7 @@ async def client(db: AsyncSession, settings: Settings) -> AsyncIterator[httpx.As
 
     app.dependency_overrides[get_session] = same_session
     app.dependency_overrides[get_settings] = lambda: settings
+    app.state.log_store = FileLogStore(Path(settings.data_dir) / "logs")
     # https: the refresh cookie is Secure, so it is only sent over https.
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:

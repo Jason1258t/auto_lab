@@ -6,10 +6,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from autolab.api.routers import auth, catalog, files, me, tasks, workspaces
+from autolab.api.routers import auth, catalog, files, me, results, tasks, workspaces
 from autolab.config import get_settings
 from autolab.db.engine import make_engine, make_session_factory
 from autolab.errors import install_error_handlers
+from autolab.logstore import make_log_store
 
 MIN_JWT_SECRET_LENGTH = 32
 
@@ -21,8 +22,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         raise RuntimeError(f"JWT_SECRET must be at least {MIN_JWT_SECRET_LENGTH} characters")
     engine = make_engine(settings.database_url)
     app.state.session_factory = make_session_factory(engine)
+    app.state.log_store = make_log_store(settings)  # GET /calls/{id}/log
     yield
     await engine.dispose()
+    if hasattr(app.state.log_store, "close"):
+        await app.state.log_store.close()
 
 
 def create_app() -> FastAPI:
@@ -41,6 +45,7 @@ def create_app() -> FastAPI:
         workspaces.router,
         files.router,
         tasks.router,
+        results.router,
         catalog.router,
         catalog.admin_router,
     ):
