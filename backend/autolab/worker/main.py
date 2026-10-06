@@ -13,6 +13,7 @@ import logging
 import signal
 from pathlib import Path
 
+import httpx
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +26,7 @@ from autolab.worker.gateway import Adapter, make_adapters
 from autolab.worker.llm_manager import LlmManager, SessionFactory
 from autolab.worker.pipelines import PipelineError, sync_pipelines
 from autolab.worker.runner import TaskRunner, now
+from autolab.worker.web import Resolver, resolve
 
 log = logging.getLogger("autolab.worker")
 
@@ -87,12 +89,18 @@ class Worker:
         settings: Settings,
         log_store: LogStore,
         adapters: dict[str, Adapter],
+        http: httpx.AsyncClient | None = None,
+        resolver: Resolver = resolve,
     ) -> None:
         self.session_factory = session_factory
         self.settings = settings
         self.log_store = log_store
         self.llm = LlmManager(session_factory, log_store, adapters)
-        self.runner = TaskRunner(session_factory, self.llm, settings)
+        # One HTTP client for search and page downloads.
+        self.http = http or httpx.AsyncClient(
+            timeout=httpx.Timeout(15.0), headers={"User-Agent": settings.fetch_user_agent}
+        )
+        self.runner = TaskRunner(session_factory, self.llm, settings, self.http, resolver)
 
     async def start(self) -> None:
         failed_calls = await self.llm.recover()
@@ -127,6 +135,7 @@ class Worker:
         finally:
             cleanup.cancel()
             await self.llm.close()
+            await self.http.aclose()
 
     async def _cleanup_forever(self) -> None:
         while True:

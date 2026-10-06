@@ -36,6 +36,14 @@ services:
       timeout: 5s
       retries: 20
 
+  # Web search for the worker (pipeline step "search"), JSON API.
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "127.0.0.1:8888:8080"
+    volumes:
+      - ./docker/searxng/settings.yml:/etc/searxng/settings.yml:ro
+
 volumes:
   pgdata:
   mongodata:
