@@ -1,5 +1,7 @@
 """Auth flow through the HTTP API, and create-admin."""
 
+from datetime import UTC, datetime, timedelta
+
 import httpx
 import pytest
 from sqlalchemy import select
@@ -107,6 +109,19 @@ async def test_refresh_rotates_token(client: httpx.AsyncClient) -> None:
     assert (
         await client.get(f"{API}/me", headers=bearer(response.json()["access_token"]))
     ).is_success
+
+
+async def test_refresh_moves_expiry_forward(client: httpx.AsyncClient, db: AsyncSession) -> None:
+    await signup(client)
+    token = (await login(client)).cookies["refresh_token"]
+    session = await db.scalar(select(AuthSession))
+    # Pretend the session was created long ago and expires tomorrow.
+    session.expires_at = datetime.now(UTC) + timedelta(days=1)
+    await db.commit()
+
+    assert (await refresh_with(client, token)).status_code == 200
+    await db.refresh(session)
+    assert session.expires_at > datetime.now(UTC) + timedelta(days=29)
 
 
 async def test_reused_refresh_token_ends_session(client: httpx.AsyncClient) -> None:

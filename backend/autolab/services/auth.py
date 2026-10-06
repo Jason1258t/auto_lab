@@ -101,7 +101,9 @@ async def login(db: AsyncSession, settings: Settings, *, email: str, password: s
 
 
 async def refresh(db: AsyncSession, settings: Settings, refresh_token: str) -> Tokens:
-    """Replace the refresh token with a new one (rotation)."""
+    """Give a new access + refresh token pair (rotation). The session's
+    expiry moves forward too (sliding window): a user who comes back at
+    least once in REFRESH_TOKEN_DAYS never has to log in again."""
     parsed = parse_refresh_token(refresh_token)
     if parsed is None:
         raise invalid_refresh()
@@ -125,6 +127,7 @@ async def refresh(db: AsyncSession, settings: Settings, refresh_token: str) -> T
     new_secret = new_refresh_secret()
     session.refresh_token_hash = hash_refresh_secret(new_secret)
     session.last_used_at = now
+    session.expires_at = now + timedelta(days=settings.refresh_token_days)
     await db.commit()
     return _tokens(settings, session.user_id, session.id, new_secret)
 
