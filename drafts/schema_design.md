@@ -87,7 +87,7 @@ Rules (details: `drafts/workspaces.md`):
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | id | smallint | no | PK |
-| name | text | no | unique: editor, reviewer, viewer |
+| name | text | no | unique: member, editor, reviewer (`viewer` renamed to `member` in migration 0002) |
 | description | text | yes | |
 
 ### memberships
@@ -99,6 +99,11 @@ Rules (details: `drafts/workspaces.md`):
 
 PK: `(workspace_id, user_id, role_id)`. A person can have many roles in
 one workspace. The owner is not a membership row, it is `workspaces.owner_id`.
+
+Discord-like roles (decided 2026-10-06): every person in a workspace has
+the base role `member` (like `@everyone`). Adding a person = granting
+`member`; removing a person = deleting all their rows. `editor` and
+`reviewer` are granted on top of `member` (the backend checks this).
 
 ---
 

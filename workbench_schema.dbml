@@ -100,7 +100,7 @@ Ref: workspaces.owner_id > users.id [delete: set null]
 
 Table roles {
   id smallint [pk, increment]
-  name text [not null, unique, note: 'editor, reviewer, viewer']
+  name text [not null, unique, note: 'member, editor, reviewer']
   description text
 }
 

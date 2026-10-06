@@ -88,3 +88,32 @@ async def client(db: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:
         yield client
+
+
+class ApiUser:
+    """A signed-up and logged-in user for API tests."""
+
+    def __init__(self, id: int, username: str, token: str) -> None:
+        self.id = id
+        self.username = username
+        self.headers = {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def make_user(client: httpx.AsyncClient):
+    async def make(username: str) -> ApiUser:
+        email = f"{username}@example.com"
+        password = "a long enough password"
+        signup = await client.post(
+            "/api/v1/auth/signup",
+            json={
+                "email": email,
+                "username": username,
+                "display_name": username.title(),
+                "password": password,
+            },
+        )
+        login = await client.post("/api/v1/auth/login", json={"email": email, "password": password})
+        return ApiUser(signup.json()["id"], username, login.json()["access_token"])
+
+    return make

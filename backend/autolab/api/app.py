@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from autolab.api.routers import auth, me
+from autolab.api.routers import auth, me, workspaces
 from autolab.config import get_settings
 from autolab.db.engine import make_engine, make_session_factory
 from autolab.errors import install_error_handlers
@@ -35,7 +35,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     install_error_handlers(app)
-    for router in (auth.router, me.router):
+    for router in (auth.router, me.router, workspaces.router):
         app.include_router(router, prefix="/api/v1")
     return app
 

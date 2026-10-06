@@ -142,8 +142,11 @@ check roles themselves.
 | See a public workspace: name, description, works (with sources and quotes) | anyone, also without login |
 | See tasks, steps, reviews, LLM calls and logs | owner, members (also in a public workspace) |
 | See a private workspace | owner, members; admins only by direct link (see below) |
-| Add / remove members, grant / remove any role | owner |
+| Add / remove members (= the `member` role) | owner |
+| Grant / remove the `editor` role | owner |
 | Grant / remove the `reviewer` role | owner, editor |
+| Edit name and description, delete an empty workspace | owner |
+| Un-archive a private workspace | owner |
 | Create, edit, queue, cancel a task | owner, editor |
 | Change a task's `reviewer_id` | owner, editor |
 | Review a task | the assigned `reviewer_id`, or any member with the `editor` or `reviewer` role |
@@ -163,8 +166,11 @@ several roles in one workspace (`memberships` PK stays
 `(workspace_id, user_id, role_id)`). These rules may change as the
 project grows.
 
-Note: the schema has three roles: `editor`, `reviewer`, `viewer`
-(Group 1). The owner is not a role, it is `workspaces.owner_id`.
+Roles (Discord-like, decided 2026-10-06): `member` is the base role of
+every person in a workspace; `editor` and `reviewer` come on top of it.
+The owner is not a role, it is `workspaces.owner_id` (and cannot also be
+a member). An archived workspace is read-only. Admins open a private
+workspace by direct link, read-only.
 
 ## 7. API (MVP)
 
