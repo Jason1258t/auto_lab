@@ -37,9 +37,10 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 6 (worker: pipeline sync, taking tasks, LLM
-manager, Ollama adapter, log store), see the build order in
-`drafts/backend_spec.md` (section 13). Step 4 = PR #4, step 5 = PR #5. How to run: `DEVELOPMENT.md`.
+Next step: the author reviews `drafts/pipeline_spec.md` and the example
+`pipelines/research/1.0.0.yaml` (PR #6), then backend step 6 (worker:
+pipeline sync, taking tasks, LLM manager, Ollama adapter, log store).
+Steps 1-5 are merged into `main` (PRs #1-#5). How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
