@@ -53,9 +53,15 @@ async def get_work(db: AsyncSession, task_id: int, user: User | None) -> WorkVie
     if work is None or not _public_ok(access, task):
         raise work_not_found(task_id)
 
+    return await work_content(db, task, work)
+
+
+async def work_content(db: AsyncSession, task: Task, work: Work) -> WorkView:
+    """Text, sources and quotes of a work, without an access check (the
+    caller checks; publications are public)."""
     sources = list(
         await db.scalars(
-            select(WorkSource).where(WorkSource.work_id == task_id).order_by(WorkSource.id)
+            select(WorkSource).where(WorkSource.work_id == task.id).order_by(WorkSource.id)
         )
     )
     quotes = list(

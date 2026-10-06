@@ -200,7 +200,7 @@ the API does not reveal that it exists.
 | Activity | `GET /workspaces/{id}/activity`, `GET /admin/activity` |
 | Files | `GET /workspaces/{id}/files`, `POST /workspaces/{id}/files` (multipart: `file`, optional `original_path`), `GET /workspaces/{id}/files/{file_id}/download`, `DELETE /workspaces/{id}/files/{file_id}` |
 | Catalog | `GET /models`, `GET /pipelines` (newest versions) |
-| Admin | `POST/PATCH /admin/models`, `POST/PATCH /admin/model-providers`, `POST/DELETE /admin/admins/{user_id}` |
+| Admin | `POST/PATCH /admin/models`, `POST/PATCH /admin/model-providers`, `POST/DELETE /admin/admins/{user_id}`, `DELETE /admin/publications/{id}` |
 
 Progress in the UI: the frontend polls `GET /tasks/{id}` every few
 seconds. SSE (live push) comes later.
@@ -316,7 +316,7 @@ a new file every day, a separate errors file. Each line has `task_id`,
      and `quotes`.
 7. Results, in two parts:
    - 7a. ~~Reviews, revise, works and calls endpoints~~ Done (PR #13).
-   - 7b. Publishers and publications.
+   - 7b. ~~Publishers and publications~~ Done (PR #14).
 
 ## Open questions
 
