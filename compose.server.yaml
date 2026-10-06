@@ -1,0 +1,73 @@
+# AutoLab on the server (192.168.0.101). How to deploy: DEPLOY.md.
+#
+# Uses what already runs on the server:
+# - PostgreSQL: the "postgres" container (/opt/postgres), reached through
+#   its Docker network "postgres_default"; port 5432 stays localhost-only.
+# - Ollama: installed on the host, reached as host.docker.internal:11434.
+# Brings its own: api, worker, MongoDB (LLM logs), SearxNG (web search).
+name: autolab
+
+x-app: &app
+  image: autolab:latest
+  build: .
+  env_file: .env
+  volumes:
+    # Works, user files, step outputs. Owned by uid 1000 (= container user).
+    - ./data:/app/data
+  networks: [default, postgres]
+  restart: unless-stopped
+
+services:
+  # Runs the migrations once, then stops. api and worker wait for it.
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  api:
+    <<: *app
+    ports:
+      - "8000:8000"  # local network only (test deploy, no HTTPS yet)
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *app
+    command: ["autolab-worker"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Ollama on the host
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mongo:
+        condition: service_healthy
+      searxng:
+        condition: service_started
+
+  mongo:
+    image: mongo:8
+    volumes:
+      - mongodata:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  searxng:
+    image: searxng/searxng:latest
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+    volumes:
+      - ./docker/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    restart: unless-stopped
+
+volumes:
+  mongodata:
+
+networks:
+  postgres:
+    external: true
+    name: postgres_default
