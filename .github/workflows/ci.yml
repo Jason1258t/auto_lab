@@ -1,0 +1,52 @@
+# Lint and tests on every pull request and on main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Same Postgres as compose.yaml. The tests drop and rebuild the
+    # schema of this database.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: autolab
+          POSTGRES_PASSWORD: autolab
+          POSTGRES_DB: autolab_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U autolab -d autolab_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+
+    env:
+      DATABASE_URL: postgresql+psycopg://autolab:autolab@localhost:5433/autolab_test
+      TEST_DATABASE_URL: postgresql+psycopg://autolab:autolab@localhost:5433/autolab_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # Python version comes from .python-version; --locked fails if
+      # uv.lock is out of date.
+      - name: Install
+        run: uv sync --locked
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Tests
+        run: uv run pytest -v

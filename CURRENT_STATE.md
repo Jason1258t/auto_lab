@@ -37,11 +37,12 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 3 (workspaces, members, permissions,
+Next step: backend step 4 (workspaces, members, permissions,
 `activity_events`), see the build order in `drafts/backend_spec.md`
 (section 13). How to run: `DEVELOPMENT.md`.
-Git: GitHub flow. Step 1 is on `feature/backend-setup` (pushed), step 2
-on `feature/auth`; neither is merged into `main` yet. `drafts/schema_design.html` is
+Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
+merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
+ruff + pytest with a Postgres service). `drafts/schema_design.html` is
 up to date (ENUM types, ER diagram section).
 `drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
 

@@ -288,14 +288,16 @@ a new file every day, a separate errors file. Each line has `task_id`,
 
 ## 13. Build order (proposal)
 
-1. `pyproject.toml`, config, ORM models, Alembic `0001_init`. Check:
-   an Alembic autogenerate diff against the DB is empty.
-2. Auth + `create-admin`.
-3. Workspaces, members, permissions + `activity_events`.
-4. Tasks API (no worker yet: `queue` only sets the status).
-5. Worker: start, pipeline sync, taking tasks, LLM manager with the
+1. ~~`pyproject.toml`, config, ORM models, Alembic `0001_init`~~ Done
+   (PR #1).
+2. ~~Auth + `create-admin`~~ Done (PR #2).
+3. Simple CI (GitHub Actions): ruff + pytest against a Postgres service,
+   on every pull request and on `main` (added 2026-10-06).
+4. Workspaces, members, permissions + `activity_events`.
+5. Tasks API (no worker yet: `queue` only sets the status).
+6. Worker: start, pipeline sync, taking tasks, LLM manager with the
    Ollama adapter, log store. One fake pipeline with one step.
-6. Reviews, works, publications.
+7. Reviews, works, publications.
 
 ## Open questions
 
