@@ -27,6 +27,8 @@ docker compose down -v        # stop and DELETE all data
 
 Two databases: `autolab` (dev) and `autolab_test` (pytest only).
 MongoDB (LLM log store, `LOG_STORE=mongo`) runs on port 27017.
+SearxNG (web search for the worker, JSON API) runs on port 8888:
+`curl "http://localhost:8888/search?q=test&format=json"`.
 Connect with DataGrip or psql: `localhost:5433`, user `autolab`,
 password `autolab`.
 

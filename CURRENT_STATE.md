@@ -37,9 +37,9 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: backend step 6b (research step kinds: SearxNG search, safe
-fetch, summarize with quote check, verify, synthesize, write, assembling
-the work). Step 6a (worker frame) is PR #8. How to run: `DEVELOPMENT.md`.
+Next step: a first real run of `research` with Ollama on the server
+(nothing has run against a real model yet), then backend step 7
+(reviews with revise, works, publications). Steps 6a/6b = PRs #8/#9. How to run: `DEVELOPMENT.md`.
 Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
 merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
 ruff + pytest with a Postgres service). `drafts/schema_design.html` is
@@ -104,6 +104,14 @@ this file at the end; keep answers short.
   Docker; `backend/log_store.py` moved to `autolab/logstore.py`),
   generic LLM step, kind `plan`, cancel, failed tasks, log cleanup,
   clean stop on SIGTERM. Tested with a fake model; no real Ollama run yet.
+- Backend step 6b (2026-10-07): research step kinds (`search` via
+  SearxNG in Docker, `fetch` with public-address check on every redirect,
+  `summarize` drops facts whose quote is not in the page, `verify`,
+  `synthesize`, `write` removes unknown `[n]` marks) and work assembly
+  (markdown file + `works`, `work_sources`, `quotes`). Tested end to end
+  with a fake model and fake web; search and fetch also checked live.
+  Known limit: some sites keep menus inside `<main>` (Wikipedia's
+  language list), which costs part of the 6000-character budget.
 - Not built yet: `GET /tasks/{id}/calls` and `/calls/{id}/log` (come with
   the worker and the log store, step 6).
 - `DEVELOPMENT.md` — how to run everything locally.

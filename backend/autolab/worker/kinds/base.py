@@ -5,12 +5,15 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+import httpx
+
 from autolab.config import Settings
 from autolab.db.models import Task
 from autolab.worker import templates
 from autolab.worker.gateway import Message
 from autolab.worker.llm_manager import LlmCallFailed, LlmManager
 from autolab.worker.pipelines import PipelineFile, Step
+from autolab.worker.web import Resolver
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +32,8 @@ class StepContext:
     outputs: dict[str, dict[str, Any]]  # outputs of earlier steps, by step id
     llm: LlmManager
     settings: Settings
+    http: httpx.AsyncClient | None = None  # for search and fetch
+    resolver: Resolver | None = None  # host name -> addresses (fetch)
     note: str | None = None  # revise note, added to every prompt (later step)
     skipped: int = field(default=0)  # for_each items without a valid answer
 

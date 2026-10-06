@@ -5,25 +5,31 @@
   (task_steps keeps only status, times and a short summary).
 - Before each step the task status is checked: cancelled -> stop.
 - A step that fails -> the task becomes 'failed'; the step summary says why.
-- After the last step -> 'in_review'. (Assembling the work with its
-  sources and quotes comes with the research kinds.)
+- After the last step: if the pipeline has a `write` step, the work is
+  assembled (file + works, work_sources, quotes); then 'in_review'.
+- A cancelled task's step files are deleted. A failed task keeps them,
+  to see what went wrong.
 """
 
 import json
 import logging
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import httpx
 from sqlalchemy import select, update
 
 from autolab.config import Settings
 from autolab.db.models import PipelineVersion, Task, TaskStep
 from autolab.db.models.enums import TaskStatus, TaskStepStatus
 from autolab.worker import templates
+from autolab.worker.assemble import assemble_work
 from autolab.worker.kinds import HANDLERS, StepContext, StepFailed
 from autolab.worker.llm_manager import LlmManager, SessionFactory, TaskCancelled
 from autolab.worker.pipelines import PipelineError, PipelineFile, file_hash, load_pipeline
+from autolab.worker.web import Resolver, resolve
 
 log = logging.getLogger(__name__)
 
@@ -42,11 +48,18 @@ def now() -> datetime:
 
 class TaskRunner:
     def __init__(
-        self, session_factory: SessionFactory, llm: LlmManager, settings: Settings
+        self,
+        session_factory: SessionFactory,
+        llm: LlmManager,
+        settings: Settings,
+        http: httpx.AsyncClient | None = None,
+        resolver: Resolver = resolve,
     ) -> None:
         self.session_factory = session_factory
         self.llm = llm
         self.settings = settings
+        self.http = http
+        self.resolver = resolver
 
     async def run(self, task_id: int) -> TaskStatus:
         """Run a task that was claimed (status 'running'). Returns the final
@@ -57,6 +70,9 @@ class TaskRunner:
             outputs: dict[str, dict[str, Any]] = {}
             for index, step in enumerate(pipeline.steps):
                 outputs[step.id] = await self._run_step(task, pipeline, index, outputs)
+            if any(step.kind == "write" for step in pipeline.steps):
+                async with self.session_factory() as db:
+                    await assemble_work(db, self.settings, task, pipeline, outputs)
         except TaskCancelled:
             await self._stop_cancelled(task_id)
             return TaskStatus.CANCELLED
@@ -114,14 +130,24 @@ class TaskRunner:
         handler = HANDLERS.get(step.kind)
         if handler is None:
             raise StepFailed(f"step kind '{step.kind}' is not built yet")
-        ctx = StepContext(task, pipeline, step, index, outputs, self.llm, self.settings)
+        ctx = StepContext(
+            task,
+            pipeline,
+            step,
+            index,
+            outputs,
+            self.llm,
+            self.settings,
+            http=self.http,
+            resolver=self.resolver,
+        )
         output = await handler(ctx)
 
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(output, ensure_ascii=False, indent=1), encoding="utf-8")
         summary = templates.render(step.summary, {"output": output}) if step.summary else None
         if ctx.skipped:
-            summary = f"{summary or 'done'} ({ctx.skipped} items without a valid answer)"
+            summary = f"{summary or 'done'} ({ctx.skipped} skipped)"
         async with self.session_factory() as db:
             await db.execute(
                 update(TaskStep)
@@ -147,6 +173,7 @@ class TaskRunner:
         async with self.session_factory() as db:
             await self._reset_running_step(db, task_id)
             await db.commit()
+        shutil.rmtree(task_dir(self.settings, task_id), ignore_errors=True)
 
     async def _fail(self, task_id: int, reason: str) -> None:
         async with self.session_factory() as db:

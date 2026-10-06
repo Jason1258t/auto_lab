@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     mongo_url: str = "mongodb://localhost:27017"
     mongo_db: str = "autolab"
 
+    # Search service (SearxNG, JSON API) and page downloads
+    searxng_url: str = "http://localhost:8888"
+    fetch_user_agent: str = "AutoLab/0.1 (research assistant)"
+
     # Worker
     worker_poll_seconds: float = 3.0  # wait between checks for queued tasks
     log_cleanup_seconds: float = 300.0

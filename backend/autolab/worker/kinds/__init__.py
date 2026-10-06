@@ -1,10 +1,7 @@
 """Step kind handlers. A kind that is valid in a pipeline file but has no
-handler here yet fails the task with a clear message.
+handler here fails the task with a clear message."""
 
-The research kinds (search, fetch, summarize, verify, synthesize, write)
-come in the next step of the build order.
-"""
-
+from autolab.worker.kinds import research
 from autolab.worker.kinds.base import Handler, StepContext, StepFailed
 
 
@@ -18,6 +15,7 @@ async def plan(ctx: StepContext) -> dict:
 
 HANDLERS: dict[str, Handler] = {
     "plan": plan,
+    **research.HANDLERS,
 }
 
 __all__ = ["HANDLERS", "Handler", "StepContext", "StepFailed"]

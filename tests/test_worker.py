@@ -161,17 +161,6 @@ async def test_model_down(setup, db: AsyncSession) -> None:
     assert (await db.get(Task, task_id)).status == TaskStatus.FAILED
 
 
-async def test_kind_not_built_yet(setup, db: AsyncSession) -> None:
-    search = {"id": "search", "kind": "search", "from": "plan.queries"}
-    worker, _, task_id = await setup([PLAN_STEP, search], lambda _: QUERIES)
-    await worker.run_once()
-
-    step = await db.get(TaskStep, (task_id, 1))
-    await db.refresh(step)
-    assert step.summary == "Failed: step kind 'search' is not built yet"
-    assert (await db.get(Task, task_id)).status == TaskStatus.FAILED
-
-
 async def test_cancel_between_steps(setup, db: AsyncSession, session_factory) -> None:
     task_ids: list[int] = []
 

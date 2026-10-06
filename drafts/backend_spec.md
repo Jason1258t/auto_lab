@@ -309,9 +309,10 @@ a new file every day, a separate errors file. Each line has `task_id`,
      taking tasks (`SKIP LOCKED`), LLM manager with the Ollama adapter,
      async log store (MongoDB in Docker), generic LLM step (template,
      schema, attempts, `for_each`), kind `plan`, cancel, log cleanup.
-   - 6b. Research kinds: `search` (SearxNG), `fetch` (public addresses
-     only), `summarize` (quote check), `verify`, `synthesize`, `write`,
-     and assembling the work with `work_sources` and `quotes`.
+   - 6b. ~~Research kinds~~ Done (PR #9): `search` (SearxNG), `fetch`
+     (public addresses only), `summarize` (quote check), `verify`,
+     `synthesize`, `write`, and assembling the work with `work_sources`
+     and `quotes`.
 7. Reviews, works, publications.
 
 ## Open questions

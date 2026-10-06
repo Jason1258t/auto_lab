@@ -1,0 +1,14 @@
+# SearxNG for local development (search service of the worker).
+# Defaults from the image, plus the JSON API that the worker uses.
+use_default_settings: true
+
+server:
+  # Local only. On the server, set the SEARXNG_SECRET environment variable.
+  secret_key: "autolab-local-dev-only"
+  limiter: false
+  image_proxy: false
+
+search:
+  formats:
+    - html
+    - json
