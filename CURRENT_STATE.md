@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-06 (schema done: SQL, DBML and ER diagram written; first code: log store).
+Last updated: 2026-10-06 (backend step 1 done: project, ORM models, Alembic, Docker Postgres).
 
 This file tracks what actually exists versus what is only designed. Update
 it at the end of any work session so the next session (human or agent)
@@ -37,8 +37,8 @@ description below (18 tables, `task_types`, ...) is outdated.
 - `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
   decisions (2026-10-06).
 
-Next step: start the backend, step 1 of the build order in
-`drafts/backend_spec.md` (section 13). `drafts/schema_design.html` is
+Next step: backend step 2 (auth + `create-admin`), see the build order
+in `drafts/backend_spec.md` (section 13). How to run: `DEVELOPMENT.md`. `drafts/schema_design.html` is
 up to date (ENUM types, ER diagram section).
 `drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
 
@@ -67,6 +67,13 @@ this file at the end; keep answers short.
 - Ubuntu server set up with Ollama and several models already pulled
   (exact model list not yet recorded here — add it once decided).
 
+- Backend step 1 (2026-10-06): `pyproject.toml` (uv, Python 3.13),
+  `backend/autolab/` (config, async engine, ORM models for all 27
+  tables), Alembic with `0001_init` (tables, triggers, seed data),
+  `compose.yaml` (PostgreSQL 17 in Docker, port 5433, dev + test DB),
+  `tests/test_migrations.py` (migrations = models, downgrade works).
+  Checked: the migrated DB equals `workbench_schema.sql` (pg_dump diff).
+- `DEVELOPMENT.md` — how to run everything locally.
 - `backend/log_store.py` — `LogStore` interface with `FileLogStore`
   (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).
 

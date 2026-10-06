@@ -1,6 +1,9 @@
 -- AutoLab database schema (PostgreSQL 14+).
--- Source of truth for the DDL. Design notes and reasons:
--- drafts/schema_design.md and the detail drafts in drafts/.
+-- Snapshot for the course and the ER diagram. The source of truth for the
+-- DDL is the Alembic migrations (migrations/versions/). This file matches
+-- migration 0001 (checked with pg_dump on 2026-10-06). After the next
+-- migration, rebuild it with pg_dump --schema-only.
+-- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
 -- Rules used everywhere:
 -- - Tables are snake_case and plural. Own key = id, links = <entity>_id.

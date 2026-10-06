@@ -9,9 +9,10 @@ One log = one LLM call: {"request": {...}, "response": {...} or None}.
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
+
 
 def _check_id(log_id: int) -> None:
     # bool is a subclass of int, so reject it explicitly.
@@ -20,7 +21,7 @@ def _check_id(log_id: int) -> None:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class LogStore(Protocol):
@@ -86,7 +87,9 @@ class MongoLogStore:
 
     def create(self, log_id: int, request: dict) -> None:
         _check_id(log_id)
-        self.col.insert_one({"_id": log_id, "request": request, "response": None, "created_at": _now()})
+        self.col.insert_one(
+            {"_id": log_id, "request": request, "response": None, "created_at": _now()}
+        )
 
     def add_response(self, log_id: int, response: dict) -> None:
         _check_id(log_id)

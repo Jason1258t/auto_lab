@@ -1,0 +1,23 @@
+# Local services for development. Start: docker compose up -d
+# Port 5433, not 5432, so it does not clash with a Postgres on the host.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: autolab
+      POSTGRES_PASSWORD: autolab
+      POSTGRES_DB: autolab
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Creates the autolab_test database on the first start.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autolab -d autolab"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:
