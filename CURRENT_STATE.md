@@ -1,197 +1,121 @@
 # Current state
 
-Last updated: 2026-10-06 (backend steps 1-2 done: project, models, Alembic, Docker, auth).
+Last updated: 2026-10-07 (backend done and deployed; next: the frontend).
 
-This file tracks what actually exists versus what is only designed. Update
-it at the end of any work session so the next session (human or agent)
-doesn't have to re-derive context.
+What exists now and what comes next. Update it at the end of every work
+session, so the next session (human or agent) does not have to work it
+out again.
 
-## Now: schema redesign from scratch
+## In one paragraph
 
-The schema is being designed again from zero, group by group, together
-with the author. **Source of truth: `drafts/schema_design.md`.** It has
-the finished groups, open questions, and parked items. The old schema
-description below (18 tables, `task_types`, ...) is outdated.
+The database schema is designed, reviewed and migrated (3 migrations).
+The backend is complete for the MVP: API (auth, workspaces, members,
+files, tasks, reviews, works, publications, admin) and the worker that
+runs pipelines with a local model. The `research` pipeline has run with a
+real model on the test server. **No frontend yet: that is the next step.**
 
-- Done: Group 1 (people and access; workspace visibility added
-  2026-10-01), 2 (model catalog), 3 (tasks, including `llm_calls` /
-  `llm_responses` / `log_deletions`), 4 (results and evidence),
-  5 (audit and logging: `activity_events`, system logs in files,
-  reports as SQL views after MVP; 2026-10-04), 6 (auth:
-  `password_credentials`, `user_identities`, `admins`, `sessions`,
-  `users.email_verified`; 2026-10-05).
-- Final review done (2026-10-06): delete rules fixed, fixed lists
-  (ENUM for stable lists, `text` + CHECK for growing ones, lookup tables
-  `model_providers`, `auth_providers`),
-  index list, normalization notes. All in `drafts/schema_design.md`.
-- Detail drafts: `drafts/llm_manager.md`, `drafts/workspaces.md`,
-  `drafts/results_and_evidence.md`, `drafts/audit.md`, `drafts/auth.md`.
-- SQL, DBML and ER diagram written from the draft (2026-10-06). From
-  now on `workbench_schema.sql` is the source of truth for the DDL;
-  `drafts/schema_design.md` keeps the reasons. Once Alembic exists,
-  the migrations become the source of truth and the SQL file becomes a
-  `pg_dump` snapshot (decided 2026-10-06).
-- After-MVP features: `BACKLOG.md`.
-- MongoDB as the LLM log store is under review (overrides the old
-  "no second DB" rule only for logs).
-- `ARCHITECTURE.md`, `PROJECT.md` and `AGENTS.md` match these
-  decisions (2026-10-06).
+## Next step: the React frontend (start of the next session)
 
-Next step: the backend build order (steps 1-7) is done (PRs #1-#14).
-Next big part: the React frontend. Smaller backend items: a revise run
-with a real model on the server, `openai_compatible` / `anthropic`
-adapters, report views (after MVP). Deployed on the test server
-(`DEPLOY.md`).
+Decide first, with the author (not decided yet):
 
-**Test server (2026-10-07):** `http://192.168.0.101:8000` (local network),
-`~/autolab` on `master@192.168.0.101`, `compose.server.yaml`: api,
-worker, MongoDB 8.2, SearxNG; the server's own Postgres 16 container
-(database `autolab`, role `autolab_app`) and Ollama on the host.
-First real run: task 1 (`research`, `qwen2.5:3b`) finished in ~105 s,
-18 calls, all valid JSON (~3.5 s per call); 2 invented quotes dropped by
-code, 4 "partly" facts dropped by verify; work with 3 sources and 4
-quotes. Seen limit: `write` sometimes adds wording without a citation
-(left to the reviewer, see revise in step 7). No user accounts on the
-server yet. How to run: `DEVELOPMENT.md`.
-Git: GitHub flow, repo `github.com/Jason1258t/auto_lab`. Steps 1-2 are
-merged into `main` (PRs #1, #2). Step 3 = CI (`.github/workflows/ci.yml`:
-ruff + pytest with a Postgres service). `drafts/schema_design.html` is
-up to date (ENUM types, ER diagram section).
-`drafts/schema_design.html` is up to date as of 2026-10-06 (after final review).
+1. **Tooling:** Vite + React + TypeScript (decided in `AGENTS.md`); still
+   open: router (React Router?), data fetching (TanStack Query?),
+   styling (Tailwind? a component library?).
+2. **UI language:** English only, or English + Russian?
+3. **Refresh cookie over plain HTTP.** The refresh token cookie is
+   `Secure` (`api/routers/auth.py`). Browsers keep it on `localhost`, but
+   **not** on `http://192.168.0.101`. Options: HTTPS on the server (a
+   reverse proxy, also in `BACKLOG.md`), or a setting that turns `Secure`
+   off for the test server only.
+4. **One origin:** serve the built frontend and the API from one origin
+   (Vite proxy in development, the same reverse proxy on the server), so
+   cookies and CORS stay simple.
+5. **First screens (proposal):** sign up / log in; workspace list and
+   page (members, files, tasks); new task; task page with live step
+   progress (polling `GET /tasks/{id}`) and the LLM calls; review
+   (accept / reject with a comment); work page with sources and quotes;
+   public feed of publications.
 
-Session rules: update `drafts/schema_design.md` after each decision and
-this file at the end; keep answers short.
-`drafts/schema_design.html` is a visual copy, updated only on request.
+All API routes: `drafts/backend_spec.md` section 7, or
+`http://localhost:8000/docs` when the API runs.
 
 ## What exists
 
-- `PROJECT.md` (English) / Obsidian note (Russian) — project description,
-  goals, task types, scope.
-- `ARCHITECTURE.md` — data model, pipeline design, orchestrator
-  constraints, model gateway design, file storage layout.
-- `AGENTS.md` — instructions for coding agents working in this repo.
-- `workbench_schema.sql` — full PostgreSQL DDL: 27 tables, 8 ENUM
-  types for fixed lists (`text` + CHECK for growing lists), 2 triggers (public workspace stays public;
-  `log_deletions` outbox), 13 extra indexes, seed data (`roles`,
-  `model_providers` = ollama, `capabilities`, `pipelines`,
-  `auth_providers`). Tested on 2026-10-06 on a local PostgreSQL 14:
-  applies cleanly; constraints, triggers and delete rules work as
-  designed. No `models` or `pipeline_versions` seed yet.
-- `workbench_schema.dbml` — same schema for dbdiagram.io (33 FKs, same
-  as the SQL). Triggers and partial indexes only as notes.
-- `er_diagram.md` — ER diagram for the course (Mermaid, crow's foot):
-  an overview and a full version with attributes.
-- Ubuntu server set up with Ollama and several models already pulled
-  (exact model list not yet recorded here — add it once decided).
+**Design docs** (reasons for every decision):
+`drafts/schema_design.md` (schema), `drafts/backend_spec.md` (backend,
+permissions, API), `drafts/pipeline_spec.md` (pipeline files and step
+kinds), plus `drafts/workspaces.md`, `drafts/llm_manager.md`,
+`drafts/results_and_evidence.md`, `drafts/audit.md`, `drafts/auth.md`.
+After-MVP ideas: `BACKLOG.md`.
 
-- Backend step 1 (2026-10-06): `pyproject.toml` (uv, Python 3.13),
-  `backend/autolab/` (config, async engine, ORM models for all 27
-  tables), Alembic with `0001_init` (tables, triggers, seed data),
-  `compose.yaml` (PostgreSQL 17 in Docker, port 5433, dev + test DB),
-  `tests/test_migrations.py` (migrations = models, downgrade works).
-  Checked: the migrated DB equals `workbench_schema.sql` (pg_dump diff).
-- Backend step 2 (2026-10-06): auth. Sign-up, login, refresh (rotation;
-  reuse of an old token ends the session), logout, logout-all, `/me`,
-  one JSON error shape, `autolab create-admin <user_id>` (writes
-  `admin_granted` to `activity_events`). Tests: `tests/test_auth.py`;
-  each test runs in a rolled-back transaction (`tests/conftest.py`).
-- Backend step 3 (2026-10-06): CI on GitHub Actions (PR #3).
-- Backend step 4 (2026-10-06): workspaces (create, list by scope
-  mine/public/free, edit, archive, unarchive, make public, take, delete
-  if empty), members and roles (Discord-like `member` base role, migration
-  0002), workspace activity log. All access rules in
-  `services/permissions.py`; one test per rule in `tests/test_workspaces.py`.
-- Backend step 5 (2026-10-06): tasks API (create with the newest pipeline
-  version, list, get with steps, edit drafts, change reviewer, queue,
-  cancel, delete; published work blocks delete), catalog (`GET /models`,
-  `GET /pipelines`) and admin routes (models, providers, admins, global
-  activity). Tests: `tests/test_tasks.py`, `tests/test_catalog.py`.
-- 2026-10-07: pipeline spec accepted (`drafts/pipeline_spec.md`,
-  `pipelines/research/1.0.0.yaml`; SearxNG as search service). Migration
-  0003: task status `failed`, table `workspace_files` (user files copied
-  into `data/workspaces/<id>/files/`), API for files and
-  `autolab add-file <workspace_id> <path> [--move]`.
-- Backend step 6a (2026-10-07): worker frame (`autolab-worker`):
-  recovery at start, pipeline sync, `SKIP LOCKED` claim, LLM manager
-  (one queue per model), Ollama adapter, async log store (MongoDB in
-  Docker; `backend/log_store.py` moved to `autolab/logstore.py`),
-  generic LLM step, kind `plan`, cancel, failed tasks, log cleanup,
-  clean stop on SIGTERM. Tested with a fake model; no real Ollama run yet.
-- Backend step 6b (2026-10-07): research step kinds (`search` via
-  SearxNG in Docker, `fetch` with public-address check on every redirect,
-  `summarize` drops facts whose quote is not in the page, `verify`,
-  `synthesize`, `write` removes unknown `[n]` marks) and work assembly
-  (markdown file + `works`, `work_sources`, `quotes`). Tested end to end
-  with a fake model and fake web; search and fetch also checked live.
-  Known limit: some sites keep menus inside `<main>` (Wikipedia's
-  language list), which costs part of the 6000-character budget.
-- Backend step 7a (2026-10-07): reviews (accept -> `done`, step files
-  deleted; reject needs a comment -> `queued`), revise in the worker
-  (rows with `review_id` for the steps from `rerun_from`, the comment in
-  every prompt, earlier outputs reused), `GET /tasks/{id}/work`,
-  `GET /workspaces/{id}/works`, `GET /tasks/{id}/calls`,
-  `GET /calls/{id}/log`.
-- Backend step 7b (2026-10-07): publishers (unique name, owner) and
-  publications (workspace owner only, accepted work only, own publisher
-  only, once per work), public feed and detail (work text, sources,
-  quotes; never the workspace), admin delete.
-- `DEVELOPMENT.md` — how to run everything locally.
-- `backend/log_store.py` — `LogStore` interface with `FileLogStore`
-  (tested by hand) and `MongoLogStore` (not tested, needs `pymongo`).
+**Schema** (source of truth: `migrations/versions/`):
+- 0001: 27 tables, 8 ENUM types, 2 triggers, seed data.
+- 0002: role `viewer` renamed to `member` (Discord-like base role);
+  activity actions `unarchived`, `workspace_deleted`.
+- 0003: task status `failed`; table `workspace_files`; activity actions
+  `file_added`, `file_removed`.
+- Snapshots kept in sync (checked with a `pg_dump` diff):
+  `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
+- **Outdated:** `drafts/schema_design.html` (the published schema page)
+  does not show migrations 0002-0003 yet. Update it on request.
 
-## What is designed but not built
+**Backend** (`backend/autolab/`, Python 3.13, uv; build order in
+`drafts/backend_spec.md` section 13, PRs #1-#14 and #15):
+- `api/`: FastAPI routers; `services/`: rules, one transaction per action;
+  all access rules in `services/permissions.py`.
+- `worker/`: `autolab-worker`: pipeline sync, `SKIP LOCKED` claim, LLM
+  manager (one queue per model), Ollama adapter, research step kinds,
+  revise after a rejected review, work assembly, log cleanup.
+- `cli.py`: `autolab create-admin`, `autolab add-file`.
+- 85 tests (`tests/`), against a real Postgres and MongoDB in Docker;
+  CI on every PR (`test` job required for `main`, plus an `image` job).
 
-- FastAPI backend: no code yet. Not scaffolded.
-- React frontend: no code yet. Not scaffolded.
-- Orchestrator / worker process: no code yet.
-- Model gateway interface: designed in `ARCHITECTURE.md`, not implemented.
-- PostgreSQL database on the server: not created yet. Run
-  `workbench_schema.sql` with DataGrip or `psql` (27 tables expected
-  under `public`).
+**Pipelines:** only `pipelines/research/1.0.0.yaml`
+(plan → search → fetch → summarize → verify → synthesize → write). The
+other three pipelines (`opinion_survey`, `study_notes`,
+`creative_writing`) have no file yet.
 
-## Immediate next steps (in rough order)
+**Infrastructure:**
+- Local: `compose.yaml` (Postgres 17 on 5433, MongoDB 8.2, SearxNG on
+  8888). How to run: `DEVELOPMENT.md`.
+- Test server: `DEPLOY.md`. `http://192.168.0.101:8000` (local network,
+  no HTTPS). `~/autolab` on `master@192.168.0.101`, `compose.server.yaml`
+  (api, worker, MongoDB 8.2, SearxNG) + the server's own Postgres 16
+  container (database `autolab`, role `autolab_app`) + Ollama on the
+  host (0.34). Model in the catalog: `qwen2.5:3b` (fits the 4 GB GPU).
+  User 1 (`testuser`) is an admin.
 
-1. Run `workbench_schema.sql` against a real `autolab` database on the
-   server and confirm it applies cleanly (fix and report back if not).
-2. Decide and record the actual installed Ollama model list, and update
-   the `models` seed data in `workbench_schema.sql` to match real
-   measured VRAM/RAM/context numbers instead of estimates.
-3. Scaffold the FastAPI backend: project structure, DB connection
-   (SQLAlchemy or similar), first endpoints (likely: list workspaces,
-   create task, list tasks).
-4. Write `DEVELOPMENT.md`: how to run Postgres, install backend/frontend
-   deps, and start everything locally. Not written yet — depends on step
-   3's actual tooling choices (dependency manager, env var handling,
-   etc.), so it should be written once the backend exists, not before.
-5. Build the orchestrator's model gateway (Ollama adapter first) as a
-   small standalone piece, independently testable before wiring it into
-   the FastAPI app.
-6. Implement one full pipeline (`research` or `study_notes`) end to end
-   as a script/CLI before adding the queue/worker infrastructure — this
-   was the agreed order: prove the pipeline logic before building
-   infrastructure around it.
-7. Scaffold the React frontend once the backend has real endpoints to
-   call against.
+## Results of the real runs (server, `qwen2.5:3b`)
 
-## Open questions (not yet decided)
+- `research`, task 1: ~105 s, 18 calls, all valid JSON, ~3.5 s per call.
+  Code dropped 2 invented quotes; `verify` dropped 4 "partly" facts.
+  Work: 3 sources, 4 quotes.
+- Revise after a rejection: ~30 s, 3 calls; only `synthesize` and `write`
+  ran again, with the reviewer's comment.
+- **Main weakness:** `write` adds sentences without a source, even when
+  asked not to. Since 2026-10-07 such sentences are marked
+  *(⚠ no source)* and counted in the step summary (decision: mark, do not
+  drop; dropping is in `BACKLOG.md`).
 
-- ~~ORM / DB layer~~ Decided 2026-10-06: SQLAlchemy 2.0 async ORM +
-  Alembic (`drafts/backend_spec.md`).
-- ~~Job queue mechanism~~ Decided 2026-10-06: polling `tasks` with
-  `FOR UPDATE SKIP LOCKED` (`drafts/backend_spec.md`).
-- Backend spec: `drafts/backend_spec.md` (no open questions left).
-- Whether `DEVELOPMENT.md` should also cover the SSH-tunnel DataGrip
-  setup already worked out in chat, or only app-level setup.
+## Open questions
+
+- The frontend questions above.
 - University course requirements (exact DBMS version, required topics
-  like normalization/transactions) — assumed PostgreSQL + 3NF so far,
-  not confirmed against actual course requirements.
+  like normalization and transactions): assumed PostgreSQL + 3NF so far,
+  not confirmed against the actual course.
+- Should `DEVELOPMENT.md` also cover the SSH tunnel for DataGrip to the
+  server's Postgres (port 5432 is localhost-only there)?
 
-## Notes for whoever (or whatever) picks this up next
+## Working agreements (for agents)
 
-- Read `AGENTS.md` before making changes.
-- The schema has not been tested against a real PostgreSQL instance yet —
-  treat step 1 above as blocking before building anything that depends on
-  the DB being correct.
-- Hardware constraint (4 GB VRAM) is a real design input, not a minor
-  detail — see the "Orchestrator design constraints" section of
-  `ARCHITECTURE.md` before designing pipeline steps.
+- Read `AGENTS.md` first. Plain English in code, docs and commits.
+- GitHub flow: a `feature/*` branch and a PR per step; CI must pass;
+  auto-merge is allowed for the agent's PRs (merge commit). Docs that the
+  author wants to read first: open the PR, do not merge.
+- Ask the author before schema changes and new product rules; decide
+  small rules and list them in the PR description.
+- Never type passwords. Server access is by SSH key (the key is in the
+  macOS agent); the agent's command sandbox blocks the local network, so
+  SSH commands need the sandbox turned off.
+- Keep `CURRENT_STATE.md`, `drafts/backend_spec.md` (build order) and the
+  schema snapshots up to date in the same PR as the change.

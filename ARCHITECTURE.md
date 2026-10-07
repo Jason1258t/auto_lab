@@ -19,11 +19,15 @@ Three layers:
    correct finished work.
 
 ```
-React (Vite) ──> FastAPI ──> PostgreSQL
-                     │
-                     └──> Orchestrator (worker) ──> Model gateway ──> Ollama / (future) cloud APIs
-                                                 └──> file storage (works/, cache/, logs/)
+React (Vite) ──> api (FastAPI) ──> PostgreSQL <── worker ──> LLM manager ──> gateway ──> Ollama / (future) cloud APIs
+                                                    │
+                                                    ├──> SearxNG (web search), fetched pages
+                                                    └──> MongoDB (LLM logs), data/ files
 ```
+
+`api` and `worker` are separate processes that talk only through the
+database (`drafts/backend_spec.md`). All of it runs in Docker
+(`compose.yaml` locally, `compose.server.yaml` on the server).
 
 ## Data model
 
@@ -156,9 +160,9 @@ generate(model_name, messages, schema=None) -> result
 Behind it: an Ollama adapter today. Ollama and vLLM both expose an
 OpenAI-compatible API, so one adapter can cover most future self-hosted
 cases; a hosted-API adapter (OpenAI-compatible / Anthropic) can be added
-later without changing any pipeline step. This is why the `models` table
-has a `provider` column and nullable cost fields — the schema already
-anticipates this, even though only `ollama` is populated right now.
+later without changing any pipeline step. The adapter is chosen by
+`model_providers.adapter`; only `ollama` exists in code now
+(`backend/autolab/worker/gateway/`).
 
 ## File storage
 
@@ -167,7 +171,6 @@ Structured data lives in PostgreSQL. Everything else lives on disk:
 ```
 data/
   works/<year>/<month>/<task_id>.md   # finished result, path stored in works.file_path
-  cache/pages/<url_hash>.txt          # fetched page cache
   logs/<call_id>.json                 # full prompt/response of one LLM call (FileLogStore)
   workspaces/<id>/files/<id>_<name>   # user files, rows in workspace_files
   tasks/<task_id>/<index>_<step>.json # step outputs while a task runs (pipeline_spec.md)
@@ -179,16 +182,20 @@ Pipeline files live in the repository, not in `data/`, so they are
 versioned in git. Their path is stored in `pipeline_versions.file_path`.
 
 `llm_calls` stores call metadata (model, step, timing) and
-`llm_responses` stores tokens. The full prompt/response lives in a log store, keyed by `llm_calls.id`
-(`backend/log_store.py`): files now, MongoDB is being considered. See
+`llm_responses` stores tokens. The full prompt/response lives in a log
+store, keyed by `llm_calls.id` (`backend/autolab/logstore.py`): MongoDB
+(decided; `LOG_STORE=mongo`), or files for tests. See
 `drafts/llm_manager.md`.
+
+Fetched page text is kept only inside the step output files of a task
+(`data/tasks/<task_id>/`) and deleted when the task is done or cancelled.
 
 ## Explicitly out of scope for now
 
 - A second database for core data — flexible fields are handled with
   `jsonb` columns in Postgres instead.
-  (Exception under review: MongoDB as the LLM log store, see
-  `drafts/llm_manager.md`.)
+  (One exception, decided: MongoDB holds the full LLM prompts and
+  answers, `drafts/llm_manager.md`.)
 - Object storage (MinIO, S3) — plain files on disk are enough at this
   scale.
 - Cloud GPU provisioning (Terraform/Ansible, renting servers) and

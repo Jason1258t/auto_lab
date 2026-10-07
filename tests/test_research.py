@@ -73,6 +73,19 @@ def test_quote_check() -> None:
     assert not quote_in_text("because of Mie scattering", text)
 
 
+def test_mark_unsourced() -> None:
+    from autolab.worker.kinds.research import NO_SOURCE, mark_unsourced
+
+    text, marked = mark_unsourced(
+        "Blue light scatters more [1]. So the sky is blue! Sunsets are red [2] [3]. Why? Physics."
+    )
+    assert marked == 3
+    assert text == (
+        f"Blue light scatters more [1]. So the sky is blue! {NO_SOURCE} "
+        f"Sunsets are red [2] [3]. Why? {NO_SOURCE} Physics. {NO_SOURCE}"
+    )
+
+
 def test_html_to_text() -> None:
     title, text = html_to_text(SKY_HTML)
     assert title == "Why is the sky blue?"
@@ -208,13 +221,14 @@ async def test_research_pipeline(
         "1 facts with quotes found",  # the invented quote was dropped
         "1 facts kept",
         "1 sections planned",
-        "1 paragraphs written",
+        "1 paragraphs written; 1 sentences without a source",
     ]
 
     work = await db.get(Work, task_id)
     assert work.summary == "The sky is blue because of Rayleigh scattering."
     text = Path(work.file_path).read_text()
-    assert "Rayleigh scattering makes the sky blue [1]. Also." in text  # [5] removed
+    # [5] is removed; the sentence left without a mark is flagged.
+    assert "Rayleigh scattering makes the sky blue [1]. Also. *(\u26a0 no source)*" in text
     assert '"The sky looks blue because of Rayleigh scattering."' in text
 
     sources = (await db.scalars(select(WorkSource))).all()

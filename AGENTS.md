@@ -37,6 +37,9 @@ of silently picking one version.
   with it.
 - **Backend**: Python, FastAPI.
 - **Frontend**: Vite + React.
+- **Runtime**: everything in Docker (`compose.yaml` for development,
+  `compose.server.yaml` for the server, `DEPLOY.md`). Python only through
+  `uv run`; no global installs.
 - **Models**: served through Ollama for now, behind a gateway interface
   (see `ARCHITECTURE.md`) so other OpenAI-compatible or Anthropic
   providers can be added later without touching pipeline logic.
@@ -67,9 +70,9 @@ of silently picking one version.
 
 ## What not to do without asking
 
-- Don't add MongoDB, a second database, or an object store. This was
-  deliberately decided against (see `ARCHITECTURE.md`). Exception under
-  review: MongoDB as the LLM log store (`drafts/llm_manager.md`).
+- Don't add a second database for core data or an object store. This
+  was deliberately decided against (see `ARCHITECTURE.md`). The one
+  exception is decided: MongoDB as the LLM log store only.
 - Don't add cloud GPU provisioning, Terraform/Ansible, or billing code.
   Explicitly out of scope for now.
 - Don't change the schema's delete rules (`CASCADE` / `RESTRICT` /

@@ -80,7 +80,7 @@ Step kinds:
 | `summarize` | yes, per source | one source | `facts`: claim, quote, source | **drops a fact if its quote is not in the source text**; adds which source it came from |
 | `verify` | yes, per fact | one fact | `facts`: only the kept ones | keeps facts whose verdict is in `config.keep` |
 | `synthesize` | yes | all kept facts, numbered | `summary`, `sections`: heading + fact numbers | checks that every fact number exists |
-| `write` | yes, per section | one section; code replaces `fact_numbers` with the facts (`number`, `claim`) | `paragraphs` | removes `[n]` marks that are not in the section |
+| `write` | yes, per section | one section; code replaces `fact_numbers` with the facts (`number`, `claim`) | `paragraphs`, `unsourced_sentences` | removes `[n]` marks that are not in the section; marks every sentence without a mark as *(⚠ no source)* for the reviewer (decided 2026-10-07) |
 
 For `for_each` steps, the model answers per item, and **code builds the
 step output** from all answers (the "Output" column), so the next step
