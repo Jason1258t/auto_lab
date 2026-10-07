@@ -5,6 +5,9 @@ import { api, call, type components } from '@/shared/api'
 
 export type Workspace = components['schemas']['WorkspaceOut']
 export type WorkspaceScope = 'mine' | 'public' | 'free'
+/** Roles given on top of the base `member` role. */
+export type ExtraRole = 'editor' | 'reviewer'
+export const EXTRA_ROLES: ExtraRole[] = ['editor', 'reviewer']
 
 // All keys start with 'workspaces', so one invalidate refreshes lists and pages.
 export const workspaceKeys = {
@@ -34,14 +37,23 @@ export function useWorkspace(id: number) {
 export function workspaceRights(w: Workspace) {
   const archived = w.archived_at !== null
   const isPublic = w.visibility === 'public'
+  const isMember = w.my_roles.includes('member')
+  const isEditor = w.my_roles.includes('editor')
   return {
     edit: w.is_owner && !archived,
     archive: w.is_owner && !archived,
     unarchive: w.is_owner && archived,
     makePublic: w.is_owner && !archived && !isPublic,
     take: isPublic && archived && w.owner_id === null,
-    leave: !w.is_owner && w.my_roles.length > 0,
+    leave: !w.is_owner && isMember,
     delete: w.is_owner,
+    /** Members, tasks, files (admins too, see `Me.is_admin`). */
+    seeInside: w.is_owner || isMember,
+    addMembers: w.is_owner && !archived,
+    removeMembers: w.is_owner && !archived,
+    /** Owner: editor and reviewer; editor: reviewer only. */
+    manageRole: (role: ExtraRole) =>
+      !archived && (w.is_owner || (role === 'reviewer' && isEditor)),
   }
 }
 

@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1 and 2a done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1, 2a, 2b done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -32,11 +32,11 @@ Screens, one PR each:
      in the URL), create and edit (dialog), archive / unarchive / make
      public / take / leave / delete (each asks first). `workspaceRights()`
      in `entities/workspace` hides buttons the user cannot use.
-   - **Next, 2b: members** on the workspace page: list, add by username
-     or email, grant / revoke `editor` and `reviewer`, remove. Routes:
-     `/workspaces/{id}/members...`. Who manages whom: backend_spec.md §6.
-   - 2c: files (upload, download, remove), task list, activity log
-     (owner and editors only).
+   - ~~2b: members~~: list, add by username or email, editor / reviewer
+     checkboxes (owner: both; editor: reviewer only), remove (asks first).
+     Hidden for visitors of a public workspace.
+   - **Next, 2c:** files (upload, download, remove), task list, activity
+     log (owner and editors only).
 3. New task → task page with live steps and LLM calls (full logs).
 4. Review: accept, or reject with a comment.
 5. Work page: text, sources, quotes, *(⚠ no source)* marks.
@@ -115,6 +115,10 @@ other three pipelines (`opinion_survey`, `study_notes`,
   drop; dropping is in `BACKLOG.md`).
 
 ## Open questions
+
+- The members list does not show the owner: `GET /members` returns only
+  memberships, and `WorkspaceOut` has only `owner_id`, no name. Option:
+  add `owner_username` / `owner_display_name` to `WorkspaceOut`.
 
 - University course requirements (exact DBMS version, required topics
   like normalization and transactions): assumed PostgreSQL + 3NF so far,

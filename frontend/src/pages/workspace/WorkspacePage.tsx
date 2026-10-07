@@ -1,5 +1,5 @@
 // One workspace: name, description, facts and the actions the user may
-// use. Members, files, tasks and activity come in the next PRs.
+// use, and the members. Files, tasks and activity come in the next PR.
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 
@@ -8,6 +8,7 @@ import { WorkspaceActions } from '@/features/workspace-actions'
 import { EditWorkspaceButton } from '@/features/workspace-form'
 import { ApiError, errorText } from '@/shared/api'
 import { Alert, AlertDescription, FormError } from '@/shared/ui'
+import { WorkspaceMembers } from '@/widgets/workspace-members'
 
 function WorkspaceHeader({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation()
@@ -50,7 +51,12 @@ export function WorkspacePage() {
         ) : (
           <FormError error={errorText(workspace.error)} />
         ))}
-      {workspace.data && <WorkspaceHeader workspace={workspace.data} />}
+      {workspace.data && (
+        <>
+          <WorkspaceHeader workspace={workspace.data} />
+          <WorkspaceMembers workspace={workspace.data} />
+        </>
+      )}
     </section>
   )
 }
