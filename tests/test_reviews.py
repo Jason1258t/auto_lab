@@ -182,7 +182,10 @@ async def test_calls_and_logs(client: httpx.AsyncClient, lab, make_user) -> None
     assert all(c["status"] == "done" and c["valid_json"] for c in calls)
 
     log = await client.get(f"{API}/calls/{calls[0]['id']}/log", headers=ann.headers)
-    assert "Why is the sky blue?" in log.json()["request"]["messages"][-1]["content"]
+    body = log.json()
+    assert "Why is the sky blue?" in body["request"]["messages"][-1]["content"]
+    assert body["request"]["schema"]["required"] == ["queries"]  # the alias, not schema_
+    assert body["response"]["text"]
     assert (
         await client.get(f"{API}/calls/{calls[0]['id']}/log", headers=out.headers)
     ).status_code == 404

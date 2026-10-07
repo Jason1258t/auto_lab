@@ -167,6 +167,29 @@
     "deleteTitle": "Delete “{{title}}”?",
     "deleteText": "The steps, model calls, reviews and the work are deleted too. This cannot be undone."
   },
+  "calls": {
+    "call": "Model call {{id}}",
+    "attempt": "attempt {{n}}",
+    "tokens": "{{input}} → {{output}} tokens",
+    "seconds": "{{n}} s",
+    "cutOff": "cut off (too long)",
+    "invalidJson": "not valid JSON",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "done": "Done",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "role": {
+      "system": "System prompt",
+      "user": "Prompt",
+      "assistant": "Earlier answer"
+    },
+    "schema": "Expected JSON shape",
+    "answer": "Answer",
+    "noAnswer": "No answer yet."
+  },
   "activity": {
     "title": "Activity",
     "empty": "Nothing has happened yet.",
@@ -212,7 +235,9 @@
     "task_running": "The task is running. Cancel it first.",
     "task_published": "The work of this task is published. Remove the publication first.",
     "model_unavailable": "This model is not available now.",
-    "reviewer_not_member": "The reviewer must be in this workspace."
+    "reviewer_not_member": "The reviewer must be in this workspace.",
+    "log_not_found": "The full log of this call is not kept any more.",
+    "call_not_found": "This model call does not exist."
   },
   "fields": {
     "email": "email",

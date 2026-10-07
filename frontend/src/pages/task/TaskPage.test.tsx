@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 
+import type { CallLog, LlmCall } from '@/entities/call'
 import type { TaskDetail } from '@/entities/task'
 import type { Workspace } from '@/entities/workspace'
 import { API, apiError, server, signedIn } from '@/test/server'
@@ -55,12 +56,42 @@ const step = (index: number, id: string, status: 'pending' | 'running' | 'done',
   finished_at: status === 'done' ? '2026-10-07T10:00:04Z' : null,
 })
 
-function taskAnswers(task: () => TaskDetail, workspace: Workspace = OWNED) {
+function taskAnswers(task: () => TaskDetail, workspace: Workspace = OWNED, calls: LlmCall[] = []) {
   return [
     ...signedIn,
     http.get(`${API}/tasks/11`, () => HttpResponse.json(task())),
+    http.get(`${API}/tasks/11/calls`, () => HttpResponse.json(calls)),
     http.get(`${API}/workspaces/7`, () => HttpResponse.json(workspace)),
   ]
+}
+
+const CALL: LlmCall = {
+  id: 31,
+  step_index: 0,
+  attempt: 1,
+  status: 'done',
+  error: null,
+  created_at: '2026-10-07T10:00:00Z',
+  started_at: '2026-10-07T10:00:00Z',
+  finished_at: '2026-10-07T10:00:03.500Z',
+  input_tokens: 120,
+  output_tokens: 30,
+  finish_reason: 'stop',
+  valid_json: true,
+}
+const LOG: CallLog = {
+  request: {
+    model: 'qwen2.5:3b',
+    messages: [
+      { role: 'system', content: 'You plan web research. Reply with JSON only.' },
+      { role: 'user', content: 'Research task: <b>sky</b>' },
+    ],
+    schema: { type: 'object', required: ['queries'] },
+    params: {},
+  },
+  response: { text: '{"queries":["why sky blue"]}', raw: null },
+  created_at: '2026-10-07T10:00:00Z',
+  answered_at: '2026-10-07T10:00:03Z',
 }
 
 test('a new task is created as a draft and opens its page', async () => {
@@ -174,4 +205,46 @@ test('an unknown task shows a clear message', async () => {
   server.use(...signedIn, http.get(`${API}/tasks/404`, () => apiError(404, 'task_not_found', 'Task 404 not found')))
   renderApp('/tasks/404')
   expect(await screen.findByText('This task does not exist, or you have no access to it.')).toBeInTheDocument()
+})
+
+test('each step lists its model calls; a call opens its full prompt and answer', async () => {
+  const done: TaskDetail = { ...DRAFT, status: 'in_review', steps: [step(0, 'plan', 'done'), step(1, 'search', 'done'), step(2, 'write', 'done')] }
+  const failed: LlmCall = { ...CALL, id: 32, step_index: 2, attempt: 2, status: 'failed', error: 'The model did not answer', input_tokens: null, output_tokens: null, valid_json: null, finish_reason: null }
+  let logRequests = 0
+  server.use(
+    ...taskAnswers(() => done, OWNED, [CALL, failed]),
+    http.get(`${API}/calls/31/log`, () => {
+      logRequests += 1
+      return HttpResponse.json(LOG)
+    }),
+  )
+  renderApp('/tasks/11')
+  const user = userEvent.setup()
+  const call = await screen.findByRole('button', { name: /Model call 31/ })
+  expect(call).toHaveTextContent('120 → 30 tokens · 3.5 s')
+  expect(screen.getByText('The model did not answer')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /Model call 32/ })).toHaveTextContent('attempt 2')
+  expect(logRequests).toBe(0) // the log loads only when opened
+
+  await user.click(call)
+  expect(await screen.findByText('You plan web research. Reply with JSON only.')).toBeInTheDocument()
+  // Web text is shown as text, never as HTML.
+  expect(screen.getByText('Research task: <b>sky</b>')).toBeInTheDocument()
+  expect(screen.getByText(/"why sky blue"/)).toBeInTheDocument()
+  expect(screen.getByText('Expected JSON shape')).toBeInTheDocument()
+
+  await user.click(call) // close and open again: no second request
+  await user.click(call)
+  expect(logRequests).toBe(1)
+})
+
+test('a deleted log shows a clear message', async () => {
+  const done: TaskDetail = { ...DRAFT, status: 'done', steps: [step(0, 'plan', 'done')] }
+  server.use(
+    ...taskAnswers(() => done, OWNED, [CALL]),
+    http.get(`${API}/calls/31/log`, () => apiError(404, 'log_not_found', 'No log for call 31')),
+  )
+  renderApp('/tasks/11')
+  await userEvent.setup().click(await screen.findByRole('button', { name: /Model call 31/ }))
+  expect(await screen.findByText('The full log of this call is not kept any more.')).toBeInTheDocument()
 })

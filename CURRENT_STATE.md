@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1, 2 and 3a done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1-3 done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -49,10 +49,12 @@ Screens, one PR each:
      / cancel / delete, polling every 3 s while queued or running.
      Backend: `GET /tasks/{id}` has `plan` and each step has `step_id` /
      `kind` (read from the pipeline file, cached by hash).
-   - **Next, 3b:** LLM calls under each step (`GET /tasks/{id}/calls`:
-     status, tokens, error) and the full prompt and output
-     (`GET /calls/{id}/log`, from MongoDB).
-4. Review: accept, or reject with a comment.
+   - ~~3b: model calls~~: under each step, its calls (status, attempt,
+     tokens, time, error); click a call to load its full prompt, expected
+     JSON shape and answer (`GET /calls/{id}/log`, now typed as
+     `CallLogOut`). Shown only as plain text (web pages are untrusted).
+4. **Next:** review: accept, or reject with a comment (task page, for the
+   reviewer, owner, editors and reviewers; rules in backend_spec.md §6).
 5. Work page: text, sources, quotes, *(⚠ no source)* marks.
 6. Publish + public feed.
 7. Admin: models.
