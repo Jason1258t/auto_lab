@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1, 2a, 2b done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1 and 2 done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -37,9 +37,12 @@ Screens, one PR each:
      Hidden for visitors of a public workspace. The owner is the first
      row (`WorkspaceOut.owner_username` / `owner_display_name`, decided
      2026-10-07).
-   - **Next, 2c:** files (upload, download, remove), task list, activity
-     log (owner and editors only).
-3. New task → task page with live steps and LLM calls (full logs).
+   - ~~2c: tabs on the workspace page~~ (`?tab=` in the URL): tasks
+     (list with status), files (upload several, download through the API
+     client, remove), members, activity (owner, editors, admins; unknown
+     actions show their raw name).
+3. **Next:** new task → task page with live steps and LLM calls (full
+   logs). The task list (`widgets/workspace-tasks`) does not link yet.
 4. Review: accept, or reject with a comment.
 5. Work page: text, sources, quotes, *(⚠ no source)* marks.
 6. Publish + public feed.

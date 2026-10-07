@@ -44,7 +44,7 @@ test('the owner adds a person and sees an unknown name as an error', async () =>
       return HttpResponse.json(members[1], { status: 201 })
     }),
   )
-  renderApp('/workspaces/7')
+  renderApp('/workspaces/7?tab=members')
   const user = userEvent.setup()
   expect(await screen.findByText('Bob')).toBeInTheDocument()
   expect(screen.getByText('@ann')).toBeInTheDocument() // the owner is listed first
@@ -74,7 +74,7 @@ test('the owner grants and removes roles with the checkboxes', async () => {
       return HttpResponse.json(BOB)
     }),
   )
-  renderApp('/workspaces/7')
+  renderApp('/workspaces/7?tab=members')
   const user = userEvent.setup()
   const editor = await screen.findByRole('checkbox', { name: 'Editor' })
   expect(editor).not.toBeChecked()
@@ -88,7 +88,7 @@ test('the owner grants and removes roles with the checkboxes', async () => {
 test('an editor manages only reviewers and cannot add or remove people', async () => {
   const asEditor: Workspace = { ...OWNED, owner_id: 9, is_owner: false, my_roles: ['editor', 'member'] }
   server.use(...workspace(asEditor, () => [BOB, CAT]))
-  renderApp('/workspaces/7')
+  renderApp('/workspaces/7?tab=members')
   expect(await screen.findByText('Bob')).toBeInTheDocument()
   expect(screen.getAllByRole('checkbox', { name: 'Reviewer' })).toHaveLength(2)
   expect(screen.queryByRole('checkbox', { name: 'Editor' })).not.toBeInTheDocument()
@@ -106,7 +106,7 @@ test('the owner removes a person after confirming', async () => {
       return new HttpResponse(null, { status: 204 })
     }),
   )
-  renderApp('/workspaces/7')
+  renderApp('/workspaces/7?tab=members')
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: 'Remove Bob' }))
   const dialog = screen.getByRole('alertdialog')
@@ -118,7 +118,7 @@ test('the owner removes a person after confirming', async () => {
 test('a visitor of a public workspace does not see the members', async () => {
   const visitor: Workspace = { ...OWNED, visibility: 'public', owner_id: 9, is_owner: false }
   server.use(...signedIn, http.get(`${API}/workspaces/7`, () => HttpResponse.json(visitor)))
-  renderApp('/workspaces/7')
+  renderApp('/workspaces/7?tab=members')
   expect(await screen.findByRole('heading', { name: 'Sky research' })).toBeInTheDocument()
   expect(screen.queryByText('Members')).not.toBeInTheDocument()
 })
