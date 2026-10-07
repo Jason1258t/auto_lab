@@ -2,15 +2,19 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Form, Query, UploadFile, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 
-from autolab.api.deps import AdminPrincipal, DbSession
+from autolab.api.deps import AdminPrincipal, DbSession, SettingsDep
 from autolab.api.schemas.catalog import (
+    AdminPipelineOut,
     ModelIn,
     ModelOut,
     ModelUpdate,
     PipelineOut,
+    PipelineUploadOut,
+    PipelineVersionOut,
     ProviderIn,
     ProviderOut,
     ProviderUpdate,
@@ -19,6 +23,7 @@ from autolab.api.schemas.workspaces import ActivityEventOut
 from autolab.db.models import ActivityEvent, ModelProvider
 from autolab.services import admins as admins_service
 from autolab.services import catalog as catalog_service
+from autolab.services import pipelines as pipelines_service
 
 router = APIRouter(tags=["catalog"])
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
@@ -114,3 +119,69 @@ async def global_activity(
         .offset(offset)
     )
     return [ActivityEventOut.model_validate(e) for e in events]
+
+
+# --- Admin: pipelines ---
+
+
+@admin_router.get("/pipelines")
+async def admin_list_pipelines(
+    _: AdminPrincipal, db: DbSession, settings: SettingsDep
+) -> list[AdminPipelineOut]:
+    return [
+        AdminPipelineOut(
+            id=pipeline.id,
+            name=pipeline.name,
+            description=pipeline.description,
+            versions=[
+                PipelineVersionOut(
+                    id=v.version.id,
+                    version_name=v.version.version_name,
+                    uploaded=v.uploaded,
+                    tasks=v.tasks,
+                    created_at=v.version.created_at,
+                )
+                for v in versions
+            ],
+        )
+        for pipeline, versions in await pipelines_service.list_pipelines(db, settings)
+    ]
+
+
+@admin_router.get("/pipeline-versions/{version_id}/file", response_class=PlainTextResponse)
+async def admin_pipeline_file(version_id: int, _: AdminPrincipal, db: DbSession) -> str:
+    """The YAML text of a version."""
+    return await pipelines_service.read_version_file(db, version_id)
+
+
+@admin_router.post("/pipelines/upload", status_code=status.HTTP_201_CREATED)
+async def admin_upload_pipeline(
+    principal: AdminPrincipal,
+    db: DbSession,
+    settings: SettingsDep,
+    file: UploadFile,
+    name: Annotated[str, Form(max_length=50)],
+    version: Annotated[str, Form(max_length=20)],
+    dry_run: Annotated[bool, Form()] = False,
+) -> PipelineUploadOut:
+    """Upload a pipeline file: a new version, or a new pipeline if the name
+    is new. dry_run=true only checks it. The name and version fields win
+    over the file's own `pipeline:` and `version:` lines."""
+    result = await pipelines_service.upload(
+        db,
+        settings,
+        principal.user,
+        name=name,
+        version=version,
+        content=await file.read(pipelines_service.MAX_FILE_BYTES + 1),
+        dry_run=dry_run,
+    )
+    return PipelineUploadOut(
+        pipeline_id=result.pipeline.id if result.pipeline.id is not None else 0,
+        name=result.pipeline.name,
+        version_id=result.version.id if result.version else None,
+        version_name=version.strip(),
+        created_pipeline=result.created_pipeline,
+        saved=result.version is not None,
+        notes=result.notes,
+    )

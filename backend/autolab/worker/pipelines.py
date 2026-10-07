@@ -166,13 +166,23 @@ def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def parse_pipeline(text: str, where: str) -> PipelineFile:
+    """Parse and validate the text of a pipeline file. `where` names it in
+    error messages."""
+    try:
+        data = yaml.safe_load(text)
+        return PipelineFile.model_validate(data)
+    except (yaml.YAMLError, ValidationError) as exc:
+        raise PipelineError(f"{where}: {exc}") from exc
+
+
 def load_pipeline(path: Path) -> PipelineFile:
     """Read and validate one file. Name and version must match the path."""
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-        pipeline = PipelineFile.model_validate(data)
-    except (yaml.YAMLError, ValidationError, OSError) as exc:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
         raise PipelineError(f"{path}: {exc}") from exc
+    pipeline = parse_pipeline(text, str(path))
     if pipeline.pipeline != path.parent.name or pipeline.version != path.stem:
         raise PipelineError(
             f"{path}: the file says {pipeline.pipeline} {pipeline.version}; "

@@ -7,6 +7,14 @@ open live in `drafts/schema_design.md` ("Parked for later").
 
 - `schedules`: repeat a task by time.
 - Per-step model override.
+- **A library of scenarios and actions** (asked 2026-10-08): authors
+  publish pipelines ("scenarios") and later step kinds ("actions") for
+  others to use: a catalog page, versions, who published it, maybe
+  reviews. Base rules are already in `docs/STEP_KINDS.md` (a published
+  version never changes; new code never breaks an old version). Open
+  questions: who may publish (any user or admins), review before a
+  scenario is public, and how an "action" (code) could be shared safely.
+- Pipeline upload for non-admins (today: admins only).
 - **Sandbox for running generated code** (asked 2026-10-07): run the
   files and tests of `code` / `python_cli` in a separate Docker container
   without network, with CPU, memory and time limits, and give the output

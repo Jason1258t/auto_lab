@@ -8,7 +8,7 @@ out again.
 
 ## In one paragraph
 
-The database schema is designed, reviewed and migrated (5 migrations).
+The database schema is designed, reviewed and migrated (6 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
@@ -25,14 +25,15 @@ real model on the test server. The frontend has all MVP screens
    fixes and improvements from it, one small PR each.
 3. The author's list (2026-10-08):
    - ~~Result in the language of the task~~ (`worker/language.py`).
-   - **Upload pipelines from the admin page** with validation: a YAML file
-     in the usual structure, saved as `data/pipelines/<name>/<version>.yaml`
-     (shared by api and worker); mode "new version of a pipeline" or "new
-     pipeline", a name field and the newest version filled in.
-   - Pipeline management in the admin page (list, versions, YAML).
-   - Full pipeline docs in `docs/` (format, every step kind, a guide to
-     write one) and a developer guide for new step kinds with backward
-     compatibility.
+   - ~~Upload pipelines from the admin page~~ with validation and a
+     "Check" button: saved as `data/pipelines/<name>/<version>.yaml`,
+     registered at once (`services/pipelines.py`, migration 0006 for the
+     `pipeline_uploaded` activity). The form fills in the next version;
+     the newest is shown as a hint.
+   - ~~Pipeline management~~ in the admin page: list, versions (built-in
+     or uploaded, tasks per version), YAML of each version.
+   - ~~Docs~~: `docs/PIPELINES.md` (full guide) and `docs/STEP_KINDS.md`
+     (new step kinds with backward compatibility).
    - Later: a library of scenarios and steps published by authors
      (`BACKLOG.md`).
 4. Later (`BACKLOG.md`): the other three pipelines, live push instead of
@@ -133,6 +134,7 @@ After-MVP ideas: `BACKLOG.md`.
   token works for 10 s after a refresh (a reload during a refresh no
   longer logs the user out).
 - 0005 (data only): pipeline rows `deep_research`, `code`, `python_cli`.
+- 0006: activity action `pipeline_uploaded`, target type `pipeline`.
 - Snapshots kept in sync (checked with a `pg_dump` diff):
   `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
 - **Outdated:** `drafts/schema_design.html` (the published schema page)

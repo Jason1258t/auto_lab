@@ -44,6 +44,14 @@ Last updated: 2026-10-07
     created by migrations or an admin, not by sync).
   - The file is validated first (section 10). An invalid file is not
     synced, and the worker stops.
+- **Upload (added 2026-10-08):** admins upload a file in the admin page
+  (`POST /admin/pipelines/upload`, `services/pipelines.py`). It is
+  validated like a synced file, saved as
+  `data/pipelines/<name>/<version>.yaml` (shared by api and worker) and
+  registered at once; a new name creates a `pipelines` row. The form's
+  name and version win over the file's own lines. Built-in and uploaded
+  versions share one version line (a new one must be newer). Logged as
+  `pipeline_uploaded` (migration 0006). User guide: `docs/PIPELINES.md`.
 
 ## 3. File format
 

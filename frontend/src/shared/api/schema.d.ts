@@ -112,6 +112,65 @@ export interface paths {
         patch: operations["update_model_api_v1_admin_models__model_id__patch"];
         trace?: never;
     };
+    "/api/v1/admin/pipeline-versions/{version_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Pipeline File
+         * @description The YAML text of a version.
+         */
+        get: operations["admin_pipeline_file_api_v1_admin_pipeline_versions__version_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pipelines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin List Pipelines */
+        get: operations["admin_list_pipelines_api_v1_admin_pipelines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/pipelines/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Upload Pipeline
+         * @description Upload a pipeline file: a new version, or a new pipeline if the name
+         *     is new. dry_run=true only checks it. The name and version fields win
+         *     over the file's own `pipeline:` and `version:` lines.
+         */
+        post: operations["admin_upload_pipeline_api_v1_admin_pipelines_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/publications/{publication_id}": {
         parameters: {
             query?: never;
@@ -789,6 +848,31 @@ export interface components {
             /** Target Type */
             target_type: string | null;
         };
+        /** AdminPipelineOut */
+        AdminPipelineOut: {
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Versions */
+            versions: components["schemas"]["PipelineVersionOut"][];
+        };
+        /** Body_admin_upload_pipeline_api_v1_admin_pipelines_upload_post */
+        Body_admin_upload_pipeline_api_v1_admin_pipelines_upload_post: {
+            /**
+             * Dry Run
+             * @default false
+             */
+            dry_run: boolean;
+            /** File */
+            file: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: string;
+        };
         /** Body_upload_file_api_v1_workspaces__workspace_id__files_post */
         Body_upload_file_api_v1_workspaces__workspace_id__files_post: {
             /** File */
@@ -1050,6 +1134,39 @@ export interface components {
             version_id: number | null;
             /** Version Name */
             version_name: string | null;
+        };
+        /** PipelineUploadOut */
+        PipelineUploadOut: {
+            /** Created Pipeline */
+            created_pipeline: boolean;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string[];
+            /** Pipeline Id */
+            pipeline_id: number;
+            /** Saved */
+            saved: boolean;
+            /** Version Id */
+            version_id: number | null;
+            /** Version Name */
+            version_name: string;
+        };
+        /** PipelineVersionOut */
+        PipelineVersionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Tasks */
+            tasks: number;
+            /** Uploaded */
+            uploaded: boolean;
+            /** Version Name */
+            version_name: string;
         };
         /**
          * PlanStepOut
@@ -1757,6 +1874,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_pipeline_file_api_v1_admin_pipeline_versions__version_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_list_pipelines_api_v1_admin_pipelines_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPipelineOut"][];
+                };
+            };
+        };
+    };
+    admin_upload_pipeline_api_v1_admin_pipelines_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_admin_upload_pipeline_api_v1_admin_pipelines_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PipelineUploadOut"];
                 };
             };
             /** @description Validation Error */

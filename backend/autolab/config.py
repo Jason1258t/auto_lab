@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     data_dir: str = "data"
     max_upload_bytes: int = 50 * 1024 * 1024  # one workspace file
     pipelines_dir: str = "pipelines"
+    # Pipelines uploaded in the admin page (shared by api and worker).
+    uploaded_pipelines_dir: str = "data/pipelines"
     # The built React app; served by the API when it exists (Docker image).
     frontend_dir: str = "frontend/dist"
     cors_origins: list[str] = ["http://localhost:5173"]

@@ -434,7 +434,7 @@ Table activity_events {
   actor_name text [note: 'copy of the name at that moment']
   workspace_id bigint [note: 'no FK; NULL = global action']
   action text [not null, note: 'CHECK: fixed list, see SQL']
-  target_type text [note: 'CHECK: workspace | membership | task | work | publication | publisher | user']
+  target_type text [note: 'CHECK: workspace | membership | task | work | publication | publisher | user | file | pipeline']
   target_id bigint
   target_label text
   details jsonb

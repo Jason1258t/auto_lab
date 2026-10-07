@@ -6,7 +6,8 @@
   "common": {
     "loading": "Loading…",
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "done": "Done"
   },
   "nav": {
     "workspaces": "Workspaces",
@@ -257,7 +258,8 @@
     "admin_revoked": "{{actor}} removed the admin rights of {{target}}",
     "publisher_created": "{{actor}} created the publisher “{{target}}”",
     "workspace_deleted": "{{actor}} deleted the workspace “{{target}}”",
-    "user_deleted": "The account {{target}} was deleted"
+    "user_deleted": "The account {{target}} was deleted",
+    "pipeline_uploaded": "{{actor}} uploaded the pipeline {{target}}"
   },
   "notFound": {
     "title": "Page not found",
@@ -300,7 +302,11 @@
     "publisher_not_found": "This publisher does not exist.",
     "already_admin": "This user is already an admin.",
     "admin_not_found": "This user is not an admin.",
-    "cannot_revoke_self": "You cannot remove your own admin rights."
+    "cannot_revoke_self": "You cannot remove your own admin rights.",
+    "invalid_pipeline_name": "The name: 2-50 small letters, digits and _.",
+    "invalid_pipeline_version": "The version looks like 1.2.0.",
+    "pipeline_file_exists": "A file for this version already exists.",
+    "pipeline_file_missing": "The file of this version is missing on the server."
   },
   "fields": {
     "email": "email",
@@ -329,7 +335,8 @@
       "models": "Models",
       "providers": "Providers",
       "activity": "Activity",
-      "admins": "Admins"
+      "admins": "Admins",
+      "pipelines": "Pipelines"
     },
     "modelsText": "New tasks can use only available models. A model must also be pulled on its provider (for Ollama: ollama pull <name>).",
     "noModels": "No models yet. Add one.",
@@ -357,5 +364,30 @@
     "removePublication": "Remove from the feed",
     "removePublicationTitle": "Remove “{{title}}” from the feed?",
     "removePublicationText": "The publication is deleted. The work stays in its workspace."
+  },
+  "pipelines": {
+    "text": "A pipeline is a YAML file with the steps of a task type (guide: docs/PIPELINES.md). Built-in versions come from the repository; uploaded ones from here. Versions never change: upload a new one instead.",
+    "upload": "Upload pipeline",
+    "uploadText": "A YAML file in the pipeline format. Check it first: nothing is saved then.",
+    "mode": "What is it?",
+    "modeVersion": "A new version of a pipeline",
+    "modeNew": "A new pipeline",
+    "pipeline": "Pipeline",
+    "name": "Name",
+    "nameHint": "Small letters, digits and _. A name that does not exist yet creates a new pipeline.",
+    "version": "Version",
+    "versionHint": "Like 1.0.0.",
+    "versionHintNewest": "Newest now: {{newest}}. The new one must be higher.",
+    "file": "YAML file",
+    "check": "Check",
+    "uploadButton": "Upload",
+    "valid": "The file is valid. Nothing is saved yet.",
+    "saved": "Saved: {{name}} {{version}}. New tasks use it now.",
+    "savedNew": "New pipeline {{name}} {{version}} created. New tasks can use it now.",
+    "uploaded": "uploaded",
+    "builtIn": "built-in",
+    "tasks_one": "{{count}} task",
+    "tasks_other": "{{count}} tasks",
+    "noVersions": "No version file yet."
   }
 }

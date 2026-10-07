@@ -213,6 +213,10 @@ sources and quotes. A publisher page shows everything it published.
   Only available models appear in *New task*. For Ollama the model must
   also be pulled on the server: `ollama pull qwen2.5:3b`.
 - **Providers**: where models run. Only `ollama` works today.
+- **Pipelines**: every pipeline and its versions (built-in or uploaded,
+  how many tasks use each); click a version to read its YAML. **Upload
+  pipeline**: a new version or a new pipeline from a YAML file; **Check**
+  validates it without saving. How to write one: `docs/PIPELINES.md`.
 - **Activity**: the global log (admin rights, publishers, …).
 - **Admins**: give or take admin rights by **user id**. You find the id
   on the Members tab (`@bob · id 2`). You cannot remove your own rights.
