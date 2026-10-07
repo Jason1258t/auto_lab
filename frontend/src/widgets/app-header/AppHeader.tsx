@@ -15,9 +15,14 @@ export function AppHeader() {
         <Link to="/" className="font-heading text-xl font-semibold">
           {t('app.name')}
         </Link>
-        <nav className="flex-1">
-          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
-            {t('nav.workspaces')}
+        <nav className="flex flex-1 gap-4">
+          {me && (
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+              {t('nav.workspaces')}
+            </Link>
+          )}
+          <Link to="/feed" className="text-sm text-muted-foreground hover:text-foreground">
+            {t('nav.feed')}
           </Link>
         </nav>
         {me && <span className="text-sm text-muted-foreground">{me.display_name}</span>}
