@@ -119,6 +119,12 @@ Code is **checked statically only** (syntax and `ruff`): it is never run.
 Read it and its review notes before you accept it. Code works have no
 sources, so they show no "Sources and quotes" card.
 
+**Language.** Write the task in the language you want the result in.
+AutoLab finds it by the alphabet (Cyrillic → Russian, …) and tells the
+model to write in it. Quotes stay in the language of their source (they
+must be exact), so a Russian report can quote English pages. If a
+section still comes back in another language, its step summary says so.
+
 A new task is a **draft**: nothing runs yet. Check it, **Edit** it if
 needed, then press **Queue**.
 

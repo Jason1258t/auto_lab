@@ -233,6 +233,7 @@ async def write(ctx: StepContext) -> dict[str, Any]:
     paragraphs = []
     unsourced = 0
     for section, answer in await ctx.ask_each(ctx.resolve(ctx.step.for_each)):
+        answer = await ctx.in_task_language(section, answer, "paragraph")
         allowed = set(section["fact_numbers"])
 
         def check_mark(match: re.Match, allowed: set[int] = allowed) -> str:

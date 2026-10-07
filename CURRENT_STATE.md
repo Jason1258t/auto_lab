@@ -23,7 +23,19 @@ real model on the test server. The frontend has all MVP screens
    `.env.bak-<date>`). The app: `http://192.168.0.101:8000`.
 2. The author goes through `docs/TRY_IT.md` and writes feedback; then
    fixes and improvements from it, one small PR each.
-3. Later (`BACKLOG.md`): the other three pipelines, live push instead of
+3. The author's list (2026-10-08):
+   - ~~Result in the language of the task~~ (`worker/language.py`).
+   - **Upload pipelines from the admin page** with validation: a YAML file
+     in the usual structure, saved as `data/pipelines/<name>/<version>.yaml`
+     (shared by api and worker); mode "new version of a pipeline" or "new
+     pipeline", a name field and the newest version filled in.
+   - Pipeline management in the admin page (list, versions, YAML).
+   - Full pipeline docs in `docs/` (format, every step kind, a guide to
+     write one) and a developer guide for new step kinds with backward
+     compatibility.
+   - Later: a library of scenarios and steps published by authors
+     (`BACKLOG.md`).
+4. Later (`BACKLOG.md`): the other three pipelines, live push instead of
    polling, HTTPS / access from outside, user search.
 
 ## The React frontend (how it was built)
