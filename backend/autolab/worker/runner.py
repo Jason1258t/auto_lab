@@ -87,7 +87,8 @@ class TaskRunner:
             for index, step, note in plan:
                 # A revise step replaces the output of the same step id.
                 outputs[step.id] = await self._run_step(task, pipeline, index, step, note, outputs)
-            if any(step.kind == "write" for step in pipeline.steps):
+            # A work comes from a write step (text) or a code_check step (code).
+            if any(step.kind in ("write", "code_check") for step in pipeline.steps):
                 async with self.session_factory() as db:
                     await assemble_work(db, self.settings, task, pipeline, outputs)
         except TaskCancelled:

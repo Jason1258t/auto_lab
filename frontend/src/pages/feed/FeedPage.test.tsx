@@ -101,7 +101,7 @@ test('a first-time owner creates a publisher and publishes in one dialog', async
 test('only the owner sees Publish', async () => {
   server.use(...doneTask({ ...OWNED, owner_id: 9, is_owner: false, my_roles: ['editor', 'member'] }))
   renderApp('/tasks/11')
-  expect(await screen.findByText('Sources and quotes')).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: 'Result' })).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
 })
 

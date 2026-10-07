@@ -52,6 +52,82 @@ def render_markdown(
     return "\n".join(lines)
 
 
+# Code fences by file extension (only for display).
+_FENCE_LANG = {
+    "py": "python", "js": "javascript", "ts": "typescript", "sh": "bash", "toml": "toml",
+    "json": "json", "md": "markdown", "yaml": "yaml", "yml": "yaml", "txt": "",
+}  # fmt: skip
+
+
+def _first_value(outputs: dict[str, dict[str, Any]], key: str) -> Any:
+    """The value of `key` in the first step output that has it."""
+    for output in outputs.values():
+        if output.get(key):
+            return output[key]
+    return None
+
+
+def render_code(
+    task: Task, pipeline: PipelineFile, outputs: dict[str, dict[str, Any]]
+) -> tuple[str | None, str]:
+    """(summary, markdown) of a code work: the files of the last check
+    step, their remaining problems, review issues and usage notes."""
+    checked = _find(pipeline, outputs, "code_check")
+    summary = _first_value(outputs, "summary")
+    lines = [f"# {task.title}", ""]
+    if summary:
+        lines += [summary, ""]
+    lines += [
+        "*Checked by static analysis only (syntax, ruff). The code was never run.*",
+        "",
+        "## Files",
+        "",
+    ]
+    for f in checked["files"]:
+        lang = _FENCE_LANG.get(f["path"].rpartition(".")[2], "")
+        lines += [f"### `{f['path']}`", ""]
+        if f.get("purpose"):
+            lines += [f["purpose"], ""]
+        lines += [f"```{lang}", f["code"].rstrip(), "```", ""]
+    lines += ["## Static checks", ""]
+    if checked["problems"]:
+        for f in checked["files"]:
+            lines += [f"- `{f['path']}`: {p}" for p in f["problems"]]
+    else:
+        lines.append("No problems found.")
+    lines.append("")
+    issues = (_find(pipeline, outputs, "code_review") or {}).get("issues") or []
+    if issues:
+        lines += ["## Review notes from the model", ""]
+        lines += [f"- `{i['path']}`: {i['issue']}" for i in issues]
+        lines.append("")
+    usage = _first_value(outputs, "usage")
+    if usage:
+        lines += ["## How to use", "", usage, ""]
+    return summary, "\n".join(lines)
+
+
+async def _save_work(
+    db: AsyncSession, settings: Settings, task: Task, summary: str | None, text: str
+) -> Work:
+    """A work without sources (evidence: none)."""
+    now = datetime.now(UTC)
+    path = work_path(settings, task.id, now)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    work = await db.get(Work, task.id)
+    if work is None:
+        work = Work(task_id=task.id, file_path=str(path))
+        db.add(work)
+    else:  # a revision
+        await db.execute(delete(WorkSource).where(WorkSource.work_id == task.id))
+        work.file_path = str(path)
+        work.updated_at = now
+    work.summary = summary
+    await db.commit()
+    return work
+
+
 async def assemble_work(
     db: AsyncSession,
     settings: Settings,
@@ -61,6 +137,8 @@ async def assemble_work(
 ) -> Work:
     written = _find(pipeline, outputs, "write")
     if written is None:
+        if _find(pipeline, outputs, "code_check") is not None:
+            return await _save_work(db, settings, task, *render_code(task, pipeline, outputs))
         raise StepFailed("the pipeline has no write step, so there is no text")
     # The report plan: synthesize (research) or group (deep research).
     plan = _find(pipeline, outputs, "synthesize") or _find(pipeline, outputs, "group") or {}

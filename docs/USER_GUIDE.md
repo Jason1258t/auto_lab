@@ -102,9 +102,22 @@ for the people of the workspace.)
 **Tasks → New task** asks for:
 
 - **Title** and **Task**: what to research, in plain words.
-- **Pipeline**: today only `research`.
+- **Pipeline**: what kind of task it is (see *Pipelines* below).
 - **Model**: only models an admin made available.
 - **Reviewer**: who must review the result (default: you).
+
+### Pipelines
+
+| Pipeline | For | Time (3B model) | Result |
+|---|---|---|---|
+| `research` | a question that needs a few web sources | 3-4 min | text with sources and quotes (8 readable pages) |
+| `deep_research` | a big topic | 25-40 min | sub-questions, 3 search rounds that fill the gaps, up to ~65 pages, one section per sub-question |
+| `code` | a small program (1-2 files) | 1-2 min | the files, static check results, usage notes |
+| `python_cli` | a Python command-line tool | 3-6 min | requirements, 2-4 files with tests, two check-and-fix rounds, review notes, usage |
+
+Code is **checked statically only** (syntax and `ruff`): it is never run.
+Read it and its review notes before you accept it. Code works have no
+sources, so they show no "Sources and quotes" card.
 
 A new task is a **draft**: nothing runs yet. Check it, **Edit** it if
 needed, then press **Queue**.
@@ -204,9 +217,10 @@ The first admin is made on the server: `autolab create-admin <user_id>`.
 
 ## Known limits (now)
 
-- One small local model; a research task takes about 2 minutes.
-- Only the `research` pipeline has a file; `opinion_survey`,
-  `study_notes` and `creative_writing` are planned.
+- One small local model: a research task takes 3-4 minutes, a deep research up to 40.
+- `opinion_survey`, `study_notes` and `creative_writing` have no file
+  yet (planned).
+- Generated code is never run (a sandbox is planned).
 - English only (all texts are ready for translation).
 - No user search, no list of admins, no edit dialog for models (only
   add and *available*).

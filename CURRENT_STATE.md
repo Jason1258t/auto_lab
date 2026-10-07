@@ -144,7 +144,11 @@ least 3 or the step fails; 4 queries)
 `deep_research` 1.0.0 (3 rounds that fill the gaps, up to ~65 pages,
 one section per sub-question, 25-40 min; new step kinds in
 `worker/kinds/deep.py`; migration 0005 adds the pipeline rows
-`deep_research`, `code`, `python_cli`). The
+`deep_research`, `code`, `python_cli`), `code` 1.0.0 (1-2 files, one
+check-and-fix round) and `python_cli` 1.0.0 (requirements, design, 2-4
+files, two check-and-fix rounds, review, usage); code kinds in
+`worker/kinds/code.py`, static checks only (`ruff` is now a runtime
+dependency), a sandbox is in `BACKLOG.md`. The
 other three pipelines (`opinion_survey`, `study_notes`,
 `creative_writing`) have no file yet.
 

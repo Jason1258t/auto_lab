@@ -79,7 +79,8 @@ export function WorkView({
           <Markdown text={work.text} />
         </CardContent>
       </Card>
-      <Evidence sources={work.sources} />
+      {/* Works without sources (code pipelines) have no evidence card. */}
+      {work.sources.length > 0 && <Evidence sources={work.sources} />}
     </div>
   )
 }
