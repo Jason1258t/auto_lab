@@ -38,16 +38,23 @@ async def search(ctx: StepContext) -> dict[str, Any]:
     """Run each query in SearxNG; keep unique URLs as candidates for fetch.
 
     Config: results_per_query; max_candidates (old name: max_sources);
-    max_per_domain (default: no limit), so one site cannot fill the list.
+    max_per_domain (default: no limit), so one site cannot fill the list;
+    skip_seen: skip URLs that earlier steps already found or read (later
+    rounds of a deep research); optional: no queries or no results is not
+    an error (the output is empty).
     """
     config = ctx.step.config
     per_query = int(config.get("results_per_query", 5))
     max_candidates = int(config.get("max_candidates", config.get("max_sources", 5)))
     max_per_domain = int(config.get("max_per_domain", 0)) or None
+    optional = bool(config.get("optional", False))
     results: list[dict[str, str]] = []
-    seen: set[str] = set()
+    seen: set[str] = _earlier_urls(ctx) if config.get("skip_seen") else set()
     per_domain: dict[str, int] = {}
-    for query in ctx.resolve(ctx.step.from_):
+    queries = ctx.resolve(ctx.step.from_)
+    if not queries and optional:
+        return {"results": []}
+    for query in queries:
         try:
             found = await searxng_search(ctx.http, ctx.settings.searxng_url, query, per_query)
         except Exception as exc:  # one failed query is not the end
@@ -62,9 +69,20 @@ async def search(ctx: StepContext) -> dict[str, Any]:
             seen.add(result["url"])
             per_domain[domain] = per_domain.get(domain, 0) + 1
             results.append(result)
-    if not results:
+    if not results and not optional:
         raise StepFailed("the search found nothing (is SearxNG running?)")
     return {"results": results}
+
+
+def _earlier_urls(ctx: StepContext) -> set[str]:
+    """URLs in the results or sources of all earlier steps."""
+    urls: set[str] = set()
+    for output in ctx.outputs.values():
+        for key in ("results", "sources"):
+            for item in output.get(key) or []:
+                if isinstance(item, dict) and isinstance(item.get("url"), str):
+                    urls.add(item["url"])
+    return urls
 
 
 async def fetch(ctx: StepContext) -> dict[str, Any]:
@@ -138,7 +156,7 @@ async def summarize(ctx: StepContext) -> dict[str, Any]:
                 )
             else:
                 dropped += 1
-    if not facts:
+    if not facts and not ctx.step.config.get("optional"):
         raise StepFailed("no fact with a quote that is really in the sources")
     return {"facts": facts, "dropped_quotes": dropped}
 

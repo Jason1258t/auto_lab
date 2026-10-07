@@ -64,8 +64,8 @@ Common keys of a step:
 |---|---|---|
 | `id` | yes | unique in the file, `snake_case`; other steps refer to it |
 | `kind` | yes | one of the kinds below |
-| `from` | depends | input: `<step id>.<field>` of an earlier step |
-| `for_each` | no | like `from`, but the step runs once per item (one LLM call per item) |
+| `from` | depends | input: `<step id>.<field>` of an earlier step, or a list of them (their lists are joined, e.g. the facts of several rounds) |
+| `for_each` | no | like `from` (also a list), but the step runs once per item (one LLM call per item) |
 | `config` | no | kind settings and numbers for prompts (`{{ config.max_facts }}`) |
 | `llm` | for LLM kinds | the model call (section 5) |
 | `summary` | no | template for `task_steps.summary`, a short text for people |
@@ -81,6 +81,20 @@ Step kinds:
 | `verify` | yes, per fact | one fact | `facts`: only the kept ones | keeps facts whose verdict is in `config.keep` |
 | `synthesize` | yes | all kept facts, numbered | `summary`, `sections`: heading + fact numbers | checks that every fact number exists |
 | `write` | yes, per section | one section; code replaces `fact_numbers` with the facts (`number`, `claim`) | `paragraphs`, `unsourced_sentences` | removes `[n]` marks that are not in the section; marks every sentence without a mark as *(⚠ no source)* for the reviewer (decided 2026-10-07) |
+
+Deep research kinds (`kinds/deep.py`, added 2026-10-07):
+
+| Kind | LLM | Input | Output | What code does |
+|---|---|---|---|---|
+| `plan_each` | yes, per item | sub-questions | `queries` | joins the queries of all items, drops repeats, keeps `config.max_queries` |
+| `gaps` | yes | facts so far | `queries`, `missing` | gives the model `claims` (at most `config.max_claims`, spread over all facts); drops queries an earlier step already had; an empty list is fine |
+| `group` | yes, per fact | kept facts | like `synthesize`: `sections`, `facts` | the model picks the sub-question of each fact (`config.questions_from`); one section per sub-question with facts, at most `config.max_facts_per_section` |
+| `abstract` | yes | the written paragraphs | `summary` | becomes the work summary (wins over the plan's) |
+
+Also for later rounds: `search` with `config.skip_seen` skips URLs that
+earlier steps found or read, and with `config.optional` an empty query
+list or no results is not an error; `summarize` with `config.optional`
+may find no facts.
 
 For `for_each` steps, the model answers per item, and **code builds the
 step output** from all answers (the "Output" column), so the next step
@@ -114,6 +128,8 @@ skipped and the step summary says so. If **all** items fail, the step
 fails (see open question 2).
 
 The model is `tasks.model_id` for every step (no per-step model yet).
+Every call sends the model's `context_length` from the catalog (Ollama:
+`num_ctx`); without it Ollama would cut long prompts at its own default.
 
 ## 6. Templates
 
@@ -128,6 +144,8 @@ Variables:
 | `config` | everywhere | this step's `config` |
 | `item` | `for_each` steps | the current item |
 | `input` | steps with `from` | the input list |
+| `steps` | everywhere | outputs of all earlier steps, e.g. `{{ steps.outline.questions }}` |
+| `claims` | `gaps` only | the sampled claims of the facts so far |
 | `output` | `summary` only | this step's output |
 | `review.comment` | `revise.note` only | the reviewer's comment |
 
