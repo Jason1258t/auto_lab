@@ -75,10 +75,43 @@ Needs the API on port 8000 (`uv run uvicorn autolab.api.app:app`). Vite
 passes `/api` to it, so the browser sees one origin and the refresh cookie
 works. Structure and rules: `frontend/README.md`.
 
+After a backend API change, regenerate the frontend types (CI fails if
+they are out of date):
+
+```bash
+cd frontend && npm run api:types
+```
+
+The API runs without `--reload` from `.claude/launch.json`: restart it
+after a backend change, or the frontend talks to the old code.
+
 Local test account (dev database only): `dev@example.com` /
 `dev-password-local`.
 
+Make it an admin (to see the Admin page): `uv run autolab create-admin 1`.
+
 In the Claude desktop app, `.claude/launch.json` starts both (`api`, `web`).
+
+### A full task locally
+
+Tasks run only with the worker and a model. Install Ollama, then:
+
+```bash
+ollama pull qwen2.5:3b
+uv run autolab-worker            # in its own terminal
+```
+
+and add the model in the app (Admin → Models, name `qwen2.5:3b`). Without
+the worker a queued task just stays *Queued*.
+
+### The Docker image
+
+The image (`Dockerfile`) also builds the frontend; the API then serves it
+on port 8000, like on the server:
+
+```bash
+docker build -t autolab .
+```
 
 ## Checks
 
@@ -86,4 +119,13 @@ In the Claude desktop app, `.claude/launch.json` starts both (`api`, `web`).
 uv run pytest        # needs the Docker database running
 uv run ruff check .  # lint
 uv run ruff format . # format
+
+cd frontend
+npm test             # Vitest + Testing Library + MSW (fake backend)
+npm run typecheck
+npm run lint
+npm run build
 ```
+
+CI runs all of these on every PR (`test`, `frontend`, `image`); `main`
+accepts only green PRs.
