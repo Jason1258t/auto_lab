@@ -5,7 +5,15 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from autolab.api.deps import CurrentPrincipal, DbSession
-from autolab.api.schemas.tasks import TaskDetailOut, TaskIn, TaskOut, TaskStepOut, TaskUpdate
+from autolab.api.schemas.tasks import (
+    PlanStepOut,
+    TaskDetailOut,
+    TaskIn,
+    TaskOut,
+    TaskStepOut,
+    TaskUpdate,
+)
+from autolab.db.models import TaskStep
 from autolab.db.models.enums import TaskStatus
 from autolab.errors import AppError
 from autolab.services import tasks as tasks_service
@@ -71,9 +79,20 @@ async def create_task(
 async def get_task(task_id: int, principal: CurrentPrincipal, db: DbSession) -> TaskDetailOut:
     view, _ = await tasks_service.load_task(db, task_id, principal.user)
     steps = await tasks_service.list_steps(db, task_id)
+    plan = await tasks_service.pipeline_plan(db, view.task.pipeline_version_id)
     return TaskDetailOut(
-        **task_out(view).model_dump(), steps=[TaskStepOut.model_validate(s) for s in steps]
+        **task_out(view).model_dump(),
+        plan=[PlanStepOut(step_id=p.step_id, kind=p.kind) for p in plan.steps],
+        steps=[step_out(s, plan) for s in steps],
     )
+
+
+def step_out(step: TaskStep, plan: tasks_service.Plan) -> TaskStepOut:
+    out = TaskStepOut.model_validate(step)
+    named = plan.step_at(step.step_index)
+    if named is not None:
+        out.step_id, out.kind = named.step_id, named.kind
+    return out
 
 
 @router.patch("/tasks/{task_id}")

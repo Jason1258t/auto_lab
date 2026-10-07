@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 
 import { useSession } from '@/entities/session'
 import { Button, FormError, FormField } from '@/shared/ui'
@@ -8,10 +8,11 @@ import { Button, FormError, FormField } from '@/shared/ui'
 import { useAuthForm } from './useAuthForm'
 
 function SwitchLink({ question, to, label }: { question: string; to: string; label: string }) {
+  const location = useLocation() // keep "where to return" when switching forms
   return (
     <p className="text-center text-sm text-muted-foreground">
       {question}{' '}
-      <Link to={to} className="text-primary underline-offset-4 hover:underline">
+      <Link to={to} state={location.state} className="text-primary underline-offset-4 hover:underline">
         {label}
       </Link>
     </p>

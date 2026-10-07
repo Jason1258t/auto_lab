@@ -997,6 +997,16 @@ export interface components {
             /** Version Name */
             version_name: string | null;
         };
+        /**
+         * PlanStepOut
+         * @description One step of the task's pipeline version, from its file.
+         */
+        PlanStepOut: {
+            /** Kind */
+            kind: string;
+            /** Step Id */
+            step_id: string;
+        };
         /** ProviderIn */
         ProviderIn: {
             /**
@@ -1193,6 +1203,8 @@ export interface components {
             pipeline_version: string;
             /** Pipeline Version Id */
             pipeline_version_id: number;
+            /** Plan */
+            plan: components["schemas"]["PlanStepOut"][];
             /** Reviewer Id */
             reviewer_id: number | null;
             /** Started At */
@@ -1260,11 +1272,15 @@ export interface components {
         TaskStepOut: {
             /** Finished At */
             finished_at: string | null;
+            /** Kind */
+            kind?: string | null;
             /** Review Id */
             review_id: number | null;
             /** Started At */
             started_at: string | null;
             status: components["schemas"]["TaskStepStatus"];
+            /** Step Id */
+            step_id?: string | null;
             /** Step Index */
             step_index: number;
             /** Summary */

@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1 and 2 done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1, 2 and 3a done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -41,8 +41,17 @@ Screens, one PR each:
      (list with status), files (upload several, download through the API
      client, remove), members, activity (owner, editors, admins; unknown
      actions show their raw name).
-3. **Next:** new task → task page with live steps and LLM calls (full
-   logs). The task list (`widgets/workspace-tasks`) does not link yet.
+3. Task screen, in two PRs:
+   - ~~3a: new task + task page~~: "New task" dialog (pipeline, model,
+     reviewer) creates a draft; task page `/tasks/:id` with the input,
+     all steps (from `plan` before the worker starts, then from `steps`;
+     revisions after a rejected review get a heading), queue / edit draft
+     / cancel / delete, polling every 3 s while queued or running.
+     Backend: `GET /tasks/{id}` has `plan` and each step has `step_id` /
+     `kind` (read from the pipeline file, cached by hash).
+   - **Next, 3b:** LLM calls under each step (`GET /tasks/{id}/calls`:
+     status, tokens, error) and the full prompt and output
+     (`GET /calls/{id}/log`, from MongoDB).
 4. Review: accept, or reject with a comment.
 5. Work page: text, sources, quotes, *(⚠ no source)* marks.
 6. Publish + public feed.
@@ -120,6 +129,12 @@ other three pipelines (`opinion_survey`, `study_notes`,
   drop; dropping is in `BACKLOG.md`).
 
 ## Open questions
+
+- Refresh token reuse ends the whole session. A page reload while a
+  refresh is in flight sends the old cookie again and logs the user out
+  (seen in development with fast Vite reloads). Option: accept the
+  previous token for a few seconds after rotation. A security rule: ask
+  the author.
 
 - University course requirements (exact DBMS version, required topics
   like normalization and transactions): assumed PostgreSQL + 3NF so far,

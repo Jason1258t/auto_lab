@@ -63,6 +63,29 @@ async def test_create_and_read(client: httpx.AsyncClient, make_user, catalog: Ca
     assert [t["id"] for t in listed.json()] == [second["id"], task["id"]]
     detail = await client.get(f"{API}/tasks/{task['id']}", headers=bob.headers)
     assert detail.json()["steps"] == []
+    # The plan comes from the pipeline file, before any step has run.
+    plan = [(s["step_id"], s["kind"]) for s in detail.json()["plan"]]
+    assert plan[0] == ("plan", "plan")
+    assert plan[-1][0] == "write"
+
+
+def test_step_names_after_revisions() -> None:
+    """Rows after the pipeline steps repeat the steps from rerun_start."""
+    from autolab.services.tasks import Plan, PlanStep
+
+    names = ["plan", "search", "synthesize", "write"]
+    plan = Plan(tuple(PlanStep(n, n) for n in names), rerun_start=2)
+    at = [plan.step_at(i).step_id for i in range(8)]  # type: ignore[union-attr]
+    assert at == [
+        "plan",
+        "search",
+        "synthesize",
+        "write",
+        "synthesize",
+        "write",
+        "synthesize",
+        "write",
+    ]
 
 
 async def test_who_can_create(client: httpx.AsyncClient, make_user, catalog: Catalog) -> None:

@@ -49,6 +49,9 @@ class TaskStepOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     step_index: int
+    # From the pipeline file; None if the file cannot be read.
+    step_id: str | None = None
+    kind: str | None = None
     status: TaskStepStatus
     summary: str | None
     review_id: int | None
@@ -56,5 +59,16 @@ class TaskStepOut(BaseModel):
     finished_at: datetime | None
 
 
+class PlanStepOut(BaseModel):
+    """One step of the task's pipeline version, from its file."""
+
+    step_id: str
+    kind: str
+
+
 class TaskDetailOut(TaskOut):
+    # All steps of the pipeline file, in order. `steps` is empty until the
+    # worker starts the task; then it has a row per step (and more rows
+    # for each revision after a rejected review).
+    plan: list[PlanStepOut]
     steps: list[TaskStepOut]

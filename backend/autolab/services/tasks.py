@@ -7,7 +7,10 @@ here:
 The worker and reviews move a task further (later steps).
 """
 
+import logging
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -32,6 +35,10 @@ from autolab.services.permissions import (
     require_not_archived,
     require_task_editor,
 )
+from autolab.worker.pipelines import PipelineError, load_pipeline
+from autolab.worker.runner import rerun_start
+
+log = logging.getLogger(__name__)
 
 CANCELLABLE = {TaskStatus.QUEUED, TaskStatus.RUNNING, TaskStatus.IN_REVIEW}
 
@@ -90,6 +97,52 @@ async def list_tasks(
     # Uses the index on (workspace_id, created_at DESC).
     query = query.order_by(Task.created_at.desc(), Task.id.desc()).limit(limit).offset(offset)
     return [TaskView(*row) for row in await db.execute(query)]
+
+
+@dataclass(frozen=True)
+class PlanStep:
+    step_id: str
+    kind: str
+
+
+@dataclass(frozen=True)
+class Plan:
+    steps: tuple[PlanStep, ...]
+    rerun_start: int  # where a revision after a rejected review starts
+
+    def step_at(self, step_index: int) -> PlanStep | None:
+        """The step of a task_steps row. Rows 0..n-1 are the pipeline
+        steps; each revision adds the steps from rerun_start to the end
+        (the same mapping as the worker, runner.step_rows)."""
+        n = len(self.steps)
+        if step_index < n:
+            return self.steps[step_index]
+        tail = n - self.rerun_start
+        if tail <= 0:
+            return None
+        return self.steps[self.rerun_start + (step_index - n) % tail]
+
+
+@lru_cache(maxsize=64)
+def _read_plan(file_path: str, file_hash: str) -> Plan:
+    """A version file never changes (its hash is in the DB), so the plan
+    can be cached by path and hash."""
+    pipeline = load_pipeline(Path(file_path))
+    steps = tuple(PlanStep(step.id, step.kind) for step in pipeline.steps)
+    return Plan(steps, rerun_start(pipeline))
+
+
+async def pipeline_plan(db: AsyncSession, version_id: int) -> Plan:
+    """All steps of a pipeline version, also those that have not run yet.
+    Empty if the file cannot be read (the task page still works)."""
+    version = await db.get(PipelineVersion, version_id)
+    if version is None:
+        return Plan((), 0)
+    try:
+        return _read_plan(version.file_path, version.file_hash)
+    except PipelineError as exc:
+        log.warning("Cannot read the plan of pipeline version %s: %s", version_id, exc)
+        return Plan((), 0)
 
 
 async def list_steps(db: AsyncSession, task_id: int) -> list[TaskStep]:

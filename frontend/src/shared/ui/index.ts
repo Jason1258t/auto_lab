@@ -27,7 +27,7 @@ export {
   DialogTrigger,
 } from './dialog'
 export { FormError } from './form-error'
-export { FormField } from './form-field'
+export { FormField, SelectField } from './form-field'
 export { Input } from './input'
 export { Label } from './label'
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
