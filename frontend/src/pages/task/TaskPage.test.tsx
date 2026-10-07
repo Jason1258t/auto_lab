@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 
 import type { CallLog, LlmCall } from '@/entities/call'
+import type { Review } from '@/entities/review'
 import type { TaskDetail } from '@/entities/task'
 import type { Workspace } from '@/entities/workspace'
 import { API, apiError, server, signedIn } from '@/test/server'
@@ -56,12 +57,22 @@ const step = (index: number, id: string, status: 'pending' | 'running' | 'done',
   finished_at: status === 'done' ? '2026-10-07T10:00:04Z' : null,
 })
 
-function taskAnswers(task: () => TaskDetail, workspace: Workspace = OWNED, calls: LlmCall[] = []) {
+const BOB = { user_id: 2, username: 'bob', display_name: 'Bob', roles: ['member'] }
+
+function taskAnswers(
+  task: () => TaskDetail,
+  workspace: Workspace = OWNED,
+  calls: LlmCall[] = [],
+  reviews: () => Review[] = () => [],
+) {
   return [
     ...signedIn,
     http.get(`${API}/tasks/11`, () => HttpResponse.json(task())),
     http.get(`${API}/tasks/11/calls`, () => HttpResponse.json(calls)),
+    http.get(`${API}/tasks/11/reviews`, () => HttpResponse.json(reviews())),
+    http.get(`${API}/tasks/11/work`, () => apiError(404, 'work_not_found', 'No work')),
     http.get(`${API}/workspaces/7`, () => HttpResponse.json(workspace)),
+    http.get(`${API}/workspaces/7/members`, () => HttpResponse.json([BOB])),
   ]
 }
 
@@ -247,4 +258,75 @@ test('a deleted log shows a clear message', async () => {
   renderApp('/tasks/11')
   await userEvent.setup().click(await screen.findByRole('button', { name: /Model call 31/ }))
   expect(await screen.findByText('The full log of this call is not kept any more.')).toBeInTheDocument()
+})
+
+test('the reviewer rejects with a comment; the task runs again and the review is listed', async () => {
+  let current: TaskDetail = { ...DRAFT, status: 'in_review', steps: [step(0, 'plan', 'done'), step(1, 'search', 'done'), step(2, 'write', 'done')] }
+  let reviews: Review[] = []
+  let sent: unknown = null
+  server.use(
+    ...taskAnswers(() => current, OWNED, [], () => reviews),
+    http.post(`${API}/tasks/11/reviews`, async ({ request }) => {
+      sent = await request.json()
+      current = { ...current, status: 'queued' }
+      reviews = [{ id: 5, task_id: 11, reviewer_id: 1, result: 'rejected', comment: 'Add a source for sentence 2.', created_at: '2026-10-07T11:00:00Z' }]
+      return HttpResponse.json(reviews[0], { status: 201 })
+    }),
+  )
+  renderApp('/tasks/11')
+  const user = userEvent.setup()
+  const reject = await screen.findByRole('button', { name: 'Reject and run again' })
+  expect(reject).toBeDisabled() // a rejection needs a comment
+  await user.type(screen.getByLabelText('Comment'), 'Add a source for sentence 2.')
+  await user.click(reject)
+
+  expect(await screen.findByText('Queued')).toBeInTheDocument()
+  expect(await screen.findByText('Add a source for sentence 2.', { selector: 'p' })).toBeInTheDocument()
+  expect(screen.getByText('Rejected')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument()
+  expect(sent).toEqual({ result: 'rejected', comment: 'Add a source for sentence 2.' })
+})
+
+test('a member who is not the reviewer only sees who reviews', async () => {
+  const member: Workspace = { ...OWNED, owner_id: 9, owner_display_name: 'Zoe', is_owner: false, my_roles: ['member'] }
+  const inReview: TaskDetail = { ...DRAFT, status: 'in_review', reviewer_id: 2 }
+  server.use(...taskAnswers(() => inReview, member))
+  renderApp('/tasks/11')
+  expect(await screen.findByText('Waiting for the review by Bob.')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Accept' })).not.toBeInTheDocument()
+  expect(screen.getByText('Reviewer: Bob')).toBeInTheDocument()
+})
+
+test('the assigned reviewer accepts', async () => {
+  const member: Workspace = { ...OWNED, owner_id: 9, owner_display_name: 'Zoe', is_owner: false, my_roles: ['member'] }
+  let current: TaskDetail = { ...DRAFT, status: 'in_review', reviewer_id: 1 } // ME is user 1
+  server.use(
+    ...taskAnswers(() => current, member),
+    http.post(`${API}/tasks/11/reviews`, () => {
+      current = { ...current, status: 'done' }
+      return HttpResponse.json({ id: 6, task_id: 11, reviewer_id: 1, result: 'accepted', comment: null, created_at: '2026-10-07T11:00:00Z' }, { status: 201 })
+    }),
+  )
+  renderApp('/tasks/11')
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Accept' }))
+  expect(await screen.findByText('Done')).toBeInTheDocument()
+})
+
+test('the owner gives the review to another person', async () => {
+  let current: TaskDetail = { ...DRAFT, status: 'in_review' }
+  let sent: unknown = null
+  server.use(
+    ...taskAnswers(() => current),
+    http.patch(`${API}/tasks/11`, async ({ request }) => {
+      sent = await request.json()
+      current = { ...current, reviewer_id: 2 }
+      return HttpResponse.json(current)
+    }),
+  )
+  renderApp('/tasks/11')
+  const user = userEvent.setup()
+  const select = await screen.findByLabelText('Reviewer')
+  await screen.findByRole('option', { name: 'Bob' })
+  await user.selectOptions(select, 'Bob')
+  expect(sent).toEqual({ reviewer_id: 2 })
 })
