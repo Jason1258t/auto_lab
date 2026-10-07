@@ -7,6 +7,10 @@ open live in `drafts/schema_design.md` ("Parked for later").
 
 - `schedules`: repeat a task by time.
 - Per-step model override.
+- **Sandbox for running generated code** (asked 2026-10-07): run the
+  files and tests of `code` / `python_cli` in a separate Docker container
+  without network, with CPU, memory and time limits, and give the output
+  to a fix step. Today the code is only checked statically (syntax, ruff).
 
 ## Results and publications
 

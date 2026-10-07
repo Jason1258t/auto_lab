@@ -91,6 +91,20 @@ Deep research kinds (`kinds/deep.py`, added 2026-10-07):
 | `group` | yes, per fact | kept facts | like `synthesize`: `sections`, `facts` | the model picks the sub-question of each fact (`config.questions_from`); one section per sub-question with facts, at most `config.max_facts_per_section` |
 | `abstract` | yes | the written paragraphs | `summary` | becomes the work summary (wins over the plan's) |
 
+Code kinds (`kinds/code.py`, added 2026-10-07; pipelines with
+`evidence: none`):
+
+| Kind | LLM | Input | Output | What code does |
+|---|---|---|---|---|
+| `code_write` | yes, per file | planned files (`path`, `purpose`) | `files`: path, purpose, code | makes paths safe (relative, simple, unique); removes ``` fences |
+| `code_check` | no | files | `files` + `problems` per file, `problems` total | **static only**: `compile()` (syntax) and `ruff --select E9,F` in a temp folder; the code is never run |
+| `code_fix` | yes, per file with problems | checked files | `files`, `fixed` | files without problems pass without a call; a failed fix keeps the old code |
+| `code_review` | yes, per file | final files | `issues`: path, issue | notes for the human reviewer; nothing is changed |
+
+The work of a code pipeline (no `write` step) is built from the last
+`code_check`: the files as code blocks, problems left, review issues, and
+the first `summary` and `usage` of the step outputs.
+
 Also for later rounds: `search` with `config.skip_seen` skips URLs that
 earlier steps found or read, and with `config.optional` an empty query
 list or no results is not an error; `summarize` with `config.optional`

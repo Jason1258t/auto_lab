@@ -1,0 +1,258 @@
+# Pipeline "python_cli", version 1.0.0. Rules: drafts/pipeline_spec.md.
+# Never change this file after the worker has synced it: copy it to a
+# new version and edit the copy.
+#
+# A Python command-line tool, built carefully in small steps:
+# requirements -> design -> one file at a time -> two rounds of static
+# checks and fixes -> a review of each file against the requirements ->
+# usage notes. Standard library only (argparse); pytest in the test file.
+# The code is never run.
+
+pipeline: python_cli
+version: 1.0.0
+description: >
+  A Python command-line tool: requirements, design, files, two rounds of
+  static checks and fixes, a self-review and usage notes. Standard
+  library only; the code is never run.
+evidence: none
+
+steps:
+  # 1. What exactly should the tool do?
+  - id: requirements
+    kind: plan
+    llm:
+      system: You write requirements for a command-line tool. Reply with JSON only.
+      prompt: |
+        Task:
+        {{ task.input }}
+
+        Write the requirements of a Python command-line tool for this task.
+        - "summary": what the tool does, in 1-2 sentences;
+        - "commands": the commands (or one main command), each with a
+          name, a one-sentence description and its arguments/options
+          (for example "--output FILE: where to write the result");
+        - "rules": up to 8 rules for edge cases and errors (bad input,
+          missing file, empty data, exit codes).
+        Keep it small enough for 2-4 Python files.
+      output:
+        type: object
+        required: [summary, commands, rules]
+        additionalProperties: false
+        properties:
+          summary: { type: string, maxLength: 400 }
+          commands:
+            type: array
+            minItems: 1
+            maxItems: 6
+            items:
+              type: object
+              required: [name, description, arguments]
+              additionalProperties: false
+              properties:
+                name: { type: string, maxLength: 40 }
+                description: { type: string, maxLength: 200 }
+                arguments:
+                  type: array
+                  maxItems: 8
+                  items: { type: string, maxLength: 150 }
+          rules:
+            type: array
+            maxItems: 8
+            items: { type: string, maxLength: 200 }
+      max_tokens: 800
+    summary: "{{ output.commands | length }} commands, {{ output.rules | length }} rules"
+
+  # 2. Which files, and what goes where.
+  - id: design
+    kind: plan
+    llm:
+      system: You design the files of a small Python project. Reply with JSON only.
+      prompt: |
+        Requirements of a Python command-line tool:
+        {{ steps.requirements.summary }}
+        Commands:
+        {% for c in steps.requirements.commands %}
+        - {{ c.name }}: {{ c.description }} ({{ c.arguments | join("; ") }})
+        {% endfor %}
+
+        Plan 2 to 4 Python files:
+        - "cli.py": argparse, the commands, main() that returns an exit
+          code; no logic beyond reading arguments and printing;
+        - one or two modules with the logic (pure functions where you can);
+        - "test_<module>.py": pytest tests for the logic.
+        Standard library only (pytest is allowed in tests). For each file
+        give the path and its purpose with the main functions it has.
+      output:
+        type: object
+        required: [files]
+        additionalProperties: false
+        properties:
+          files:
+            type: array
+            minItems: 2
+            maxItems: 4
+            items:
+              type: object
+              required: [path, purpose]
+              additionalProperties: false
+              properties:
+                path: { type: string, pattern: "^[a-z_][a-z0-9_]*\\.py$" }
+                purpose: { type: string, maxLength: 300 }
+      max_tokens: 500
+    summary: "{{ output.files | length }} files planned"
+
+  # 3. One file at a time, each with the whole plan in view.
+  - id: write
+    kind: code_write
+    for_each: design.files
+    llm:
+      system: You write complete, working Python files. Reply with JSON only.
+      prompt: |
+        A Python command-line tool: {{ steps.requirements.summary }}
+        Commands:
+        {% for c in steps.requirements.commands %}
+        - {{ c.name }}: {{ c.description }} ({{ c.arguments | join("; ") }})
+        {% endfor %}
+        Rules:
+        {% for r in steps.requirements.rules %}
+        - {{ r }}
+        {% endfor %}
+        All files of the project:
+        {% for f in steps.design.files %}
+        - {{ f.path }}: {{ f.purpose }}
+        {% endfor %}
+
+        Write the complete file "{{ item.path }}" ({{ item.purpose }}).
+        Python 3.12, standard library only (pytest in test files), type
+        hints, short docstrings. Import the other project files by their
+        module names (for example "from core import parse").
+        Put only the file content in "code", without ``` marks.
+      output:
+        type: object
+        required: [code]
+        additionalProperties: false
+        properties:
+          code: { type: string, minLength: 1, maxLength: 12000 }
+      temperature: 0.2
+      max_tokens: 2500
+    summary: "{{ output.files | length }} files written"
+
+  # 4. Two rounds of static checks and fixes.
+  - id: check1
+    kind: code_check
+    from: write.files
+    summary: "{{ output.problems }} problems found"
+
+  - id: fix1
+    kind: code_fix
+    for_each: check1.files
+    llm: &fix
+      system: You fix problems in a Python file. Reply with JSON only.
+      prompt: |
+        File "{{ item.path }}" ({{ item.purpose }}):
+
+        {{ item.code }}
+
+        A static checker found these problems:
+        {% for p in item.problems %}
+        - {{ p }}
+        {% endfor %}
+
+        Return the complete fixed file. Change only what is needed.
+        Put only the file content in "code", without ``` marks.
+      output:
+        type: object
+        required: [code]
+        additionalProperties: false
+        properties:
+          code: { type: string, minLength: 1, maxLength: 12000 }
+      temperature: 0.1
+      max_tokens: 2500
+    summary: "{{ output.fixed }} files fixed"
+
+  - id: check2
+    kind: code_check
+    from: fix1.files
+    summary: "{{ output.problems }} problems found"
+
+  - id: fix2
+    kind: code_fix
+    for_each: check2.files
+    llm: *fix
+    summary: "{{ output.fixed }} files fixed"
+
+  - id: check3
+    kind: code_check
+    from: fix2.files
+    summary: "{{ output.problems }} problems left"
+
+  # 5. Does each file do what the requirements say? (notes for the
+  #    human reviewer; nothing is changed)
+  - id: review
+    kind: code_review
+    for_each: check3.files
+    llm:
+      system: You review a Python file against requirements. Reply with JSON only.
+      prompt: |
+        Requirements: {{ steps.requirements.summary }}
+        Commands:
+        {% for c in steps.requirements.commands %}
+        - {{ c.name }}: {{ c.description }} ({{ c.arguments | join("; ") }})
+        {% endfor %}
+        Rules:
+        {% for r in steps.requirements.rules %}
+        - {{ r }}
+        {% endfor %}
+
+        File "{{ item.path }}" ({{ item.purpose }}):
+
+        {{ item.code }}
+
+        List up to 5 concrete problems: a requirement or rule this file
+        should handle but does not, or a clear bug. Only real problems;
+        an empty list is fine.
+      output:
+        type: object
+        required: [issues]
+        additionalProperties: false
+        properties:
+          issues:
+            type: array
+            maxItems: 5
+            items: { type: string, maxLength: 300 }
+      temperature: 0
+      max_tokens: 500
+    summary: "{{ output.issues | length }} review notes"
+
+  # 6. How to install and run it.
+  - id: usage
+    kind: plan
+    llm:
+      system: You write short usage notes. Reply with JSON only.
+      prompt: |
+        A Python command-line tool: {{ steps.requirements.summary }}
+        Commands:
+        {% for c in steps.requirements.commands %}
+        - {{ c.name }}: {{ c.description }} ({{ c.arguments | join("; ") }})
+        {% endfor %}
+        Files:
+        {% for f in steps.check3.files %}
+        - {{ f.path }}: {{ f.purpose }}
+        {% endfor %}
+
+        Write short usage notes in Markdown: how to run it
+        ("python cli.py ..."), one example per command, and how to run
+        the tests ("python -m pytest").
+      output:
+        type: object
+        required: [usage]
+        additionalProperties: false
+        properties:
+          usage: { type: string, maxLength: 3000 }
+      max_tokens: 700
+    summary: "usage notes written"
+
+revise:
+  rerun_from: write
+  note: |
+    A reviewer rejected the previous version. Fix this: {{ review.comment }}

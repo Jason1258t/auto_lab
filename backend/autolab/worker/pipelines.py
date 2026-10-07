@@ -32,6 +32,11 @@ KINDS: dict[str, bool] = {
     "gaps": True,
     "group": True,
     "abstract": True,
+    # code (kinds/code.py)
+    "code_write": True,
+    "code_check": False,
+    "code_fix": True,
+    "code_review": True,
 }
 
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
