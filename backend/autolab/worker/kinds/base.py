@@ -11,6 +11,8 @@ from autolab.config import Settings
 from autolab.db.models import Task
 from autolab.worker import templates
 from autolab.worker.gateway import Message
+from autolab.worker.language import Language, detect, matches
+from autolab.worker.language import note as language_note
 from autolab.worker.llm_manager import LlmCallFailed, LlmManager
 from autolab.worker.pipelines import PipelineFile, Step
 from autolab.worker.web import Resolver
@@ -39,6 +41,12 @@ class StepContext:
     # Short notes the runner adds to the step summary, e.g. "2 sentences
     # without a source" (pipeline files cannot change after sync).
     notes: list[str] = field(default_factory=list)
+    wrong_language: int = field(default=0)  # texts still not in the task language
+
+    @property
+    def language(self) -> Language:
+        """The language of the task (by its alphabet); the model writes in it."""
+        return detect(f"{self.task.title}\n{self.task.input}")
 
     def resolve(self, ref: str | list[str]) -> Any:
         """'<step id>.<field>' -> that field of the earlier step's output.
@@ -56,7 +64,11 @@ class StepContext:
 
     def variables(self, **extra: Any) -> dict[str, Any]:
         found = {
-            "task": {"title": self.task.title, "input": self.task.input},
+            "task": {
+                "title": self.task.title,
+                "input": self.task.input,
+                "language": self.language.name,
+            },
             "config": self.step.config,
             # Outputs of earlier steps, e.g. {{ steps.outline.questions }}.
             "steps": self.outputs,
@@ -65,19 +77,22 @@ class StepContext:
             found["input"] = self.resolve(self.step.from_)
         return found | extra
 
-    def messages(self, variables: dict[str, Any]) -> list[Message]:
+    def messages(self, variables: dict[str, Any], extra_note: str | None = None) -> list[Message]:
         llm = self.step.llm
         prompt = templates.render(llm.prompt, variables)
-        if self.note:
-            prompt += "\n\n" + self.note
+        # Added by code, so every pipeline version gets them: the revise
+        # note, the language of the task, and a one-off note (a retry).
+        for line in (self.note, language_note(self.language), extra_note):
+            if line:
+                prompt += "\n\n" + line
         found = [Message("system", templates.render(llm.system, variables))] if llm.system else []
         return found + [Message("user", prompt)]
 
-    async def ask(self, **extra: Any) -> dict[str, Any] | None:
+    async def ask(self, *, extra_note: str | None = None, **extra: Any) -> dict[str, Any] | None:
         """One model answer that matches the output schema, trying up to
         max_attempts times. None if no attempt gave a valid answer."""
         llm = self.step.llm
-        messages = self.messages(self.variables(**extra))
+        messages = self.messages(self.variables(**extra), extra_note)
         for attempt in range(1, llm.max_attempts + 1):
             try:
                 result = await self.llm.call(
@@ -114,6 +129,22 @@ class StepContext:
         if items and not answers:
             raise StepFailed("the model gave no valid answer for any item")
         return answers
+
+    async def in_task_language(self, item: Any, answer: dict[str, Any], key: str) -> dict[str, Any]:
+        """If answer[key] is not in the task language, ask once more with a
+        clear note. Returns the better answer; a still wrong one is counted
+        in the step summary."""
+        language = self.language
+        if matches(answer[key], language):
+            return answer
+        retry = await self.ask(
+            item=item,
+            extra_note=f"Your last answer was not in {language.name}. Write it in {language.name}.",
+        )
+        if retry is not None and matches(retry[key], language):
+            return retry
+        self.wrong_language += 1
+        return answer
 
 
 Handler = Callable[[StepContext], Awaitable[dict[str, Any]]]

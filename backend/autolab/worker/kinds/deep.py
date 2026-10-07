@@ -110,6 +110,7 @@ async def abstract(ctx: StepContext) -> dict[str, Any]:
     answer = await ctx.ask()
     if answer is None:
         raise StepFailed("the model gave no valid summary")
+    answer = await ctx.in_task_language(None, answer, "summary")
     return {"summary": answer["summary"]}
 
 

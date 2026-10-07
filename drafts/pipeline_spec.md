@@ -142,6 +142,14 @@ skipped and the step summary says so. If **all** items fail, the step
 fails (see open question 2).
 
 The model is `tasks.model_id` for every step (no per-step model yet).
+**Language (added 2026-10-08).** Code finds the language of the task by
+its alphabet (`worker/language.py`). If it is not English, every prompt
+gets a line: write your own text in that language, copy quotes word for
+word, keep code and JSON keys. `write` and `abstract` check the answer's
+alphabet; a wrong one is asked again once, and a text that is still
+wrong is counted in the step summary ("1 not in Russian"). This works
+for every pipeline version, also old ones, because code adds it.
+
 Every call sends the model's `context_length` from the catalog (Ollama:
 `num_ctx`); without it Ollama would cut long prompts at its own default.
 
@@ -155,6 +163,7 @@ Variables:
 | Name | Where | Value |
 |---|---|---|
 | `task.title`, `task.input` | everywhere | the task |
+| `task.language` | everywhere | the language of the task by its alphabet, in English (`Russian`, `English`, ...) |
 | `config` | everywhere | this step's `config` |
 | `item` | `for_each` steps | the current item |
 | `input` | steps with `from` | the input list |
