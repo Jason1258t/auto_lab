@@ -1,9 +1,10 @@
-// One task: what was asked, the steps (live while the worker runs), and
-// the actions for owner and editors. LLM calls and review come next.
+// One task: what was asked, the steps with their model calls (live while
+// the worker runs), and the actions for owner and editors. Review comes next.
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 
-import { ACTIVE, stepRows, TaskStatusBadge, TaskSteps, useTask, type TaskDetail } from '@/entities/task'
+import { CallList, useCalls } from '@/entities/call'
+import { ACTIVE, POLL_MS, stepRows, TaskStatusBadge, TaskSteps, useTask, type TaskDetail } from '@/entities/task'
 import { useWorkspace, workspaceRights } from '@/entities/workspace'
 import { TaskActions } from '@/features/task-actions'
 import { EditTaskButton } from '@/features/task-form'
@@ -16,6 +17,8 @@ function TaskView({ task }: { task: TaskDetail }) {
   const workspace = useWorkspace(task.workspace_id)
   const canEdit = workspace.data ? workspaceRights(workspace.data).editTasks : false
   const live = ACTIVE.includes(task.status)
+  // Calls exist only after the worker has started the task.
+  const calls = useCalls(task.id, live ? POLL_MS : false)
   return (
     <>
       <Link to={`/workspaces/${task.workspace_id}`} className="text-sm text-muted-foreground hover:text-foreground">
@@ -67,7 +70,10 @@ function TaskView({ task }: { task: TaskDetail }) {
           {task.plan.length === 0 && task.steps.length === 0 ? (
             <p className="text-muted-foreground">{t('task.noPlan')}</p>
           ) : (
-            <TaskSteps steps={stepRows(task)} />
+            <TaskSteps
+              steps={stepRows(task)}
+              extra={(step) => <CallList calls={(calls.data ?? []).filter((c) => c.step_index === step.step_index)} />}
+            />
           )}
         </CardContent>
       </Card>

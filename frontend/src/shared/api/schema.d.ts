@@ -796,6 +796,20 @@ export interface components {
             /** Original Path */
             original_path?: string | null;
         };
+        /**
+         * CallLogOut
+         * @description The full prompt and the model's answer (None while it runs, or if
+         *     the call failed). Texts may contain fetched web pages: untrusted data,
+         *     show them only as plain text.
+         */
+        CallLogOut: {
+            /** Answered At */
+            answered_at?: string | null;
+            /** Created At */
+            created_at: string;
+            request: components["schemas"]["LogRequest"];
+            response?: components["schemas"]["LogResponse"] | null;
+        };
         /** CallOut */
         CallOut: {
             /** Attempt */
@@ -863,6 +877,46 @@ export interface components {
          * @enum {string}
          */
         LlmCallStatus: "queued" | "running" | "done" | "failed" | "cancelled";
+        /** LogMessage */
+        LogMessage: {
+            /** Content */
+            content: string;
+            /** Role */
+            role: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** LogRequest */
+        LogRequest: {
+            /** Messages */
+            messages: components["schemas"]["LogMessage"][];
+            /** Model */
+            model: string;
+            /**
+             * Params
+             * @default {}
+             */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Schema */
+            schema?: {
+                [key: string]: unknown;
+            } | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** LogResponse */
+        LogResponse: {
+            /** Raw */
+            raw?: {
+                [key: string]: unknown;
+            } | null;
+            /** Text */
+            text: string;
+        } & {
+            [key: string]: unknown;
+        };
         /** LoginIn */
         LoginIn: {
             /**
@@ -1893,9 +1947,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["CallLogOut"];
                 };
             };
             /** @description Validation Error */

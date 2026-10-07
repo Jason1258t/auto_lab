@@ -124,6 +124,45 @@
     "title": "Body_upload_file_api_v1_workspaces__workspace_id__files_post",
     "type": "object"
    },
+   "CallLogOut": {
+    "description": "The full prompt and the model's answer (None while it runs, or if\nthe call failed). Texts may contain fetched web pages: untrusted data,\nshow them only as plain text.",
+    "properties": {
+     "answered_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Answered At"
+     },
+     "created_at": {
+      "title": "Created At",
+      "type": "string"
+     },
+     "request": {
+      "$ref": "#/components/schemas/LogRequest"
+     },
+     "response": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LogResponse"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "required": [
+     "request",
+     "created_at"
+    ],
+    "title": "CallLogOut",
+    "type": "object"
+   },
    "CallOut": {
     "properties": {
      "attempt": {
@@ -349,6 +388,91 @@
     ],
     "title": "LlmCallStatus",
     "type": "string"
+   },
+   "LogMessage": {
+    "additionalProperties": true,
+    "properties": {
+     "content": {
+      "title": "Content",
+      "type": "string"
+     },
+     "role": {
+      "title": "Role",
+      "type": "string"
+     }
+    },
+    "required": [
+     "role",
+     "content"
+    ],
+    "title": "LogMessage",
+    "type": "object"
+   },
+   "LogRequest": {
+    "additionalProperties": true,
+    "properties": {
+     "messages": {
+      "items": {
+       "$ref": "#/components/schemas/LogMessage"
+      },
+      "title": "Messages",
+      "type": "array"
+     },
+     "model": {
+      "title": "Model",
+      "type": "string"
+     },
+     "params": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Params",
+      "type": "object"
+     },
+     "schema": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Schema"
+     }
+    },
+    "required": [
+     "model",
+     "messages"
+    ],
+    "title": "LogRequest",
+    "type": "object"
+   },
+   "LogResponse": {
+    "additionalProperties": true,
+    "properties": {
+     "raw": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Raw"
+     },
+     "text": {
+      "title": "Text",
+      "type": "string"
+     }
+    },
+    "required": [
+     "text"
+    ],
+    "title": "LogResponse",
+    "type": "object"
    },
    "LoginIn": {
     "properties": {
@@ -2857,9 +2981,7 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": true,
-         "title": "Response Get Call Log Api V1 Calls  Call Id  Log Get",
-         "type": "object"
+         "$ref": "#/components/schemas/CallLogOut"
         }
        }
       },

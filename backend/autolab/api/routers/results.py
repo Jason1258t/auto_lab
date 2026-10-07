@@ -91,6 +91,45 @@ class CallOut(BaseModel):
     valid_json: bool | None
 
 
+# The log document from the log store (worker/gateway/base.py as_log and
+# llm_manager). Extra keys are kept, so an older or newer log still loads.
+class LogMessage(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    role: str
+    content: str
+
+
+class LogRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    model: str
+    messages: list[LogMessage]
+    # JSON schema the answer must match, and generation parameters.
+    schema_: dict[str, Any] | None = Field(default=None, alias="schema")
+    params: dict[str, Any] = {}
+
+
+class LogResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    text: str
+    raw: dict[str, Any] | None = None
+
+
+class CallLogOut(BaseModel):
+    """The full prompt and the model's answer (None while it runs, or if
+    the call failed). Texts may contain fetched web pages: untrusted data,
+    show them only as plain text."""
+
+    model_config = ConfigDict(serialize_by_alias=True)
+
+    request: LogRequest
+    response: LogResponse | None = None
+    created_at: str
+    answered_at: str | None = None
+
+
 @router.get("/tasks/{task_id}/reviews")
 async def list_reviews(task_id: int, principal: CurrentPrincipal, db: DbSession) -> list[ReviewOut]:
     view, access = await load_task(db, task_id, principal.user)
@@ -177,6 +216,7 @@ async def list_calls(task_id: int, principal: CurrentPrincipal, db: DbSession) -
 @router.get("/calls/{call_id}/log")
 async def get_call_log(
     call_id: int, principal: CurrentPrincipal, db: DbSession, log_store: LogStoreDep
-) -> dict[str, Any]:
+) -> CallLogOut:
     """The full prompt and the model's answer."""
-    return await works_service.get_call_log(db, log_store, call_id, principal.user)
+    log = await works_service.get_call_log(db, log_store, call_id, principal.user)
+    return CallLogOut.model_validate(log)
