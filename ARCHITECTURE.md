@@ -113,7 +113,7 @@ Planned pipelines:
 
 | Pipeline | Steps used | Notes |
 |---|---|---|
-| `research` | plan, search, fetch, summarize, verify, synthesize, write | Full pipeline (`pipelines/research/1.0.0.yaml`, `drafts/pipeline_spec.md`). |
+| `research` | plan, search, fetch, summarize, verify, synthesize, write | Full pipeline (`pipelines/research/`, newest 1.1.0: up to 20 candidates, 8 readable pages; `drafts/pipeline_spec.md`). |
 | `opinion_survey` | plan, search, fetch, summarize, synthesize, verify | Output must be framed as "what sources say", not as a fact about public opinion. |
 | `study_notes` | plan, search, fetch, summarize, write, verify | Search is optional; can run from user-provided material only. |
 | `creative_writing` | plan, write | No search, no verification: nothing to verify against. |

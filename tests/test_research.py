@@ -3,6 +3,7 @@
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -24,6 +25,8 @@ from autolab.db.models import (
 from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
 from autolab.worker.gateway import GenerateRequest
+from autolab.worker.kinds import research
+from autolab.worker.kinds.base import StepFailed
 from autolab.worker.kinds.research import quote_in_text
 from autolab.worker.main import Worker
 from autolab.worker.web import FetchError, check_url, fetch_page, html_to_text
@@ -251,3 +254,74 @@ async def step_summaries(db: AsyncSession, task_id: int) -> list[str | None]:
     for step in steps:
         await db.refresh(step)
     return [step.summary for step in steps]
+
+
+# --- search and fetch rules (research 1.1.0) ---
+
+LONG_TEXT = "Rayleigh scattering makes the sky blue. " * 20
+
+
+def pages_web(request: httpx.Request) -> httpx.Response:
+    """A search with 6 results on 3 sites; some pages are not readable."""
+    if request.url.host == "searx.test":
+        urls = ["a.test/1", "a.test/2", "a.test/3", "b.test/short", "c.test/1", "c.test/2"]
+        results = [{"title": u, "url": f"http://{u}", "content": ""} for u in urls]
+        return httpx.Response(200, json={"results": results})
+    if request.url.path == "/short":  # a cookie wall: almost no text
+        return httpx.Response(200, text="Accept cookies")
+    if request.url.path == "/2":
+        return httpx.Response(500)
+    return httpx.Response(200, text=LONG_TEXT)
+
+
+async def any_public(host: str) -> list[str]:
+    return ["93.184.216.34"]
+
+
+def step_ctx(config: dict, given: list) -> SimpleNamespace:
+    return SimpleNamespace(
+        step=SimpleNamespace(config=config, from_="x.y"),
+        resolve=lambda ref: given,
+        http=httpx.AsyncClient(transport=httpx.MockTransport(pages_web)),
+        resolver=any_public,
+        settings=SimpleNamespace(searxng_url="http://searx.test"),
+        task=SimpleNamespace(id=1),
+        skipped=0,
+    )
+
+
+async def test_search_limits_candidates_per_site() -> None:
+    ctx = step_ctx({"results_per_query": 10, "max_candidates": 4, "max_per_domain": 2}, ["sky"])
+    out = await research.search(ctx)
+    assert [r["url"] for r in out["results"]] == [
+        "http://a.test/1",
+        "http://a.test/2",  # a.test/3 is the third page of a.test
+        "http://b.test/short",
+        "http://c.test/1",
+    ]
+
+
+async def test_fetch_reads_until_enough_readable_pages() -> None:
+    urls = ["a.test/1", "a.test/2", "b.test/short", "c.test/1", "c.test/3", "c.test/4"]
+    candidates = [{"title": u, "url": f"http://{u}"} for u in urls]
+    config = {"target_sources": 3, "min_sources": 2, "min_chars": 200, "parallel": 2}
+    ctx = step_ctx(config, candidates)
+    out = await research.fetch(ctx)
+    # a.test/2 fails (500) and b.test/short is too short: both skipped,
+    # and the next candidates are read instead. c.test/4 is never needed.
+    assert [s["url"] for s in out["sources"]] == [
+        "http://a.test/1",
+        "http://c.test/1",
+        "http://c.test/3",
+    ]
+    assert ctx.skipped == 2
+
+
+async def test_fetch_fails_with_too_few_pages() -> None:
+    candidates = [
+        {"title": "", "url": "http://b.test/short"},
+        {"title": "", "url": "http://a.test/2"},
+    ]
+    ctx = step_ctx({"min_sources": 1, "min_chars": 200}, candidates)
+    with pytest.raises(StepFailed, match="only 0 of 2 pages could be read"):
+        await research.fetch(ctx)

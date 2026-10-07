@@ -5,9 +5,11 @@ fact numbers and [n] marks are checked. The model is only asked what
 code cannot decide.
 """
 
+import asyncio
 import logging
 import re
 from typing import Any
+from urllib.parse import urlsplit
 
 from autolab.worker.kinds.base import StepContext, StepFailed
 from autolab.worker.web import FetchError, fetch_page, searxng_search
@@ -27,12 +29,24 @@ def quote_in_text(quote: str, text: str) -> bool:
     return normalize(quote) in normalize(text)
 
 
+def _domain(url: str) -> str:
+    host = urlsplit(url).hostname or ""
+    return host.removeprefix("www.")
+
+
 async def search(ctx: StepContext) -> dict[str, Any]:
-    """Run each query in SearxNG; keep unique URLs, at most max_sources."""
-    per_query = int(ctx.step.config.get("results_per_query", 5))
-    max_sources = int(ctx.step.config.get("max_sources", 5))
+    """Run each query in SearxNG; keep unique URLs as candidates for fetch.
+
+    Config: results_per_query; max_candidates (old name: max_sources);
+    max_per_domain (default: no limit), so one site cannot fill the list.
+    """
+    config = ctx.step.config
+    per_query = int(config.get("results_per_query", 5))
+    max_candidates = int(config.get("max_candidates", config.get("max_sources", 5)))
+    max_per_domain = int(config.get("max_per_domain", 0)) or None
     results: list[dict[str, str]] = []
     seen: set[str] = set()
+    per_domain: dict[str, int] = {}
     for query in ctx.resolve(ctx.step.from_):
         try:
             found = await searxng_search(ctx.http, ctx.settings.searxng_url, query, per_query)
@@ -40,19 +54,37 @@ async def search(ctx: StepContext) -> dict[str, Any]:
             log.warning("task %s: search %r failed: %s", ctx.task.id, query, exc)
             continue
         for result in found:
-            if result["url"] not in seen and len(results) < max_sources:
-                seen.add(result["url"])
-                results.append(result)
+            domain = _domain(result["url"])
+            if result["url"] in seen or len(results) >= max_candidates:
+                continue
+            if max_per_domain and per_domain.get(domain, 0) >= max_per_domain:
+                continue
+            seen.add(result["url"])
+            per_domain[domain] = per_domain.get(domain, 0) + 1
+            results.append(result)
     if not results:
         raise StepFailed("the search found nothing (is SearxNG running?)")
     return {"results": results}
 
 
 async def fetch(ctx: StepContext) -> dict[str, Any]:
-    """Download the result pages (only public http(s) addresses)."""
+    """Download candidate pages (only public http(s) addresses) until
+    target_sources pages are readable. A page is readable if it has at
+    least min_chars characters of text, so cookie walls and error pages do
+    not count. Pages are fetched `parallel` at a time, in search order.
+
+    Config (defaults keep version 1.0.0 working as before): target_sources
+    (all candidates), min_sources (1), min_chars (1), parallel (1),
+    max_bytes, max_chars.
+    """
     config = ctx.step.config
-    sources = []
-    for result in ctx.resolve(ctx.step.from_):
+    candidates = ctx.resolve(ctx.step.from_)
+    target = int(config.get("target_sources", len(candidates))) or len(candidates)
+    min_sources = int(config.get("min_sources", 1))
+    min_chars = max(1, int(config.get("min_chars", 1)))
+    parallel = max(1, int(config.get("parallel", 1)))
+
+    async def read(result: dict[str, str]) -> dict[str, str] | None:
         try:
             page = await fetch_page(
                 ctx.http,
@@ -63,14 +95,29 @@ async def fetch(ctx: StepContext) -> dict[str, Any]:
             )
         except FetchError as exc:
             log.info("task %s: skip %s: %s", ctx.task.id, result["url"], exc)
-            ctx.skipped += 1
-            continue
-        if page.text:
-            sources.append(
-                {"title": result["title"] or page.title, "url": page.url, "text": page.text}
-            )
-    if not sources:
-        raise StepFailed("no page could be read")
+            return None
+        if len(page.text.strip()) < min_chars:
+            log.info("task %s: skip %s: too little text", ctx.task.id, result["url"])
+            return None
+        return {"title": result["title"] or page.title, "url": page.url, "text": page.text}
+
+    sources: list[dict[str, str]] = []
+    tried = failed = 0
+    for start in range(0, len(candidates), parallel):
+        if len(sources) >= target:
+            break
+        batch = candidates[start : start + parallel]
+        tried += len(batch)
+        for page in await asyncio.gather(*(read(result) for result in batch)):
+            if page is None:
+                failed += 1
+            elif len(sources) < target:  # the last batch may bring more than needed
+                sources.append(page)
+    ctx.skipped += failed
+    if len(sources) < min_sources:
+        raise StepFailed(
+            f"only {len(sources)} of {tried} pages could be read; at least {min_sources} needed"
+        )
     return {"sources": sources}
 
 

@@ -75,8 +75,8 @@ Step kinds:
 | Kind | LLM | Input | Output | What code does |
 |---|---|---|---|---|
 | `plan` | yes | task input | `queries` | checks the schema |
-| `search` | no | queries | `results`: title, url, snippet | calls the search service, removes duplicate URLs, keeps `config.max_sources` |
-| `fetch` | no | results | `sources`: title, url, text | downloads pages (section 8), extracts text, cuts to `config.max_chars` |
+| `search` | no | queries | `results`: title, url, snippet | calls the search service, removes duplicate URLs, keeps up to `config.max_candidates` (old name `max_sources`), at most `config.max_per_domain` per site |
+| `fetch` | no | results | `sources`: title, url, text | downloads pages (section 8), `config.parallel` at a time, until `config.target_sources` pages have at least `config.min_chars` of text; fewer than `config.min_sources`: the step fails; cuts text to `config.max_chars` |
 | `summarize` | yes, per source | one source | `facts`: claim, quote, source | **drops a fact if its quote is not in the source text**; adds which source it came from |
 | `verify` | yes, per fact | one fact | `facts`: only the kept ones | keeps facts whose verdict is in `config.keep` |
 | `synthesize` | yes | all kept facts, numbered | `summary`, `sections`: heading + fact numbers | checks that every fact number exists |

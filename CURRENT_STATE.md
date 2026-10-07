@@ -136,7 +136,9 @@ After-MVP ideas: `BACKLOG.md`.
 - 89 tests (`tests/`), against a real Postgres and MongoDB in Docker;
   CI on every PR (`test` job required for `main`, plus an `image` job).
 
-**Pipelines:** only `pipelines/research/1.0.0.yaml`
+**Pipelines:** only `research`: 1.0.0, and 1.1.0 (2026-10-07: up to 20
+candidates, at most 2 per site, read until 8 pages have real text, at
+least 3 or the step fails; 4 queries)
 (plan → search → fetch → summarize → verify → synthesize → write). The
 other three pipelines (`opinion_survey`, `study_notes`,
 `creative_writing`) have no file yet.
