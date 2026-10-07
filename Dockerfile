@@ -1,5 +1,17 @@
 # One image for the API and the worker (different commands, see
-# compose.server.yaml). Python 3.13, packages from uv.lock.
+# compose.server.yaml). Python 3.13, packages from uv.lock. The API also
+# serves the built React app (stage "web"), so the server needs no
+# second web server.
+
+# --- Stage 1: build the frontend (only dist/ goes into the image) ---
+FROM node:22-slim AS web
+WORKDIR /web
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend ./
+RUN npm run build
+
+# --- Stage 2: the Python app ---
 FROM python:3.13-slim
 
 COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /bin/uv
@@ -20,6 +32,7 @@ COPY migrations migrations
 COPY alembic.ini ./
 COPY pipelines pipelines
 RUN uv sync --locked --no-dev
+COPY --from=web /web/dist frontend/dist
 
 # Not root. data/ (works, files, step outputs, logs) is a volume.
 RUN useradd --create-home --uid 1000 autolab && mkdir -p data && chown autolab data

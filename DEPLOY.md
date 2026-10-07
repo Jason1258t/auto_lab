@@ -11,8 +11,10 @@ What runs where:
 | Ollama | on the host (systemd), port 11434 |
 | api, worker, MongoDB, SearxNG | `~/autolab`, `docker compose -f compose.server.yaml` |
 
-The API listens on `http://192.168.0.101:8000` (local network only, no
-HTTPS yet). Docs: `http://192.168.0.101:8000/docs`.
+Open **`http://192.168.0.101:8000`** in a browser: the API also serves the
+web app (built into the image), so the app and the API share one address.
+API docs: `http://192.168.0.101:8000/docs`. Local network only, no HTTPS
+yet.
 
 ## First time
 
@@ -33,18 +35,26 @@ HTTPS yet). Docs: `http://192.168.0.101:8000/docs`.
    MONGO_URL=mongodb://mongo:27017
    SEARXNG_URL=http://searxng:8080
    SEARXNG_SECRET=<random>
-   CORS_ORIGINS=["http://192.168.0.101:5173"]
+   # Plain HTTP on the home network: without this the browser drops the
+   # refresh cookie and you are logged out after 15 minutes or a reload.
+   # Remove it when HTTPS exists.
+   COOKIE_SECURE=false
    ```
+   No `CORS_ORIGINS` needed: the app comes from the same address as the
+   API.
 4. `mkdir -p data && docker compose -f compose.server.yaml up -d --build`
-5. Point the ollama provider to the host and add a model (once):
+5. Point the ollama provider to the host (once):
    ```bash
    docker exec -i postgres psql -U admin -d autolab <<SQL
    UPDATE model_providers SET base_url = 'http://host.docker.internal:11434' WHERE name = 'ollama';
    SQL
    ```
-   Then add models as an admin (`POST /api/v1/admin/models`), or with SQL.
-6. First admin: sign up, then
-   `docker compose -f compose.server.yaml exec api autolab create-admin <user_id>`.
+6. First admin: sign up in the app, then
+   `docker compose -f compose.server.yaml exec api autolab create-admin <user_id>`
+   (user 1 is the first account).
+7. Add a model in the app: **Admin → Models → Add model** (for example
+   `qwen2.5:3b`, context 32768), and pull it on the host:
+   `ollama pull qwen2.5:3b`.
 
 ## Update
 
@@ -52,6 +62,9 @@ HTTPS yet). Docs: `http://192.168.0.101:8000/docs`.
 cd ~/autolab && git pull
 docker compose -f compose.server.yaml up -d --build   # migrations run first
 ```
+
+The image build also builds the web app (Node stage in the `Dockerfile`),
+so the first build after a frontend change takes a minute longer.
 
 ## Look around
 
