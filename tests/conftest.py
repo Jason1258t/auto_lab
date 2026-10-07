@@ -82,7 +82,12 @@ async def db(migrated_db: str) -> AsyncIterator[AsyncSession]:
 def settings(tmp_path) -> Settings:
     """App settings with a temp data folder, so tests never write into
     the real data/. Tests may change fields (e.g. max_upload_bytes)."""
-    return get_settings().model_copy(update={"data_dir": str(tmp_path / "data")})
+    return get_settings().model_copy(
+        update={
+            "data_dir": str(tmp_path / "data"),
+            "uploaded_pipelines_dir": str(tmp_path / "data" / "pipelines"),
+        }
+    )
 
 
 @pytest.fixture

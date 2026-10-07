@@ -98,6 +98,75 @@
     "title": "ActivityEventOut",
     "type": "object"
    },
+   "AdminPipelineOut": {
+    "properties": {
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "versions": {
+      "items": {
+       "$ref": "#/components/schemas/PipelineVersionOut"
+      },
+      "title": "Versions",
+      "type": "array"
+     }
+    },
+    "required": [
+     "id",
+     "name",
+     "description",
+     "versions"
+    ],
+    "title": "AdminPipelineOut",
+    "type": "object"
+   },
+   "Body_admin_upload_pipeline_api_v1_admin_pipelines_upload_post": {
+    "properties": {
+     "dry_run": {
+      "default": false,
+      "title": "Dry Run",
+      "type": "boolean"
+     },
+     "file": {
+      "contentMediaType": "application/octet-stream",
+      "title": "File",
+      "type": "string"
+     },
+     "name": {
+      "maxLength": 50,
+      "title": "Name",
+      "type": "string"
+     },
+     "version": {
+      "maxLength": 20,
+      "title": "Version",
+      "type": "string"
+     }
+    },
+    "required": [
+     "file",
+     "name",
+     "version"
+    ],
+    "title": "Body_admin_upload_pipeline_api_v1_admin_pipelines_upload_post",
+    "type": "object"
+   },
    "Body_upload_file_api_v1_workspaces__workspace_id__files_post": {
     "properties": {
      "file": {
@@ -976,6 +1045,93 @@
      "version_name"
     ],
     "title": "PipelineOut",
+    "type": "object"
+   },
+   "PipelineUploadOut": {
+    "properties": {
+     "created_pipeline": {
+      "title": "Created Pipeline",
+      "type": "boolean"
+     },
+     "name": {
+      "title": "Name",
+      "type": "string"
+     },
+     "notes": {
+      "items": {
+       "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+     },
+     "pipeline_id": {
+      "title": "Pipeline Id",
+      "type": "integer"
+     },
+     "saved": {
+      "title": "Saved",
+      "type": "boolean"
+     },
+     "version_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Version Id"
+     },
+     "version_name": {
+      "title": "Version Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "pipeline_id",
+     "name",
+     "version_id",
+     "version_name",
+     "created_pipeline",
+     "saved",
+     "notes"
+    ],
+    "title": "PipelineUploadOut",
+    "type": "object"
+   },
+   "PipelineVersionOut": {
+    "properties": {
+     "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+     },
+     "id": {
+      "title": "Id",
+      "type": "integer"
+     },
+     "tasks": {
+      "title": "Tasks",
+      "type": "integer"
+     },
+     "uploaded": {
+      "title": "Uploaded",
+      "type": "boolean"
+     },
+     "version_name": {
+      "title": "Version Name",
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "version_name",
+     "uploaded",
+     "tasks",
+     "created_at"
+    ],
+    "title": "PipelineVersionOut",
     "type": "object"
    },
    "PlanStepOut": {
@@ -2752,6 +2908,131 @@
      }
     ],
     "summary": "Update Model",
+    "tags": [
+     "admin"
+    ]
+   }
+  },
+  "/api/v1/admin/pipeline-versions/{version_id}/file": {
+   "get": {
+    "description": "The YAML text of a version.",
+    "operationId": "admin_pipeline_file_api_v1_admin_pipeline_versions__version_id__file_get",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "version_id",
+      "required": true,
+      "schema": {
+       "title": "Version Id",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "text/plain": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "summary": "Admin Pipeline File",
+    "tags": [
+     "admin"
+    ]
+   }
+  },
+  "/api/v1/admin/pipelines": {
+   "get": {
+    "operationId": "admin_list_pipelines_api_v1_admin_pipelines_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/AdminPipelineOut"
+         },
+         "title": "Response Admin List Pipelines Api V1 Admin Pipelines Get",
+         "type": "array"
+        }
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "summary": "Admin List Pipelines",
+    "tags": [
+     "admin"
+    ]
+   }
+  },
+  "/api/v1/admin/pipelines/upload": {
+   "post": {
+    "description": "Upload a pipeline file: a new version, or a new pipeline if the name\nis new. dry_run=true only checks it. The name and version fields win\nover the file's own `pipeline:` and `version:` lines.",
+    "operationId": "admin_upload_pipeline_api_v1_admin_pipelines_upload_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_admin_upload_pipeline_api_v1_admin_pipelines_upload_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PipelineUploadOut"
+        }
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "summary": "Admin Upload Pipeline",
     "tags": [
      "admin"
     ]

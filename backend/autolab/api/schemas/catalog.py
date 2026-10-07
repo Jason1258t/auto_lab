@@ -81,3 +81,28 @@ class PipelineOut(BaseModel):
     # task can use it.
     version_id: int | None
     version_name: str | None
+
+
+class PipelineVersionOut(BaseModel):
+    id: int
+    version_name: str
+    uploaded: bool  # False = a file from the repository
+    tasks: int  # tasks that use this version
+    created_at: datetime
+
+
+class AdminPipelineOut(BaseModel):
+    id: int
+    name: str
+    description: str | None
+    versions: list[PipelineVersionOut]  # newest first
+
+
+class PipelineUploadOut(BaseModel):
+    pipeline_id: int
+    name: str
+    version_id: int | None  # None after a check only
+    version_name: str
+    created_pipeline: bool
+    saved: bool
+    notes: list[str]

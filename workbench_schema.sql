@@ -1,7 +1,7 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migrations 0001-0005 (checked with a pg_dump diff on 2026-10-07). After
+-- migrations 0001-0006 (checked with a pg_dump diff on 2026-10-07). After
 -- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
@@ -348,10 +348,12 @@ CREATE TABLE activity_events (
                                  'admin_granted', 'admin_revoked',
                                  'user_deleted',
                                  'unarchived', 'workspace_deleted',
-                                 'file_added', 'file_removed')),
+                                 'file_added', 'file_removed',
+                                 'pipeline_uploaded')),
     target_type  text        CHECK (target_type IN (
                                  'workspace', 'membership', 'task', 'work',
-                                 'publication', 'publisher', 'user', 'file')),
+                                 'publication', 'publisher', 'user', 'file',
+                                 'pipeline')),
     target_id    bigint,
     target_label text,
     details      jsonb

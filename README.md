@@ -17,6 +17,10 @@ admin page. Details: `CURRENT_STATE.md`.
 - `docs/USER_GUIDE.md`: how to use the app (roles, tasks, review, publish).
 - `docs/TRY_IT.md`: a 20-minute guided tour with expected results and a
   feedback template.
+- `docs/PIPELINES.md`: write your own pipeline (format, every step kind,
+  upload in the admin page).
+- `docs/STEP_KINDS.md`: for developers: add step kinds without breaking
+  old pipelines.
 
 ## Run it
 

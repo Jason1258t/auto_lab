@@ -28,6 +28,7 @@ ACTIONS = (
     "workspace_deleted",
     "file_added",
     "file_removed",
+    "pipeline_uploaded",
 )
 TARGET_TYPES = (
     "workspace",
@@ -38,6 +39,7 @@ TARGET_TYPES = (
     "publisher",
     "user",
     "file",
+    "pipeline",
 )
 
 

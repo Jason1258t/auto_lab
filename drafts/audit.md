@@ -53,7 +53,8 @@ workspace log page.
 - Added later: `unarchived`, `workspace_deleted` (migration 0002),
   `file_added`, `file_removed` and target type `file` (migration 0003).
 - Global: `publisher_created`, `admin_granted`, `admin_revoked`,
-  `user_deleted` (id and username only, no email; see `auth.md`).
+  `user_deleted` (id and username only, no email; see `auth.md`),
+  `pipeline_uploaded` with target type `pipeline` (migration 0006).
 
 `task_deleted` logs the event (who, which task, its title), not a copy
 of the task row.

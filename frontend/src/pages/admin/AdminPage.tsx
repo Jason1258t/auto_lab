@@ -1,20 +1,22 @@
 // Admin tools: models and providers, the global activity log, admin
 // rights. The backend checks admin rights on every call; this page only
 // hides itself from others.
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 
 import { ActivityLine } from '@/entities/activity'
-import { useAdminModels, useGlobalActivity, useProviders } from '@/entities/admin'
+import { useAdminModels, useAdminPipelines, useGlobalActivity, usePipelineFile, useProviders, type AdminPipeline } from '@/entities/admin'
 import { useSession } from '@/entities/session'
 import { AdminRights } from '@/features/admin-admins'
 import { AddModelButton, AvailableCheckbox } from '@/features/admin-models'
+import { UploadPipelineButton } from '@/features/admin-pipelines'
 import { AddProviderButton } from '@/features/admin-providers'
 import { errorText } from '@/shared/api'
-import { Card, CardContent, CardHeader, CardTitle, FormError, Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui'
+import { Badge, Card, CardContent, CardHeader, CardTitle, FormError, Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui'
+import { formatDateTime } from '@/shared/lib/format'
 
-const TABS = ['models', 'providers', 'activity', 'admins'] as const
+const TABS = ['models', 'providers', 'pipelines', 'activity', 'admins'] as const
 type Tab = (typeof TABS)[number]
 
 function ModelsTab() {
@@ -83,6 +85,72 @@ function ProvidersTab() {
   )
 }
 
+function VersionRow({ version }: { version: AdminPipeline['versions'][number] }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const file = usePipelineFile(version.id, open)
+  return (
+    <li className="grid gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="flex flex-wrap items-center gap-2 text-left text-sm"
+      >
+        <span className="font-medium">{version.version_name}</span>
+        <Badge variant="outline">{t(version.uploaded ? 'pipelines.uploaded' : 'pipelines.builtIn')}</Badge>
+        <span className="text-muted-foreground">
+          {t('pipelines.tasks', { count: version.tasks })} · {formatDateTime(version.created_at)}
+        </span>
+      </button>
+      {open && (
+        <>
+          {file.isError && <FormError error={errorText(file.error)} />}
+          {file.data && <pre className="max-h-96 overflow-auto rounded-md bg-muted p-3 text-xs">{file.data}</pre>}
+        </>
+      )}
+    </li>
+  )
+}
+
+function PipelinesTab() {
+  const { t } = useTranslation()
+  const pipelines = useAdminPipelines()
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('admin.tabs.pipelines')}</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <p className="text-sm text-muted-foreground">{t('pipelines.text')}</p>
+        <div>
+          <UploadPipelineButton pipelines={pipelines.data ?? []} />
+        </div>
+        {pipelines.isError && <FormError error={errorText(pipelines.error)} />}
+        <ul className="divide-y divide-border">
+          {pipelines.data?.map((p) => (
+            <li key={p.id} className="grid gap-2 py-3">
+              <div className="grid">
+                <span className="font-medium">{p.name}</span>
+                {p.description && <span className="text-sm text-muted-foreground">{p.description}</span>}
+              </div>
+              {p.versions.length ? (
+                <ul className="grid gap-2 pl-3">
+                  {p.versions.map((v) => (
+                    <VersionRow key={v.id} version={v} />
+                  ))}
+                </ul>
+              ) : (
+                <span className="pl-3 text-sm text-muted-foreground">{t('pipelines.noVersions')}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  )
+}
+
 function ActivityTab() {
   const { t } = useTranslation()
   const events = useGlobalActivity()
@@ -115,6 +183,7 @@ export function AdminPage() {
   const panels: Record<Tab, ReactNode> = {
     models: <ModelsTab />,
     providers: <ProvidersTab />,
+    pipelines: <PipelinesTab />,
     activity: <ActivityTab />,
     admins: (
       <Card>
