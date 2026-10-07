@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router'
 
+import { AdminPage } from '@/pages/admin'
 import { FeedPage } from '@/pages/feed'
 import { LoginPage } from '@/pages/login'
 import { NotFoundPage } from '@/pages/not-found'
@@ -27,6 +28,7 @@ export function AppRoutes() {
       >
         <Route index element={<WorkspacesPage />} />
         <Route path="/tasks/:taskId" element={<TaskPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
       {/* Also without login: public workspaces, accepted works, the feed. */}
       <Route

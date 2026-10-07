@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1-6 done).
+Last updated: 2026-10-07 (backend done and deployed; frontend MVP screens 1-7 done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -69,8 +69,10 @@ Screens, one PR each:
    dialog, title, description. Public pages without login: `/feed`,
    `/publications/:id` (text, sources, quotes; no reviewer warning),
    `/publishers/:id`. "Feed" link in the header.
-7. **Next:** admin: models and providers (and the global activity log,
-   admins, removing a publication).
+7. ~~Admin~~ (`/admin`, "Admin" in the header for admins): models (add,
+   switch "available"), providers (add), global activity log, give or
+   take admin rights by user id (member rows now show the id), and
+   "Remove from the feed" on a publication.
 
 All API routes: `drafts/backend_spec.md` section 7, or
 `http://localhost:8000/docs` when the API runs.

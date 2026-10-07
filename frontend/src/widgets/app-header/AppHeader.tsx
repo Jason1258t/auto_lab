@@ -24,6 +24,11 @@ export function AppHeader() {
           <Link to="/feed" className="text-sm text-muted-foreground hover:text-foreground">
             {t('nav.feed')}
           </Link>
+          {me?.is_admin && (
+            <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground">
+              {t('nav.admin')}
+            </Link>
+          )}
         </nav>
         {me && <span className="text-sm text-muted-foreground">{me.display_name}</span>}
         <ThemeToggle />

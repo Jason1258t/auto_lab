@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 
 import { usePublication } from '@/entities/publication'
+import { useSession } from '@/entities/session'
 import { WorkView } from '@/entities/work'
+import { RemovePublicationButton } from '@/features/remove-publication'
 import { ApiError, errorText } from '@/shared/api'
 import { formatDateTime } from '@/shared/lib/format'
 import { FormError } from '@/shared/ui'
@@ -13,6 +15,7 @@ export function PublicationPage() {
   const id = Number(useParams().publicationId)
   const publication = usePublication(id)
   const p = publication.data
+  const { me } = useSession()
   return (
     <section className="grid gap-6">
       <Link to="/feed" className="text-sm text-muted-foreground hover:text-foreground">
@@ -36,6 +39,11 @@ export function PublicationPage() {
               </Link>{' '}
               · {formatDateTime(p.published_at)}
             </p>
+            {me?.is_admin && (
+              <div>
+                <RemovePublicationButton id={p.id} title={p.title} />
+              </div>
+            )}
           </header>
           <WorkView work={p} forReview={false} />
         </>
