@@ -36,7 +36,12 @@ of silently picking one version.
   `workbench_schema.dbml` and `er_diagram.md` must be kept in sync
   with it.
 - **Backend**: Python, FastAPI.
-- **Frontend**: Vite + React.
+- **Frontend**: Vite + React 19 + TypeScript in `frontend/`, Feature-Sliced
+  Design (light): imports only go down app → pages → widgets → features →
+  entities → shared, each slice through its `index.ts`. API types are
+  generated from the backend (`npm run api:types`), every text goes through
+  i18next, colors only from the theme variables. Details:
+  `frontend/README.md`.
 - **Runtime**: everything in Docker (`compose.yaml` for development,
   `compose.server.yaml` for the server, `DEPLOY.md`). Python only through
   `uv run`; no global installs.

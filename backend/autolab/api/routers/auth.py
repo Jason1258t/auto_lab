@@ -24,7 +24,7 @@ def set_refresh_cookie(response: Response, settings: Settings, token: str) -> No
         max_age=settings.refresh_token_days * 24 * 3600,
         path=REFRESH_COOKIE_PATH,
         httponly=True,  # JavaScript cannot read it
-        secure=True,  # HTTPS only (browsers allow it on localhost too)
+        secure=settings.cookie_secure,  # HTTPS only (see config.py)
         samesite="strict",
     )
 

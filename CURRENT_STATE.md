@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; next: the frontend).
+Last updated: 2026-10-07 (backend done and deployed; frontend started).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -12,32 +12,40 @@ The database schema is designed, reviewed and migrated (3 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
-real model on the test server. **No frontend yet: that is the next step.**
+real model on the test server. **The frontend is in progress** (`frontend/`).
 
-## Next step: the React frontend (start of the next session)
+## Now: the React frontend
 
-Decide first, with the author (not decided yet):
+Decided 2026-10-07: Vite + React 19 + TypeScript (5.9; `openapi-typescript`
+does not support 6 yet), React Router, TanStack Query, Tailwind +
+shadcn/ui, API types generated from FastAPI, Vitest + Testing Library +
+MSW. Structure: Feature-Sliced Design, light version (`frontend/README.md`).
+English only, but every text goes through i18next. Warm, Claude-like light
+and dark themes (accent colors checked for 4.5:1 contrast).
 
-1. **Tooling:** Vite + React + TypeScript (decided in `AGENTS.md`); still
-   open: router (React Router?), data fetching (TanStack Query?),
-   styling (Tailwind? a component library?).
-2. **UI language:** English only, or English + Russian?
-3. **Refresh cookie over plain HTTP.** The refresh token cookie is
-   `Secure` (`api/routers/auth.py`). Browsers keep it on `localhost`, but
-   **not** on `http://192.168.0.101`. Options: HTTPS on the server (a
-   reverse proxy, also in `BACKLOG.md`), or a setting that turns `Secure`
-   off for the test server only.
-4. **One origin:** serve the built frontend and the API from one origin
-   (Vite proxy in development, the same reverse proxy on the server), so
-   cookies and CORS stay simple.
-5. **First screens (proposal):** sign up / log in; workspace list and
-   page (members, files, tasks); new task; task page with live step
-   progress (polling `GET /tasks/{id}`) and the LLM calls; review
-   (accept / reject with a comment); work page with sources and quotes;
-   public feed of publications.
+Screens, one PR each:
+1. ~~Base + log in / sign up~~ (PR #16): API client (access token in memory,
+   refresh cookie, one refresh for parallel 401s), session, themes,
+   translations, first workspace list, CI job `frontend`.
+2. Workspace list → workspace page (members, files, tasks).
+3. New task → task page with live steps and LLM calls (full logs).
+4. Review: accept, or reject with a comment.
+5. Work page: text, sources, quotes, *(⚠ no source)* marks.
+6. Publish + public feed.
+7. Admin: models.
 
 All API routes: `drafts/backend_spec.md` section 7, or
 `http://localhost:8000/docs` when the API runs.
+
+**Postponed: access to the server from outside the home network.**
+Options (2026-10-07): (a) Tailscale: private network for own devices,
+HTTPS through `tailscale serve`, nothing opened to the internet
+(recommended); (b) Cloudflare Tunnel: public HTTPS address, needs a
+domain and more protection (login rate limits, sign-up rules); (c) router
+port + reverse proxy: not recommended. Also to tighten on the server:
+Ollama listens on all interfaces without a password, open-webui on
+0.0.0.0:3000, SSH still accepts passwords. Until HTTPS exists, the server
+can run with `COOKIE_SECURE=false` (only on the home network).
 
 ## What exists
 
@@ -99,7 +107,6 @@ other three pipelines (`opinion_survey`, `study_notes`,
 
 ## Open questions
 
-- The frontend questions above.
 - University course requirements (exact DBMS version, required topics
   like normalization and transactions): assumed PostgreSQL + 3NF so far,
   not confirmed against the actual course.
