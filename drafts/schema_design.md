@@ -456,6 +456,14 @@ replaced on each refresh.
 | expires_at | timestamptz | no | |
 | last_used_at | timestamptz | yes | |
 | revoked_at | timestamptz | yes | NULL = active |
+| previous_token_hash | text | yes | the token before the last refresh (migration 0004) |
+| rotated_at | timestamptz | yes | time of the last refresh; `CHECK`: set together with `previous_token_hash` |
+
+Grace period (decided 2026-10-07): the previous token still works for
+`REFRESH_GRACE_SECONDS` (10) after `rotated_at`. A page reload during a
+refresh sends the old cookie again; without this, reuse detection ended
+the session. A grace refresh does not move `rotated_at`, so the window
+never grows. Older tokens get no grace.
 
 ## Normalization (final review, 2026-10-06)
 

@@ -8,7 +8,7 @@ out again.
 
 ## In one paragraph
 
-The database schema is designed, reviewed and migrated (3 migrations).
+The database schema is designed, reviewed and migrated (4 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
@@ -85,10 +85,13 @@ After-MVP ideas: `BACKLOG.md`.
   activity actions `unarchived`, `workspace_deleted`.
 - 0003: task status `failed`; table `workspace_files`; activity actions
   `file_added`, `file_removed`.
+- 0004: `sessions.previous_token_hash`, `rotated_at`: the previous refresh
+  token works for 10 s after a refresh (a reload during a refresh no
+  longer logs the user out).
 - Snapshots kept in sync (checked with a `pg_dump` diff):
   `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
 - **Outdated:** `drafts/schema_design.html` (the published schema page)
-  does not show migrations 0002-0003 yet. Update it on request.
+  does not show migrations 0002-0004 yet. Update it on request.
 
 **Backend** (`backend/autolab/`, Python 3.13, uv; build order in
 `drafts/backend_spec.md` section 13, PRs #1-#14 and #15):
@@ -98,7 +101,7 @@ After-MVP ideas: `BACKLOG.md`.
   manager (one queue per model), Ollama adapter, research step kinds,
   revise after a rejected review, work assembly, log cleanup.
 - `cli.py`: `autolab create-admin`, `autolab add-file`.
-- 85 tests (`tests/`), against a real Postgres and MongoDB in Docker;
+- 89 tests (`tests/`), against a real Postgres and MongoDB in Docker;
   CI on every PR (`test` job required for `main`, plus an `image` job).
 
 **Pipelines:** only `pipelines/research/1.0.0.yaml`
@@ -129,12 +132,6 @@ other three pipelines (`opinion_survey`, `study_notes`,
   drop; dropping is in `BACKLOG.md`).
 
 ## Open questions
-
-- Refresh token reuse ends the whole session. A page reload while a
-  refresh is in flight sends the old cookie again and logs the user out
-  (seen in development with fast Vite reloads). Option: accept the
-  previous token for a few seconds after rotation. A security rule: ask
-  the author.
 
 - University course requirements (exact DBMS version, required topics
   like normalization and transactions): assumed PostgreSQL + 3NF so far,

@@ -100,10 +100,20 @@ async def login(db: AsyncSession, settings: Settings, *, email: str, password: s
     return await _start_session(db, settings, user.id)
 
 
+def _in_grace(session: AuthSession, given_hash: str, now: datetime, seconds: int) -> bool:
+    """True for the token before the last refresh, used soon after it."""
+    if session.previous_token_hash is None or session.rotated_at is None:
+        return False
+    return secrets.compare_digest(session.previous_token_hash, given_hash) and (
+        now - session.rotated_at <= timedelta(seconds=seconds)
+    )
+
+
 async def refresh(db: AsyncSession, settings: Settings, refresh_token: str) -> Tokens:
     """Give a new access + refresh token pair (rotation). The session's
     expiry moves forward too (sliding window): a user who comes back at
-    least once in REFRESH_TOKEN_DAYS never has to log in again."""
+    least once in REFRESH_TOKEN_DAYS never has to log in again. The
+    previous token still works for REFRESH_GRACE_SECONDS."""
     parsed = parse_refresh_token(refresh_token)
     if parsed is None:
         raise invalid_refresh()
@@ -117,12 +127,20 @@ async def refresh(db: AsyncSession, settings: Settings, refresh_token: str) -> T
     if session is None or session.revoked_at is not None or session.expires_at <= now:
         raise invalid_refresh()
 
-    if not secrets.compare_digest(session.refresh_token_hash, hash_refresh_secret(secret)):
+    given = hash_refresh_secret(secret)
+    if secrets.compare_digest(session.refresh_token_hash, given):
+        # The normal case: remember this token as the previous one.
+        session.previous_token_hash = session.refresh_token_hash
+        session.rotated_at = now
+    elif not _in_grace(session, given, now, settings.refresh_grace_seconds):
         # An old token of this session was used again. It may be stolen,
         # so end the whole session.
         session.revoked_at = now
         await db.commit()
         raise invalid_refresh()
+    # In the grace period (the client lost the newest token, for example
+    # after a page reload): give a new pair, but keep previous_token_hash
+    # and rotated_at, so the window does not move forward.
 
     new_secret = new_refresh_secret()
     session.refresh_token_hash = hash_refresh_secret(new_secret)

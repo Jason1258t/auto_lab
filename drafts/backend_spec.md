@@ -124,7 +124,10 @@ rules and the transaction. Models only describe tables.
   forward (sliding window, decided 2026-10-06): an active user never has
   to log in again.
   If an old, already replaced token is used again, the backend revokes
-  that session (somebody may have stolen it) **(proposal)**.
+  that session (somebody may have stolen it). Exception (decided
+  2026-10-07): the token right before the last refresh still works for
+  10 seconds (`sessions.previous_token_hash`, `rotated_at`), because a
+  page reload during a refresh sends it again.
 - **Logout** sets `revoked_at`. "Log out everywhere" revokes all
   sessions of the user.
 - **First admin:** `autolab create-admin <user_id>` inserts into
