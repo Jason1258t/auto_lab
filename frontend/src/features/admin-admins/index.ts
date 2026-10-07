@@ -1,0 +1,1 @@
+export { AdminRights } from './AdminRights'

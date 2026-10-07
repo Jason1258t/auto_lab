@@ -47,7 +47,7 @@ test('the owner adds a person and sees an unknown name as an error', async () =>
   renderApp('/workspaces/7?tab=members')
   const user = userEvent.setup()
   expect(await screen.findByText('Bob')).toBeInTheDocument()
-  expect(screen.getByText('@ann')).toBeInTheDocument() // the owner is listed first
+  expect(screen.getByText('@ann · id 1')).toBeInTheDocument() // the owner is listed first
 
   await user.type(screen.getByLabelText('Add a person'), 'nobody')
   await user.click(screen.getByRole('button', { name: 'Add' }))

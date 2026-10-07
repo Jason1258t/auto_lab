@@ -11,7 +11,8 @@
   "nav": {
     "workspaces": "Workspaces",
     "logout": "Log out",
-    "feed": "Feed"
+    "feed": "Feed",
+    "admin": "Admin"
   },
   "theme": {
     "light": "Light theme",
@@ -98,7 +99,8 @@
     "remove": "Remove",
     "removeLabel": "Remove {{name}}",
     "removeTitle": "Remove {{name}}?",
-    "removeText": "They lose all their roles in this workspace. You can add them again later."
+    "removeText": "They lose all their roles in this workspace. You can add them again later.",
+    "id": "id {{id}}"
   },
   "roles": {
     "member": "Member",
@@ -250,7 +252,12 @@
     "task_deleted": "{{actor}} deleted the task “{{target}}”",
     "work_published": "{{actor}} published “{{target}}”",
     "file_added": "{{actor}} added the file “{{target}}”",
-    "file_removed": "{{actor}} removed the file “{{target}}”"
+    "file_removed": "{{actor}} removed the file “{{target}}”",
+    "admin_granted": "{{actor}} made {{target}} an admin",
+    "admin_revoked": "{{actor}} removed the admin rights of {{target}}",
+    "publisher_created": "{{actor}} created the publisher “{{target}}”",
+    "workspace_deleted": "{{actor}} deleted the workspace “{{target}}”",
+    "user_deleted": "The account {{target}} was deleted"
   },
   "notFound": {
     "title": "Page not found",
@@ -290,7 +297,10 @@
     "already_published": "This work is already published.",
     "task_not_accepted": "Only an accepted work can be published.",
     "publication_not_found": "This publication does not exist (or was removed).",
-    "publisher_not_found": "This publisher does not exist."
+    "publisher_not_found": "This publisher does not exist.",
+    "already_admin": "This user is already an admin.",
+    "admin_not_found": "This user is not an admin.",
+    "cannot_revoke_self": "You cannot remove your own admin rights."
   },
   "fields": {
     "email": "email",
@@ -306,6 +316,46 @@
     "model_id": "model",
     "reviewer_id": "reviewer",
     "comment": "comment",
-    "publisher_id": "publisher"
+    "publisher_id": "publisher",
+    "context_length": "context length",
+    "provider_id": "provider",
+    "adapter": "adapter",
+    "base_url": "base URL"
+  },
+  "admin": {
+    "title": "Admin",
+    "onlyAdmins": "This page is for admins only.",
+    "tabs": {
+      "models": "Models",
+      "providers": "Providers",
+      "activity": "Activity",
+      "admins": "Admins"
+    },
+    "modelsText": "New tasks can use only available models. A model must also be pulled on its provider (for Ollama: ollama pull <name>).",
+    "noModels": "No models yet. Add one.",
+    "available": "Available",
+    "addModel": "Add model",
+    "provider": "Provider",
+    "modelName": "Model name",
+    "modelNameHint": "Exactly as the provider calls it, for example qwen2.5:3b.",
+    "context": "Context length (tokens)",
+    "contextShort": "{{n}} tokens context",
+    "vram": "VRAM needed (MB)",
+    "addProvider": "Add provider",
+    "providerName": "Provider name",
+    "adapter": "Adapter",
+    "adapterHint": "Only ollama runs today; the others are planned.",
+    "baseUrl": "Base URL",
+    "baseUrlHint": "Empty = the worker's default (for Ollama: OLLAMA_URL).",
+    "secretId": "Secret id",
+    "secretIdHint": "Id of the API key in the secret store. Not needed for Ollama.",
+    "userId": "User id",
+    "grant": "Make admin",
+    "revoke": "Remove admin",
+    "granted": "User {{id}} is now an admin.",
+    "revoked": "User {{id}} is not an admin any more.",
+    "removePublication": "Remove from the feed",
+    "removePublicationTitle": "Remove “{{title}}” from the feed?",
+    "removePublicationText": "The publication is deleted. The work stays in its workspace."
   }
 }
