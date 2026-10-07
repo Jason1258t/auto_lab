@@ -18,8 +18,9 @@ real model on the test server. The frontend has all MVP screens
 
 ## Next
 
-1. Deploy the newest `main` to the test server (`DEPLOY.md`, "Update";
-   add `COOKIE_SECURE=false` to its `.env`).
+1. ~~Deploy~~: done 2026-10-07 (`main` at PR #30; migration 0004 ran;
+   `COOKIE_SECURE=false` added to the server `.env`, old file kept as
+   `.env.bak-<date>`). The app: `http://192.168.0.101:8000`.
 2. The author goes through `docs/TRY_IT.md` and writes feedback; then
    fixes and improvements from it, one small PR each.
 3. Later (`BACKLOG.md`): the other three pipelines, live push instead of
