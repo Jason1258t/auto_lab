@@ -12,8 +12,10 @@ export {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from './alert-dialog'
+export { Badge } from './badge'
 export { Button } from './button'
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card'
+export { Checkbox } from './checkbox'
 export {
   Dialog,
   DialogClose,

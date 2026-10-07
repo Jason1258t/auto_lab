@@ -82,6 +82,22 @@
     "deleteTitle": "Delete “{{name}}”?",
     "deleteText": "Only a workspace without tasks can be deleted. Its files are deleted too. This cannot be undone."
   },
+  "members": {
+    "title": "Members",
+    "empty": "No members yet. Only the owner works here.",
+    "addLabel": "Add a person",
+    "addPlaceholder": "Username or email",
+    "add": "Add",
+    "remove": "Remove",
+    "removeLabel": "Remove {{name}}",
+    "removeTitle": "Remove {{name}}?",
+    "removeText": "They lose all their roles in this workspace. You can add them again later."
+  },
+  "roles": {
+    "member": "Member",
+    "editor": "Editor",
+    "reviewer": "Reviewer"
+  },
   "notFound": {
     "title": "Page not found",
     "back": "Back to the start"
@@ -97,7 +113,10 @@
     "workspace_not_empty": "Only an empty workspace can be deleted. Archive it instead.",
     "workspace_not_free": "Someone else has already taken this workspace.",
     "workspace_archived": "This workspace is archived. It is read-only.",
-    "already_public": "This workspace is already public."
+    "already_public": "This workspace is already public.",
+    "user_not_found": "There is no user with this username or email.",
+    "already_member": "This person is already a member.",
+    "already_owner": "This is the owner. The owner is not added as a member."
   },
   "fields": {
     "email": "email",
@@ -105,6 +124,7 @@
     "display_name": "name",
     "password": "password",
     "name": "name",
-    "description": "description"
+    "description": "description",
+    "username_or_email": "username or email"
   }
 }
