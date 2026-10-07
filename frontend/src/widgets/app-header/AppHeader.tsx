@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 
 import { useSession } from '@/entities/session'
 import { ThemeToggle } from '@/features/theme-toggle'
-import { Button } from '@/shared/ui'
+import { Button, buttonVariants } from '@/shared/ui'
 
 export function AppHeader() {
   const { t } = useTranslation()
   const { me, logout } = useSession()
+  const location = useLocation()
   return (
     <header className="border-b border-border">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
@@ -19,11 +20,17 @@ export function AppHeader() {
             {t('nav.workspaces')}
           </Link>
         </nav>
-        <span className="text-sm text-muted-foreground">{me?.display_name}</span>
+        {me && <span className="text-sm text-muted-foreground">{me.display_name}</span>}
         <ThemeToggle />
-        <Button variant="outline" size="sm" onClick={() => void logout()}>
-          {t('nav.logout')}
-        </Button>
+        {me ? (
+          <Button variant="outline" size="sm" onClick={() => void logout()}>
+            {t('nav.logout')}
+          </Button>
+        ) : (
+          <Link to="/login" state={{ from: location.pathname }} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            {t('auth.login')}
+          </Link>
+        )}
       </div>
     </header>
   )

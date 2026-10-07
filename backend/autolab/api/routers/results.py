@@ -60,6 +60,7 @@ class SourceOut(BaseModel):
 
 class WorkOut(BaseModel):
     task_id: int
+    workspace_id: int
     title: str
     task_status: TaskStatus
     summary: str | None
@@ -152,6 +153,7 @@ async def get_work(task_id: int, db: DbSession, user: OptionalUser) -> WorkOut:
     view = await works_service.get_work(db, task_id, user)
     return WorkOut(
         task_id=view.task.id,
+        workspace_id=view.task.workspace_id,
         title=view.task.title,
         task_status=view.task.status,
         summary=view.work.summary,

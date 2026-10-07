@@ -182,13 +182,15 @@ test('after login the app returns to the page that was asked for', async () => {
   server.use(
     http.post(`${API}/auth/login`, () => HttpResponse.json(TOKENS)),
     http.get(`${API}/me`, () => HttpResponse.json(ME)),
-    http.get(`${API}/workspaces/7`, () => HttpResponse.json(WORKSPACE)),
-    http.get(`${API}/workspaces/7/files`, () => HttpResponse.json([])),
+    http.get(`${API}/workspaces`, ({ request }) =>
+      HttpResponse.json(new URL(request.url).searchParams.get('scope') === 'public' ? [WORKSPACE] : []),
+    ),
   )
-  renderApp('/workspaces/7?tab=files')
+  renderApp('/?scope=public')
   const user = userEvent.setup()
   await user.type(await screen.findByLabelText('Email'), 'ann@example.com')
   await user.type(screen.getByLabelText('Password'), 'a long enough password')
   await user.click(screen.getByRole('button', { name: 'Log in' }))
-  expect(await screen.findByText('No files yet.')).toBeInTheDocument()
+  expect(await screen.findByText('Sky research')).toBeInTheDocument()
+  expect(screen.getByRole('tab', { name: 'Public', selected: true })).toBeInTheDocument()
 })

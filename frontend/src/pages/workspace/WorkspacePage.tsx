@@ -15,6 +15,7 @@ import { WorkspaceActivity } from '@/widgets/workspace-activity'
 import { WorkspaceFiles } from '@/widgets/workspace-files'
 import { WorkspaceMembers } from '@/widgets/workspace-members'
 import { WorkspaceTasks } from '@/widgets/workspace-tasks'
+import { WorkspaceWorks } from '@/widgets/workspace-works'
 
 function WorkspaceHeader({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation()
@@ -41,23 +42,26 @@ function WorkspaceHeader({ workspace }: { workspace: Workspace }) {
   )
 }
 
-type Tab = 'tasks' | 'files' | 'members' | 'activity'
+type Tab = 'tasks' | 'works' | 'files' | 'members' | 'activity'
 
 /** The tabs for people inside the workspace (admins too). Visitors of a
- *  public workspace see only the header (works come with screen 5). */
+ *  public workspace see only its accepted works. */
 function WorkspaceTabs({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation()
   const { me } = useSession()
   const [params, setParams] = useSearchParams()
   const rights = workspaceRights(workspace)
   const admin = Boolean(me?.is_admin)
-  if (!rights.seeInside && !admin) return null
+  if (!rights.seeInside && !admin) {
+    return workspace.visibility === 'public' ? <WorkspaceWorks workspace={workspace} /> : null
+  }
 
-  const tabs: Tab[] = ['tasks', 'files', 'members']
+  const tabs: Tab[] = ['tasks', 'works', 'files', 'members']
   if (rights.readActivity || admin) tabs.push('activity')
   const tab = tabs.find((name) => name === params.get('tab')) ?? 'tasks'
   const panels: Record<Tab, ReactNode> = {
     tasks: <WorkspaceTasks workspace={workspace} />,
+    works: <WorkspaceWorks workspace={workspace} />,
     files: <WorkspaceFiles workspace={workspace} />,
     members: <WorkspaceMembers workspace={workspace} />,
     activity: <WorkspaceActivity workspace={workspace} />,
