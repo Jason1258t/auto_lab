@@ -40,7 +40,16 @@ OLD_ACTIONS = (
     "file_removed",
 )
 NEW_ACTIONS = (*OLD_ACTIONS, "pipeline_uploaded")
-OLD_TARGETS = ("workspace", "membership", "task", "work", "publication", "publisher", "user", "file")
+OLD_TARGETS = (
+    "workspace",
+    "membership",
+    "task",
+    "work",
+    "publication",
+    "publisher",
+    "user",
+    "file",
+)
 NEW_TARGETS = (*OLD_TARGETS, "pipeline")
 
 

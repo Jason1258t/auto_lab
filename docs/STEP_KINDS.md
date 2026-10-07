@@ -58,7 +58,7 @@ Examples from the history:
    ```python
    async def my_kind(ctx: StepContext) -> dict[str, Any]:
        """What it does, and its config keys with defaults."""
-       items = ctx.resolve(ctx.step.for_each)       # or ctx.step.from_
+       items = ctx.resolve(ctx.step.for_each)  # or ctx.step.from_
        limit = int(ctx.step.config.get("limit", 10))  # always a default
        out = []
        for item, answer in await ctx.ask_each(items):
