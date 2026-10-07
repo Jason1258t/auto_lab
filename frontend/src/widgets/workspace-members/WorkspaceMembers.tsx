@@ -3,7 +3,6 @@
 import { useTranslation } from 'react-i18next'
 
 import { MemberRow, useMembers } from '@/entities/member'
-import { useSession } from '@/entities/session'
 import { EXTRA_ROLES, workspaceRights, type Workspace } from '@/entities/workspace'
 import { AddMemberForm } from '@/features/member-add'
 import { RemoveMemberButton, RoleCheckbox } from '@/features/member-manage'
@@ -12,11 +11,8 @@ import { Badge, Card, CardContent, CardHeader, CardTitle, FormError } from '@/sh
 
 export function WorkspaceMembers({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation()
-  const { me } = useSession()
   const rights = workspaceRights(workspace)
-  const canSee = rights.seeInside || Boolean(me?.is_admin)
-  const members = useMembers(workspace.id, canSee)
-  if (!canSee) return null
+  const members = useMembers(workspace.id)
 
   return (
     <Card>

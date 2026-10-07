@@ -8,7 +8,7 @@ export const memberKeys = {
   list: (workspaceId: number) => ['workspaces', 'members', workspaceId] as const,
 }
 
-export function useMembers(workspaceId: number, enabled = true) {
+export function useMembers(workspaceId: number) {
   return useQuery({
     queryKey: memberKeys.list(workspaceId),
     queryFn: () =>
@@ -17,6 +17,5 @@ export function useMembers(workspaceId: number, enabled = true) {
           params: { path: { workspace_id: workspaceId } },
         }),
       ),
-    enabled,
   })
 }

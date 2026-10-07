@@ -59,7 +59,13 @@
     "editTitle": "Edit workspace",
     "save": "Save",
     "archivedNote": "This workspace is archived. It is read-only.",
-    "notFound": "This workspace does not exist, or you have no access to it."
+    "notFound": "This workspace does not exist, or you have no access to it.",
+    "tabs": {
+      "tasks": "Tasks",
+      "files": "Files",
+      "members": "Members",
+      "activity": "Activity"
+    }
   },
   "workspaceActions": {
     "archive": "Archive",
@@ -97,6 +103,50 @@
     "editor": "Editor",
     "reviewer": "Reviewer"
   },
+  "files": {
+    "title": "Files",
+    "empty": "No files yet.",
+    "upload": "Upload files",
+    "uploading": "Uploading…",
+    "uploadFailed": "“{{name}}” was not uploaded: {{reason}}",
+    "download": "Download",
+    "downloadLabel": "Download {{name}}",
+    "remove": "Remove",
+    "removeLabel": "Remove {{name}}",
+    "removeTitle": "Remove “{{name}}”?",
+    "removeText": "The file is deleted from the server. This cannot be undone."
+  },
+  "tasks": {
+    "title": "Tasks",
+    "empty": "No tasks yet."
+  },
+  "taskStatus": {
+    "draft": "Draft",
+    "queued": "Queued",
+    "running": "Running",
+    "in_review": "In review",
+    "done": "Done",
+    "cancelled": "Cancelled",
+    "failed": "Failed"
+  },
+  "activity": {
+    "title": "Activity",
+    "empty": "Nothing has happened yet.",
+    "someone": "Someone",
+    "member_added": "{{actor}} added {{target}}",
+    "member_removed": "{{actor}} removed {{target}}",
+    "member_left": "{{target}} left",
+    "role_added": "{{actor}} gave {{target}} the {{role}} role",
+    "role_removed": "{{actor}} took the {{role}} role from {{target}}",
+    "workspace_taken": "{{actor}} took the workspace",
+    "made_public": "{{actor}} made the workspace public",
+    "archived": "{{actor}} archived the workspace",
+    "unarchived": "{{actor}} unarchived the workspace",
+    "task_deleted": "{{actor}} deleted the task “{{target}}”",
+    "work_published": "{{actor}} published “{{target}}”",
+    "file_added": "{{actor}} added the file “{{target}}”",
+    "file_removed": "{{actor}} removed the file “{{target}}”"
+  },
   "notFound": {
     "title": "Page not found",
     "back": "Back to the start"
@@ -115,7 +165,9 @@
     "already_public": "This workspace is already public.",
     "user_not_found": "There is no user with this username or email.",
     "already_member": "This person is already a member.",
-    "already_owner": "This is the owner. The owner is not added as a member."
+    "already_owner": "This is the owner. The owner is not added as a member.",
+    "file_too_large": "The file is too large.",
+    "file_not_found": "This file does not exist any more."
   },
   "fields": {
     "email": "email",
