@@ -125,7 +125,7 @@ test('signup creates the account, logs in and opens the app', async () => {
   await user.type(screen.getByLabelText('Password'), 'a long enough password')
   await user.click(screen.getByRole('button', { name: 'Sign up' }))
 
-  expect(await screen.findByText('No workspaces yet.')).toBeInTheDocument()
+  expect(await screen.findByText('No workspaces yet. Create the first one.')).toBeInTheDocument()
   expect(signupBody).toEqual({
     email: 'ann@example.com',
     username: 'ann',

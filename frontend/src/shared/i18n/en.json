@@ -3,6 +3,11 @@
     "name": "AutoLab",
     "tagline": "Research with sources you can check."
   },
+  "common": {
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "close": "Close"
+  },
   "nav": {
     "workspaces": "Workspaces",
     "logout": "Log out"
@@ -25,16 +30,57 @@
     "signup": "Sign up",
     "signupTitle": "Create an account",
     "noAccount": "No account yet?",
-    "haveAccount": "Already have an account?",
-    "loading": "Loading…"
+    "haveAccount": "Already have an account?"
   },
   "workspaces": {
-    "title": "Your workspaces",
-    "empty": "No workspaces yet.",
+    "title": "Workspaces",
+    "tabs": {
+      "mine": "Mine",
+      "public": "Public",
+      "free": "Free to take"
+    },
+    "empty": {
+      "mine": "No workspaces yet. Create the first one.",
+      "public": "No public workspaces yet.",
+      "free": "No free workspaces right now."
+    },
     "public": "Public",
     "private": "Private",
     "archived": "Archived",
-    "owner": "Owner"
+    "owner": "Owner",
+    "free": "Free to take"
+  },
+  "workspace": {
+    "name": "Name",
+    "description": "Description",
+    "create": "New workspace",
+    "createTitle": "New workspace",
+    "edit": "Edit",
+    "editTitle": "Edit workspace",
+    "save": "Save",
+    "archivedNote": "This workspace is archived. It is read-only.",
+    "notFound": "This workspace does not exist, or you have no access to it."
+  },
+  "workspaceActions": {
+    "archive": "Archive",
+    "archiveTitle": "Archive “{{name}}”?",
+    "archiveText": "The workspace becomes read-only and all members are removed. You can unarchive it later.",
+    "archivePublicText": "The workspace becomes read-only, all members are removed, and you stop being the owner. Anyone can then take it.",
+    "unarchive": "Unarchive",
+    "unarchiveTitle": "Unarchive “{{name}}”?",
+    "unarchiveText": "You can work in it again. Members do not come back; add them again.",
+    "makePublic": "Make public",
+    "makePublicTitle": "Make “{{name}}” public?",
+    "makePublicText": "Everyone can see its name, description and accepted works. This cannot be undone.",
+    "take": "Take",
+    "takeTitle": "Take “{{name}}”?",
+    "takeText": "You become the owner and the workspace becomes active again. It stays public.",
+    "leave": "Leave",
+    "leaveTitle": "Leave “{{name}}”?",
+    "leaveText": "You lose all your roles here. The owner can add you again.",
+    "delete": "Delete",
+    "deleteTitle": "Delete “{{name}}”?",
+    "deleteText": "Only a workspace without tasks can be deleted. Its files are deleted too. This cannot be undone."
   },
   "notFound": {
     "title": "Page not found",
@@ -46,12 +92,19 @@
     "email_taken": "This email is already registered.",
     "username_taken": "This username is already taken.",
     "validation_error": "Some fields are not filled in correctly.",
-    "checkFields": "Check: {{fields}}."
+    "checkFields": "Check: {{fields}}.",
+    "workspace_not_found": "This workspace does not exist, or you have no access to it.",
+    "workspace_not_empty": "Only an empty workspace can be deleted. Archive it instead.",
+    "workspace_not_free": "Someone else has already taken this workspace.",
+    "workspace_archived": "This workspace is archived. It is read-only.",
+    "already_public": "This workspace is already public."
   },
   "fields": {
     "email": "email",
     "username": "username",
     "display_name": "name",
-    "password": "password"
+    "password": "password",
+    "name": "name",
+    "description": "description"
   }
 }

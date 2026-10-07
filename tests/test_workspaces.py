@@ -69,6 +69,10 @@ async def test_only_owner_edits(client: httpx.AsyncClient, make_user) -> None:
 
     renamed = await client.patch(f"{W}/{ws}", json={"name": "New"}, headers=ann.headers)
     assert renamed.json()["name"] == "New"
+    described = await client.patch(f"{W}/{ws}", json={"description": "About"}, headers=ann.headers)
+    assert described.json()["description"] == "About"
+    cleared = await client.patch(f"{W}/{ws}", json={"description": ""}, headers=ann.headers)
+    assert cleared.json()["description"] is None
     by_member = await client.patch(f"{W}/{ws}", json={"name": "X"}, headers=bob.headers)
     assert by_member.status_code == 403
 
