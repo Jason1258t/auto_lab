@@ -74,6 +74,14 @@ async def my_roles(db: AsyncSession, user: User, workspace_ids: list[int]) -> di
     return roles
 
 
+async def owners(db: AsyncSession, workspaces: list[Workspace]) -> dict[int, User]:
+    """The owners of many workspaces, by user id, in one query."""
+    ids = {w.owner_id for w in workspaces if w.owner_id is not None}
+    if not ids:
+        return {}
+    return {u.id: u for u in await db.scalars(select(User).where(User.id.in_(ids)))}
+
+
 async def create_workspace(
     db: AsyncSession, user: User, *, name: str, description: str | None
 ) -> Workspace:

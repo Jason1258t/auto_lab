@@ -26,6 +26,9 @@ class WorkspaceOut(BaseModel):
     description: str | None
     visibility: WorkspaceVisibility
     owner_id: int | None
+    # Filled by the router (one extra query for a whole list).
+    owner_username: str | None = None
+    owner_display_name: str | None = None
     archived_at: datetime | None
     created_at: datetime
     # The caller's place in this workspace (empty when not logged in).

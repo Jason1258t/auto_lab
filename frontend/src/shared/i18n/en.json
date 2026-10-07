@@ -84,7 +84,6 @@
   },
   "members": {
     "title": "Members",
-    "empty": "No members yet. Only the owner works here.",
     "addLabel": "Add a person",
     "addPlaceholder": "Username or email",
     "add": "Add",

@@ -2066,6 +2066,17 @@
       "title": "Name",
       "type": "string"
      },
+     "owner_display_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Display Name"
+     },
      "owner_id": {
       "anyOf": [
        {
@@ -2076,6 +2087,17 @@
        }
       ],
       "title": "Owner Id"
+     },
+     "owner_username": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Username"
      },
      "visibility": {
       "$ref": "#/components/schemas/WorkspaceVisibility"

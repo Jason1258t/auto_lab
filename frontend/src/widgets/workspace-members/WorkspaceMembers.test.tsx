@@ -14,6 +14,8 @@ const OWNED: Workspace = {
   description: null,
   visibility: 'private',
   owner_id: 1,
+  owner_username: 'ann',
+  owner_display_name: 'Ann',
   archived_at: null,
   created_at: '2026-10-07T10:00:00Z',
   is_owner: true,
@@ -45,6 +47,7 @@ test('the owner adds a person and sees an unknown name as an error', async () =>
   renderApp('/workspaces/7')
   const user = userEvent.setup()
   expect(await screen.findByText('Bob')).toBeInTheDocument()
+  expect(screen.getByText('@ann')).toBeInTheDocument() // the owner is listed first
 
   await user.type(screen.getByLabelText('Add a person'), 'nobody')
   await user.click(screen.getByRole('button', { name: 'Add' }))
