@@ -13,4 +13,6 @@ Also a university "Databases" course project.
 - `CURRENT_STATE.md` — what is built now and what is next.
 - `AGENTS.md` — rules for anyone (human or AI) writing code here.
 
-Setup instructions (`DEVELOPMENT.md`) will be added once the backend exists.
+- `DEVELOPMENT.md` — run everything locally (Docker + uv).
+- `DEPLOY.md` — the test server.
+- `drafts/` — design notes: schema, backend spec, pipeline spec.

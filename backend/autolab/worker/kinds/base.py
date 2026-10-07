@@ -36,6 +36,9 @@ class StepContext:
     resolver: Resolver | None = None  # host name -> addresses (fetch)
     note: str | None = None  # revise note, added to every prompt (later step)
     skipped: int = field(default=0)  # for_each items without a valid answer
+    # Short notes the runner adds to the step summary, e.g. "2 sentences
+    # without a source" (pipeline files cannot change after sync).
+    notes: list[str] = field(default_factory=list)
 
     def resolve(self, ref: str) -> Any:
         """'<step id>.<field>' -> that field of the earlier step's output."""

@@ -30,3 +30,23 @@ open live in `drafts/schema_design.md` ("Parked for later").
 - Subtype tables for `activity_events`.
 - Admin page that reads system logs.
 - System logs in the same log store as LLM logs.
+
+## Worker and pipelines
+
+- Long pages: split into chunks, `summarize` per chunk (now cut at
+  `max_chars`).
+- A `files` step kind: workspace files as sources (`study_notes`).
+- Pipelines for `opinion_survey`, `study_notes`, `creative_writing`
+  (only `research` has a file).
+- `openai_compatible` and `anthropic` gateway adapters.
+- Several workers at once: needs a heartbeat before tasks left `running`
+  can be taken back safely.
+- `fetch`: protect against DNS rebinding (connect to the checked address).
+- Drop or rewrite sentences without a source before publishing (now they
+  are only marked for the reviewer).
+
+## Operations
+
+- JSON-lines system logs with daily files (`drafts/audit.md`).
+- HTTPS and a reverse proxy in front of the API on the server.
+- Activity events for admin changes of models and providers.

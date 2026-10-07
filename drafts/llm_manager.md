@@ -79,11 +79,11 @@ column). Order: insert the `llm_calls` row first, then write the log.
   changed (files ↔ MongoDB) without touching the DB.
 - If the DB is ever reset, ids start again from 1, so the log store must
   be cleared too.
-- MongoDB is being considered. The "no second DB" rule from an earlier
-  session can be changed. For now both options are behind one interface:
-  `backend/log_store.py` (`LogStore`: `create`, `add_response`, `get`,
-  `delete`), with `FileLogStore` (`<root>/<call_id>.json`) and
-  `MongoLogStore` (`_id` = call id).
+- **MongoDB is the log store** (decided 2026-10-07, built in step 6a).
+  Both options stay behind one async interface:
+  `backend/autolab/logstore.py` (`LogStore`: `create`, `add_response`,
+  `get`, `delete`), with `FileLogStore` (`<root>/<call_id>.json`, used in
+  tests) and `MongoLogStore` (`_id` = call id).
 - One log = one LLM call: `{"request": ..., "response": ... or null}`.
 
 User view, three levels:

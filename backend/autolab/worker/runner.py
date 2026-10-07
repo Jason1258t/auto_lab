@@ -197,6 +197,8 @@ class TaskRunner:
         summary = templates.render(step.summary, {"output": output}) if step.summary else None
         if ctx.skipped:
             summary = f"{summary or 'done'} ({ctx.skipped} skipped)"
+        if ctx.notes:
+            summary = f"{summary or 'done'}; " + "; ".join(ctx.notes)
         async with self.session_factory() as db:
             await db.execute(
                 update(TaskStep)

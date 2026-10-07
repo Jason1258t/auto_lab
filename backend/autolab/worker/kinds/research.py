@@ -139,12 +139,34 @@ async def synthesize(ctx: StepContext) -> dict[str, Any]:
 _MARK = re.compile(r"\[(\d+)\]")
 # A mark with the spaces before it, so removing it leaves no " ." behind.
 _MARK_WITH_SPACE = re.compile(r"\s*\[(\d+)\]")
+# A sentence ends with . ! or ? (and maybe its [n] marks), then a space.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=\])\s+(?=[A-Z])")
+
+# Shown after a sentence that cites no fact (decided 2026-10-07): the
+# reviewer sees at a glance what to check. Small models often add such
+# sentences although the prompt says "use only these facts".
+NO_SOURCE = "*(\u26a0 no source)*"
+
+
+def mark_unsourced(text: str) -> tuple[str, int]:
+    """Add NO_SOURCE after every sentence without a [n] mark."""
+    sentences = [s for s in _SENTENCE_END.split(text) if s.strip()]
+    marked = 0
+    out = []
+    for sentence in sentences:
+        if not _MARK.search(sentence):
+            sentence = f"{sentence} {NO_SOURCE}"
+            marked += 1
+        out.append(sentence)
+    return " ".join(out), marked
 
 
 async def write(ctx: StepContext) -> dict[str, Any]:
     """One paragraph per section. [n] marks that are not facts of this
-    section are removed, so every mark points to a real fact."""
+    section are removed, so every mark points to a real fact. Sentences
+    without any mark are marked as "no source" for the reviewer."""
     paragraphs = []
+    unsourced = 0
     for section, answer in await ctx.ask_each(ctx.resolve(ctx.step.for_each)):
         allowed = set(section["fact_numbers"])
 
@@ -153,8 +175,12 @@ async def write(ctx: StepContext) -> dict[str, Any]:
 
         text = _MARK_WITH_SPACE.sub(check_mark, answer["paragraph"]).strip()
         used = sorted({int(n) for n in _MARK.findall(text)})
+        text, marked = mark_unsourced(text)
+        unsourced += marked
         paragraphs.append({"heading": section["heading"], "text": text, "fact_numbers": used})
-    return {"paragraphs": paragraphs}
+    if unsourced:
+        ctx.notes.append(f"{unsourced} sentences without a source")
+    return {"paragraphs": paragraphs, "unsourced_sentences": unsourced}
 
 
 HANDLERS = {
