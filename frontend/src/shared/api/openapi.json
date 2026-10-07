@@ -854,6 +854,25 @@
     "title": "PipelineOut",
     "type": "object"
    },
+   "PlanStepOut": {
+    "description": "One step of the task's pipeline version, from its file.",
+    "properties": {
+     "kind": {
+      "title": "Kind",
+      "type": "string"
+     },
+     "step_id": {
+      "title": "Step Id",
+      "type": "string"
+     }
+    },
+    "required": [
+     "step_id",
+     "kind"
+    ],
+    "title": "PlanStepOut",
+    "type": "object"
+   },
    "ProviderIn": {
     "properties": {
      "adapter": {
@@ -1435,6 +1454,13 @@
       "title": "Pipeline Version Id",
       "type": "integer"
      },
+     "plan": {
+      "items": {
+       "$ref": "#/components/schemas/PlanStepOut"
+      },
+      "title": "Plan",
+      "type": "array"
+     },
      "reviewer_id": {
       "anyOf": [
        {
@@ -1492,6 +1518,7 @@
      "created_at",
      "started_at",
      "finished_at",
+     "plan",
      "steps"
     ],
     "title": "TaskDetailOut",
@@ -1675,6 +1702,17 @@
       ],
       "title": "Finished At"
      },
+     "kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Kind"
+     },
      "review_id": {
       "anyOf": [
        {
@@ -1700,6 +1738,17 @@
      },
      "status": {
       "$ref": "#/components/schemas/TaskStepStatus"
+     },
+     "step_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Step Id"
      },
      "step_index": {
       "title": "Step Index",

@@ -191,7 +191,7 @@ the API does not reveal that it exists.
 | Me | `GET /me`, `PATCH /me` (display name) |
 | Workspaces | `GET /workspaces` (mine + public), `POST /workspaces`, `GET /workspaces/{id}`, `PATCH /workspaces/{id}`, `POST /workspaces/{id}/archive`, `POST /workspaces/{id}/make-public`, `POST /workspaces/{id}/take` |
 | Members | `GET /workspaces/{id}/members`, `POST /workspaces/{id}/members` (by username or email, with role), `DELETE /workspaces/{id}/members/{user_id}/roles/{role}` |
-| Tasks | `GET /workspaces/{id}/tasks`, `POST /workspaces/{id}/tasks`, `GET /tasks/{id}` (with steps), `PATCH /tasks/{id}` (only `draft`), `POST /tasks/{id}/queue`, `POST /tasks/{id}/cancel`, `DELETE /tasks/{id}` |
+| Tasks | `GET /workspaces/{id}/tasks`, `POST /workspaces/{id}/tasks`, `GET /tasks/{id}` (with the pipeline `plan` and the steps, each named by `step_id` / `kind`), `PATCH /tasks/{id}` (only `draft`), `POST /tasks/{id}/queue`, `POST /tasks/{id}/cancel`, `DELETE /tasks/{id}` |
 | Calls | `GET /tasks/{id}/calls` (metadata + `error`), `GET /calls/{id}/log` (full prompt and output from the log store) |
 | Reviews | `GET /tasks/{id}/reviews`, `POST /tasks/{id}/reviews` |
 | Works | `GET /tasks/{id}/work` (summary, text, sources, quotes), `GET /workspaces/{id}/works` |

@@ -177,3 +177,18 @@ test('a validation error names the wrong fields', async () => {
     await screen.findByText('Some fields are not filled in correctly. Check: email.'),
   ).toBeInTheDocument()
 })
+
+test('after login the app returns to the page that was asked for', async () => {
+  server.use(
+    http.post(`${API}/auth/login`, () => HttpResponse.json(TOKENS)),
+    http.get(`${API}/me`, () => HttpResponse.json(ME)),
+    http.get(`${API}/workspaces/7`, () => HttpResponse.json(WORKSPACE)),
+    http.get(`${API}/workspaces/7/files`, () => HttpResponse.json([])),
+  )
+  renderApp('/workspaces/7?tab=files')
+  const user = userEvent.setup()
+  await user.type(await screen.findByLabelText('Email'), 'ann@example.com')
+  await user.type(screen.getByLabelText('Password'), 'a long enough password')
+  await user.click(screen.getByRole('button', { name: 'Log in' }))
+  expect(await screen.findByText('No files yet.')).toBeInTheDocument()
+})

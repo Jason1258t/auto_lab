@@ -129,6 +129,44 @@
     "cancelled": "Cancelled",
     "failed": "Failed"
   },
+  "stepStatus": {
+    "pending": "Waiting",
+    "running": "Running",
+    "done": "Done"
+  },
+  "task": {
+    "create": "New task",
+    "createTitle": "New task",
+    "editTitle": "Edit the draft",
+    "titleField": "Title",
+    "input": "Task",
+    "inputHint": "What should the model research or write? Plain words are best.",
+    "pipeline": "Pipeline",
+    "model": "Model",
+    "reviewer": "Reviewer",
+    "reviewerMe": "Me",
+    "noPipelines": "No pipeline is ready yet. The worker adds them when it starts.",
+    "noModels": "No model is available. An admin can add one.",
+    "draftNote": "This is a draft. Nothing runs until you queue it.",
+    "failedNote": "The task failed. The steps show where it stopped.",
+    "steps": "Steps",
+    "live": "Updating…",
+    "noPlan": "The pipeline file cannot be read, so the steps are unknown.",
+    "revision": "Revision after a rejected review",
+    "stepNumber": "Step {{n}}",
+    "seconds_one": "{{count}} second",
+    "seconds_other": "{{count}} seconds",
+    "notFound": "This task does not exist, or you have no access to it."
+  },
+  "taskActions": {
+    "queue": "Queue",
+    "cancel": "Cancel task",
+    "cancelTitle": "Cancel “{{title}}”?",
+    "cancelText": "The worker stops before its next step. A cancelled task cannot be started again.",
+    "delete": "Delete",
+    "deleteTitle": "Delete “{{title}}”?",
+    "deleteText": "The steps, model calls, reviews and the work are deleted too. This cannot be undone."
+  },
   "activity": {
     "title": "Activity",
     "empty": "Nothing has happened yet.",
@@ -167,7 +205,14 @@
     "already_member": "This person is already a member.",
     "already_owner": "This is the owner. The owner is not added as a member.",
     "file_too_large": "The file is too large.",
-    "file_not_found": "This file does not exist any more."
+    "file_not_found": "This file does not exist any more.",
+    "task_not_found": "This task does not exist, or you have no access to it.",
+    "task_not_draft": "Only a draft can be changed or queued.",
+    "task_not_cancellable": "This task cannot be cancelled now.",
+    "task_running": "The task is running. Cancel it first.",
+    "task_published": "The work of this task is published. Remove the publication first.",
+    "model_unavailable": "This model is not available now.",
+    "reviewer_not_member": "The reviewer must be in this workspace."
   },
   "fields": {
     "email": "email",
@@ -176,6 +221,11 @@
     "password": "password",
     "name": "name",
     "description": "description",
-    "username_or_email": "username or email"
+    "username_or_email": "username or email",
+    "title": "title",
+    "input": "task",
+    "pipeline_id": "pipeline",
+    "model_id": "model",
+    "reviewer_id": "reviewer"
   }
 }
