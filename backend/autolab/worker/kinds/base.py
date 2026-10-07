@@ -40,8 +40,14 @@ class StepContext:
     # without a source" (pipeline files cannot change after sync).
     notes: list[str] = field(default_factory=list)
 
-    def resolve(self, ref: str) -> Any:
-        """'<step id>.<field>' -> that field of the earlier step's output."""
+    def resolve(self, ref: str | list[str]) -> Any:
+        """'<step id>.<field>' -> that field of the earlier step's output.
+        A list of references -> their lists joined into one."""
+        if isinstance(ref, list):
+            joined: list[Any] = []
+            for one in ref:
+                joined += self.resolve(one)
+            return joined
         step_id, _, name = ref.partition(".")
         try:
             return self.outputs[step_id][name]
@@ -52,6 +58,8 @@ class StepContext:
         found = {
             "task": {"title": self.task.title, "input": self.task.input},
             "config": self.step.config,
+            # Outputs of earlier steps, e.g. {{ steps.outline.questions }}.
+            "steps": self.outputs,
         }
         if self.step.from_:
             found["input"] = self.resolve(self.step.from_)

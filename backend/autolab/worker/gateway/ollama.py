@@ -12,8 +12,11 @@ FINISH_REASONS = {"stop": FinishReason.STOP, "length": FinishReason.LENGTH}
 
 
 class OllamaAdapter:
-    def __init__(self, timeout_seconds: float) -> None:
+    def __init__(
+        self, timeout_seconds: float, transport: httpx.AsyncBaseTransport | None = None
+    ) -> None:
         self.timeout = httpx.Timeout(timeout_seconds, connect=10.0)
+        self.transport = transport  # tests only
 
     async def generate(self, request: GenerateRequest) -> GenerateResult:
         options = {}
@@ -21,6 +24,8 @@ class OllamaAdapter:
             options["temperature"] = request.params["temperature"]
         if "max_tokens" in request.params:
             options["num_predict"] = request.params["max_tokens"]
+        if "context_length" in request.params:
+            options["num_ctx"] = request.params["context_length"]
         body = {
             "model": request.model,
             "messages": [{"role": m.role, "content": m.content} for m in request.messages],
@@ -32,7 +37,7 @@ class OllamaAdapter:
 
         url = (request.base_url or DEFAULT_BASE_URL).rstrip("/") + "/api/chat"
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport) as client:
                 response = await client.post(url, json=body)
                 response.raise_for_status()
                 data = response.json()

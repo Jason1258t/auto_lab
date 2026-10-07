@@ -1,7 +1,7 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migrations 0001-0004 (checked with a pg_dump diff on 2026-10-07). After
+-- migrations 0001-0005 (checked with a pg_dump diff on 2026-10-07). After
 -- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
@@ -452,7 +452,11 @@ INSERT INTO pipelines (name, description) VALUES
     ('research',         'Any topic, with search and verification'),
     ('opinion_survey',   'What sources say about a topic'),
     ('study_notes',      'Notes on a topic, search is optional'),
-    ('creative_writing', 'Creative text, no search, no verification');
+    ('creative_writing', 'Creative text, no search, no verification'),
+    -- migration 0005
+    ('deep_research',    'Long research in rounds, many sources, every claim with a quote'),
+    ('code',             'One small program, written and checked by static analysis'),
+    ('python_cli',       'Python command-line tool, planned and checked step by step');
 
 INSERT INTO auth_providers (name) VALUES
     ('github'),

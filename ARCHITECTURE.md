@@ -109,14 +109,17 @@ A **pipeline is the task type**. There is no separate `task_types` table.
   a short summary from the model, and start/finish times. What each step
   does is in the pipeline file.
 
-Planned pipelines:
+Pipelines (rows in `pipelines`; a pipeline without a file cannot be used yet):
 
 | Pipeline | Steps used | Notes |
 |---|---|---|
-| `research` | plan, search, fetch, summarize, verify, synthesize, write | Full pipeline (`pipelines/research/1.0.0.yaml`, `drafts/pipeline_spec.md`). |
+| `research` | plan, search, fetch, summarize, verify, synthesize, write | Full pipeline (`pipelines/research/`, newest 1.1.0: up to 20 candidates, 8 readable pages; `drafts/pipeline_spec.md`). |
 | `opinion_survey` | plan, search, fetch, summarize, synthesize, verify | Output must be framed as "what sources say", not as a fact about public opinion. |
 | `study_notes` | plan, search, fetch, summarize, write, verify | Search is optional; can run from user-provided material only. |
 | `creative_writing` | plan, write | No search, no verification: nothing to verify against. |
+| `deep_research` | plan, plan_each, search, fetch, summarize, gaps (×2), verify, group, write, abstract | Long research in 3 rounds: sub-questions; each round searches only for what is still missing and skips pages already found; one section per sub-question (`pipelines/deep_research/`, 25-40 min on a 3B model). Added 2026-10-07. |
+| `code` | plan, code_write, code_check, code_fix | One small program; static checks only (syntax, ruff), the code is never run. Added 2026-10-07. |
+| `python_cli` | plan, code_write, code_check, code_fix, plan (review, usage) | A Python CLI in several files: requirements, design, files, two check-and-fix rounds, a self-review and usage notes. Static checks only. Added 2026-10-07. |
 
 Adding a new task type means adding a new pipeline (a row in `pipelines`
 and its first version file). The orchestrator should not need code

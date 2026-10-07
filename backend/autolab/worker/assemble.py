@@ -62,8 +62,11 @@ async def assemble_work(
     written = _find(pipeline, outputs, "write")
     if written is None:
         raise StepFailed("the pipeline has no write step, so there is no text")
-    plan = _find(pipeline, outputs, "synthesize") or {}
+    # The report plan: synthesize (research) or group (deep research).
+    plan = _find(pipeline, outputs, "synthesize") or _find(pipeline, outputs, "group") or {}
     paragraphs = written["paragraphs"]
+    # A summary written after the text (deep research) wins over the plan's.
+    summary = (_find(pipeline, outputs, "abstract") or {}).get("summary") or plan.get("summary")
 
     # Only facts that the text really cites become evidence.
     cited = {n for p in paragraphs for n in p["fact_numbers"]}
@@ -74,7 +77,7 @@ async def assemble_work(
     now = datetime.now(UTC)
     path = work_path(settings, task.id, now)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_markdown(task, plan.get("summary"), paragraphs, facts), encoding="utf-8")
+    path.write_text(render_markdown(task, summary, paragraphs, facts), encoding="utf-8")
 
     work = await db.get(Work, task.id)
     if work is None:
@@ -84,7 +87,7 @@ async def assemble_work(
         await db.execute(delete(WorkSource).where(WorkSource.work_id == task.id))
         work.file_path = str(path)
         work.updated_at = now
-    work.summary = plan.get("summary")
+    work.summary = summary
     await db.flush()
 
     sources: dict[str, WorkSource] = {}

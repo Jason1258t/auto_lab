@@ -27,6 +27,11 @@ KINDS: dict[str, bool] = {
     "verify": True,
     "synthesize": True,
     "write": True,
+    # deep research (kinds/deep.py)
+    "plan_each": True,
+    "gaps": True,
+    "group": True,
+    "abstract": True,
 }
 
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
@@ -52,16 +57,25 @@ class Step(BaseModel):
 
     id: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
     kind: str
-    from_: str | None = Field(default=None, alias="from")
-    for_each: str | None = None
+    # One reference '<step id>.<field>', or a list of them: their lists
+    # are joined (e.g. the facts of several research rounds).
+    from_: str | list[str] | None = Field(default=None, alias="from")
+    for_each: str | list[str] | None = None
     config: dict[str, Any] = {}
     llm: LlmBlock | None = None
     summary: str | None = None
 
     @property
-    def source(self) -> str | None:
-        """The input reference, from `from` or `for_each`."""
+    def source(self) -> str | list[str] | None:
+        """The input reference(s), from `from` or `for_each`."""
         return self.for_each or self.from_
+
+    @property
+    def refs(self) -> list[str]:
+        source = self.source
+        if source is None:
+            return []
+        return [source] if isinstance(source, str) else list(source)
 
 
 class Revise(BaseModel):
@@ -97,10 +111,9 @@ class PipelineFile(BaseModel):
                 problems.append(f"{where}: kind '{step.kind}' does not call a model")
             if step.from_ and step.for_each:
                 problems.append(f"{where}: use 'from' or 'for_each', not both")
-            if step.source:
-                ref = step.source.split(".")[0]
-                if ref not in seen:
-                    problems.append(f"{where}: '{step.source}' must point to an earlier step")
+            for ref in step.refs:
+                if ref.split(".")[0] not in seen:
+                    problems.append(f"{where}: '{ref}' must point to an earlier step")
             for name, text in _templates(step):
                 if error := templates.check(text):
                     problems.append(f"{where}: template '{name}': {error}")

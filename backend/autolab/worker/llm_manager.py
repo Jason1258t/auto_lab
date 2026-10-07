@@ -179,7 +179,9 @@ class LlmManager:
             base_url=model.base_url or provider.base_url,
             messages=job.messages,
             schema=job.schema,
-            params=job.params,
+            # The context window from the catalog. Without it Ollama uses
+            # its own default and silently cuts longer prompts.
+            params={**job.params, "context_length": model.context_length},
         )
         await self._set_status(job.call_id, LlmCallStatus.RUNNING, started_at=datetime.now(UTC))
         await self.log_store.create(job.call_id, request.as_log())

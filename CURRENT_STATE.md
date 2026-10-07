@@ -8,7 +8,7 @@ out again.
 
 ## In one paragraph
 
-The database schema is designed, reviewed and migrated (4 migrations).
+The database schema is designed, reviewed and migrated (5 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
@@ -120,6 +120,7 @@ After-MVP ideas: `BACKLOG.md`.
 - 0004: `sessions.previous_token_hash`, `rotated_at`: the previous refresh
   token works for 10 s after a refresh (a reload during a refresh no
   longer logs the user out).
+- 0005 (data only): pipeline rows `deep_research`, `code`, `python_cli`.
 - Snapshots kept in sync (checked with a `pg_dump` diff):
   `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
 - **Outdated:** `drafts/schema_design.html` (the published schema page)
@@ -136,8 +137,14 @@ After-MVP ideas: `BACKLOG.md`.
 - 89 tests (`tests/`), against a real Postgres and MongoDB in Docker;
   CI on every PR (`test` job required for `main`, plus an `image` job).
 
-**Pipelines:** only `pipelines/research/1.0.0.yaml`
-(plan → search → fetch → summarize → verify → synthesize → write). The
+**Pipelines:** only `research`: 1.0.0, and 1.1.0 (2026-10-07: up to 20
+candidates, at most 2 per site, read until 8 pages have real text, at
+least 3 or the step fails; 4 queries)
+(plan → search → fetch → summarize → verify → synthesize → write), and
+`deep_research` 1.0.0 (3 rounds that fill the gaps, up to ~65 pages,
+one section per sub-question, 25-40 min; new step kinds in
+`worker/kinds/deep.py`; migration 0005 adds the pipeline rows
+`deep_research`, `code`, `python_cli`). The
 other three pipelines (`opinion_survey`, `study_notes`,
 `creative_writing`) have no file yet.
 
