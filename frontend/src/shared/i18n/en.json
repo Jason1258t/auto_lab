@@ -64,7 +64,8 @@
       "tasks": "Tasks",
       "files": "Files",
       "members": "Members",
-      "activity": "Activity"
+      "activity": "Activity",
+      "works": "Works"
     }
   },
   "workspaceActions": {
@@ -190,6 +191,19 @@
     "answer": "Answer",
     "noAnswer": "No answer yet."
   },
+  "work": {
+    "title": "Works",
+    "result": "Result",
+    "empty": "No works yet.",
+    "evidence": "Sources and quotes",
+    "noSources": "This work has no sources.",
+    "accessed": "read {{date}}",
+    "updated": "Updated {{date}}",
+    "unsourced_one": "{{count}} sentence has no source. Check it before you accept the work.",
+    "unsourced_other": "{{count}} sentences have no source. Check them before you accept the work.",
+    "notFound": "This work does not exist, or you have no access to it.",
+    "backToWorkspace": "Workspace"
+  },
   "activity": {
     "title": "Activity",
     "empty": "Nothing has happened yet.",
@@ -237,7 +251,8 @@
     "model_unavailable": "This model is not available now.",
     "reviewer_not_member": "The reviewer must be in this workspace.",
     "log_not_found": "The full log of this call is not kept any more.",
-    "call_not_found": "This model call does not exist."
+    "call_not_found": "This model call does not exist.",
+    "work_not_found": "This work does not exist, or you have no access to it."
   },
   "fields": {
     "email": "email",

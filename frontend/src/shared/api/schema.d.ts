@@ -1438,6 +1438,8 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /** Workspace Id */
+            workspace_id: number;
         };
         /** WorkspaceIn */
         WorkspaceIn: {

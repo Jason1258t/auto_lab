@@ -2147,10 +2147,15 @@
       "format": "date-time",
       "title": "Updated At",
       "type": "string"
+     },
+     "workspace_id": {
+      "title": "Workspace Id",
+      "type": "integer"
      }
     },
     "required": [
      "task_id",
+     "workspace_id",
      "title",
      "task_status",
      "summary",

@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router'
 
 import { CallList, useCalls } from '@/entities/call'
 import { ACTIVE, POLL_MS, stepRows, TaskStatusBadge, TaskSteps, useTask, type TaskDetail } from '@/entities/task'
+import { useWork, WorkView } from '@/entities/work'
 import { useWorkspace, workspaceRights } from '@/entities/workspace'
 import { TaskActions } from '@/features/task-actions'
 import { EditTaskButton } from '@/features/task-form'
@@ -19,6 +20,9 @@ function TaskView({ task }: { task: TaskDetail }) {
   const live = ACTIVE.includes(task.status)
   // Calls exist only after the worker has started the task.
   const calls = useCalls(task.id, live ? POLL_MS : false)
+  // A work exists after the write step; asked for only from then on.
+  const hasWork = task.status === 'in_review' || task.status === 'done' || task.steps.some((s) => s.kind === 'write' && s.status === 'done')
+  const work = useWork(task.id, hasWork)
   return (
     <>
       <Link to={`/workspaces/${task.workspace_id}`} className="text-sm text-muted-foreground hover:text-foreground">
@@ -59,6 +63,12 @@ function TaskView({ task }: { task: TaskDetail }) {
           <p className="whitespace-pre-wrap">{task.input}</p>
         </CardContent>
       </Card>
+      {work.data && (
+        <section className="grid gap-3">
+          <h2 className="font-heading text-2xl font-semibold">{t('work.result')}</h2>
+          <WorkView work={work.data} />
+        </section>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

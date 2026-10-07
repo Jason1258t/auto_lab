@@ -155,6 +155,7 @@ async def test_work_visibility(client: httpx.AsyncClient, lab, make_user) -> Non
     work = await client.get(f"{API}/tasks/{task_id}/work", headers=ann.headers)
     assert work.status_code == 200
     assert work.json()["text"].startswith("# Sky")
+    assert work.json()["workspace_id"] == ws
     [source] = work.json()["sources"]
     assert source["location"] == "http://site-a.test/sky"
     assert source["quotes"][0]["quote"] == "The sky looks blue because of Rayleigh scattering."

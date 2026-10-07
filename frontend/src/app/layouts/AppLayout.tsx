@@ -15,6 +15,15 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return children
 }
 
+/** Pages anyone may open (public workspaces and works). Waits for the
+ *  silent refresh, so a logged-in user still gets their own view. */
+export function WaitForSession({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
+  const { status } = useSession()
+  if (status === 'loading') return <p className="p-8 text-muted-foreground">{t('common.loading')}</p>
+  return children
+}
+
 export function AppLayout() {
   return (
     <div className="min-h-svh bg-background">

@@ -55,7 +55,12 @@ Screens, one PR each:
      `CallLogOut`). Shown only as plain text (web pages are untrusted).
 4. **Next:** review: accept, or reject with a comment (task page, for the
    reviewer, owner, editors and reviewers; rules in backend_spec.md §6).
-5. Work page: text, sources, quotes, *(⚠ no source)* marks.
+5. ~~Work view~~ (done before 4, the reviewer needs it): Markdown text
+   (`react-markdown`: no raw HTML, no unsafe links), *(⚠ no source)*
+   marks highlighted and counted, sources with their quotes. On the task
+   page ("Result"), on `/works/:id`, and as a Works tab / list.
+   `/workspaces/:id` and `/works/:id` also work without login (public
+   workspaces, accepted works only).
 6. Publish + public feed.
 7. Admin: models.
 
