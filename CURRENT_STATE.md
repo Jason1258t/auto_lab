@@ -124,6 +124,11 @@ After-MVP ideas: `BACKLOG.md`.
 other three pipelines (`opinion_survey`, `study_notes`,
 `creative_writing`) have no file yet.
 
+**Web app on the server:** the Docker image builds the frontend (Node
+stage) and the API serves it (`api/frontend.py`), so the whole app is at
+`http://192.168.0.101:8000`. The server's `.env` needs
+`COOKIE_SECURE=false` while there is no HTTPS.
+
 **Infrastructure:**
 - Local: `compose.yaml` (Postgres 17 on 5433, MongoDB 8.2, SearxNG on
   8888). How to run: `DEVELOPMENT.md`.

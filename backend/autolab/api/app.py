@@ -2,10 +2,12 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from autolab.api.frontend import install_frontend
 from autolab.api.routers import (
     auth,
     catalog,
@@ -61,6 +63,7 @@ def create_app() -> FastAPI:
         catalog.admin_router,
     ):
         app.include_router(router, prefix="/api/v1")
+    install_frontend(app, Path(get_settings().frontend_dir))  # last: it catches all paths
     return app
 
 
