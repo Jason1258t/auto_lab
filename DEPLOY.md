@@ -66,6 +66,44 @@ docker compose -f compose.server.yaml up -d --build   # migrations run first
 The image build also builds the web app (Node stage in the `Dockerfile`),
 so the first build after a frontend change takes a minute longer.
 
+## Keep the server alive: limits for Ollama
+
+A big model (14B and more, mostly on CPU) can take all CPU and RAM. These
+limits keep the server usable: Ollama is slowed down, or killed and
+restarted, instead of the whole machine freezing. They need sudo, so run
+them yourself:
+
+```bash
+sudo mkdir -p /etc/systemd/system/ollama.service.d
+sudo tee /etc/systemd/system/ollama.service.d/limits.conf >/dev/null <<'LIMITS'
+[Service]
+# One model in memory and one request at a time (the worker sends one
+# call at a time anyway); unload a model after 10 idle minutes.
+Environment="OLLAMA_MAX_LOADED_MODELS=1"
+Environment="OLLAMA_NUM_PARALLEL=1"
+Environment="OLLAMA_KEEP_ALIVE=10m"
+# At most 9 of 12 CPU threads: SSH, Postgres and the API stay responsive.
+CPUQuota=900%
+# RAM: 14 GB total, about 2.5 GB for everything else. Above MemoryHigh
+# the kernel slows Ollama down; at MemoryMax Ollama is killed (systemd
+# starts it again), and the server lives.
+MemoryHigh=10500M
+MemoryMax=11500M
+# Lower priority than everything else.
+Nice=10
+IOWeight=50
+LIMITS
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+systemctl show ollama -p CPUQuotaPerSecUSec -p MemoryHigh -p MemoryMax
+```
+
+Check: run a task with a 14B model and watch `top` and `free -h`; SSH
+should stay fast. A model that needs more memory than `MemoryMax`
+(mistral-small:22b needs about 9.5 GB of RAM besides the GPU) fails its
+calls, and the step says "the model did not answer". To undo: delete
+`limits.conf`, then `daemon-reload` and restart.
+
 ## Look around
 
 ```bash

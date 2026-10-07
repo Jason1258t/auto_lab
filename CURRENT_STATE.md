@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (MVP done: backend, worker and all frontend screens; guides written).
+Last updated: 2026-10-08 (MVP done; new pipelines, language, pipeline upload; see "Start here next session").
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -15,6 +15,52 @@ runs pipelines with a local model. The `research` pipeline has run with a
 real model on the test server. The frontend has all MVP screens
 (`frontend/`), and the API image serves it. Guides for users:
 `docs/USER_GUIDE.md`, `docs/TRY_IT.md`.
+
+## Start here next session (handoff 2026-10-08)
+
+Unfinished, in the order the author cares about:
+
+1. **Token budgets per step** (`drafts/token_budgets.md`, PR #37). The
+   author's point: "small steps" is a property of the model, not of the
+   product, and a "small step" must be recalculated per model (today a
+   step is barely a couple of sentences). Waiting for the author's
+   answers to the 4 open questions at the end of the plan (columns vs
+   JSON profile; thinking off by default; three size classes; start with
+   phase 1). Phase 1 needs no schema change and can start at once. Also
+   in scope: the **per-call timeout** should follow the step's token
+   limit and the model's speed (today one global `LLM_TIMEOUT_SECONDS`;
+   raised to 3600 on the server on 2026-10-08 because 14B models write
+   ~3 tok/s and a 900-token step takes ~5 min).
+2. **A heavy model (~1 tok/s)**: `mistral-small:22b` (~13 GB) was being
+   downloaded on the server (log: `~/ollama-pull-heavy.log`). To do:
+   check it finished, benchmark it (`~/bench.py` on the server: speed,
+   valid JSON, exact quotes), add it to the catalog (Admin -> Models, or
+   SQL like the other rows). `llama3:8b` and `phi3:mini` were removed to
+   make room (the author's choice). RAM is the limit: 14 GB total; a 22B
+   Q4 model needs ~3.5 GB VRAM + ~9.5 GB RAM; 32B models do not fit.
+3. **Limit Ollama's resources** so a big model cannot take the server
+   down: commands are ready in `DEPLOY.md` ("Keep the server alive").
+   They need sudo, so the author runs them; then check with a 14B task.
+4. **nginx: `192.168.0.101/autolab` instead of `:8000`** (asked
+   2026-10-08). Answer: possible. Plan: nginx in Docker on port 80 (no
+   sudo needed), `client_max_body_size 55m` (file uploads), long
+   timeouts. AutoLab needs a base path setting (Vite `base`, router
+   `basename`, API prefix, refresh-cookie path, FastAPI `root_path` for
+   /docs): one PR, default `/` so development is unchanged. "Server
+   load" (a host app on :8002) uses `EventSource('/api/stream')`, an
+   absolute path: under `/serverload/` it needs a change in that app
+   (relative `api/stream`) or an nginx `sub_filter`; its SSE also needs
+   `proxy_buffering off`. Waiting for the author's go.
+5. **Chat language**: the author may write Russian or English at any
+   time; reply in the language of the message (repository texts stay
+   English).
+
+Models on the server (2026-10-08; benchmark = the summarize step with a
+6000-character page, 8k context): qwen2.5:3b and qwen2.5-coder:3b ~49
+tok/s, gemma2:2b ~48, gemma3:4b ~16, qwen2.5:7b and qwen2.5-coder:7b ~9,
+llama3.1:8b ~7.5, qwen2.5:14b and qwen2.5-coder:14b ~3.2 (all available);
+deepseek-r1:7b off (thinking uses up the small step limits). All gave
+valid JSON with exact quotes.
 
 ## Next
 
@@ -36,6 +82,7 @@ real model on the test server. The frontend has all MVP screens
      (new step kinds with backward compatibility).
    - Later: a library of scenarios and steps published by authors
      (`BACKLOG.md`).
+   - Deployed 2026-10-08 (migration 0006 ran on the server).
 4. Later (`BACKLOG.md`): the other three pipelines, live push instead of
    polling, HTTPS / access from outside, user search.
 
