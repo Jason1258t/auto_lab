@@ -12,6 +12,7 @@ import { ACTIVE, POLL_MS, stepRows, TaskStatusBadge, TaskSteps, useTask, type Ta
 import { useWork, WorkView } from '@/entities/work'
 import { useWorkspace, workspaceRights } from '@/entities/workspace'
 import { TaskActions } from '@/features/task-actions'
+import { PublishButton } from '@/features/publish-work'
 import { EditTaskButton } from '@/features/task-form'
 import { ChangeReviewer, ReviewForm } from '@/features/task-review'
 import { ApiError, errorText } from '@/shared/api'
@@ -43,6 +44,8 @@ function TaskView({ task }: { task: TaskDetail }) {
   // A work exists after the write step; asked for only from then on.
   const hasWork = task.status === 'in_review' || task.status === 'done' || task.steps.some((s) => s.kind === 'write' && s.status === 'done')
   const work = useWork(task.id, hasWork)
+  // Only the owner publishes, and only an accepted work (backend_spec §6).
+  const canPublish = Boolean(workspace.data?.is_owner) && task.status === 'done' && Boolean(work.data)
   return (
     <>
       <Link to={`/workspaces/${task.workspace_id}`} className="text-sm text-muted-foreground hover:text-foreground">
@@ -65,10 +68,11 @@ function TaskView({ task }: { task: TaskDetail }) {
             </p>
           )}
         </div>
-        {canEdit && (
+        {(canEdit || canPublish) && (
           <div className="flex flex-wrap gap-2">
-            {task.status === 'draft' && <EditTaskButton task={task} />}
-            <TaskActions task={task} />
+            {canPublish && <PublishButton task={task} />}
+            {canEdit && task.status === 'draft' && <EditTaskButton task={task} />}
+            {canEdit && <TaskActions task={task} />}
           </div>
         )}
       </header>

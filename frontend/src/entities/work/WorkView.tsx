@@ -52,21 +52,30 @@ function Evidence({ sources }: { sources: Source[] }) {
   )
 }
 
-/** The text of a work, a warning about sentences without a source, and
- *  the evidence. */
-export function WorkView({ work }: { work: Work }) {
+/** The text of a work and the evidence. `forReview` adds a warning about
+ *  sentences without a source (the marks stay visible either way). Also
+ *  used for publications, which carry the same text and sources. */
+export function WorkView({
+  work,
+  forReview = true,
+}: {
+  work: Pick<Work, 'text' | 'sources'> & { updated_at?: string }
+  forReview?: boolean
+}) {
   const { t } = useTranslation()
   const unsourced = unsourcedCount(work.text)
   return (
     <div className="grid gap-4">
-      {unsourced > 0 && (
+      {forReview && unsourced > 0 && (
         <Alert variant="destructive">
           <AlertDescription>{t('work.unsourced', { count: unsourced })}</AlertDescription>
         </Alert>
       )}
       <Card>
         <CardContent className="grid gap-2">
-          <p className="text-xs text-muted-foreground">{t('work.updated', { date: formatDateTime(work.updated_at) })}</p>
+          {work.updated_at && (
+            <p className="text-xs text-muted-foreground">{t('work.updated', { date: formatDateTime(work.updated_at) })}</p>
+          )}
           <Markdown text={work.text} />
         </CardContent>
       </Card>

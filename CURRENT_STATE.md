@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1-5 done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1-6 done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -64,8 +64,13 @@ Screens, one PR each:
    page ("Result"), on `/works/:id`, and as a Works tab / list.
    `/workspaces/:id` and `/works/:id` also work without login (public
    workspaces, accepted works only).
-6. **Next:** publish + public feed.
-7. Admin: models.
+6. ~~Publish + public feed~~: **Publish** on a done task (workspace
+   owner only): pick one of my publishers or create one in the same
+   dialog, title, description. Public pages without login: `/feed`,
+   `/publications/:id` (text, sources, quotes; no reviewer warning),
+   `/publishers/:id`. "Feed" link in the header.
+7. **Next:** admin: models and providers (and the global activity log,
+   admins, removing a publication).
 
 All API routes: `drafts/backend_spec.md` section 7, or
 `http://localhost:8000/docs` when the API runs.

@@ -10,7 +10,8 @@
   },
   "nav": {
     "workspaces": "Workspaces",
-    "logout": "Log out"
+    "logout": "Log out",
+    "feed": "Feed"
   },
   "theme": {
     "light": "Light theme",
@@ -216,6 +217,23 @@
     "reject": "Reject and run again",
     "waiting": "Waiting for the review by {{name}}."
   },
+  "publish": {
+    "button": "Publish",
+    "title": "Publish the work",
+    "text": "Everyone can read it in the feed, with its sources and quotes. A work is published only once.",
+    "publisher": "Publisher",
+    "newPublisher": "New publisher…",
+    "publisherName": "Publisher name",
+    "publisherHint": "Your name in the feed, for example your name or a project name. Unique.",
+    "submit": "Publish"
+  },
+  "feed": {
+    "title": "Feed",
+    "text": "Published works. Every claim has a source and an exact quote.",
+    "empty": "Nothing is published yet.",
+    "notFound": "This publication does not exist (or was removed).",
+    "publisherNotFound": "This publisher does not exist."
+  },
   "activity": {
     "title": "Activity",
     "empty": "Nothing has happened yet.",
@@ -267,7 +285,12 @@
     "work_not_found": "This work does not exist, or you have no access to it.",
     "task_not_in_review": "This task is not waiting for a review.",
     "comment_required": "A rejection needs a comment: it tells the model what to fix.",
-    "task_finished": "The task is finished."
+    "task_finished": "The task is finished.",
+    "publisher_exists": "This publisher name is taken.",
+    "already_published": "This work is already published.",
+    "task_not_accepted": "Only an accepted work can be published.",
+    "publication_not_found": "This publication does not exist (or was removed).",
+    "publisher_not_found": "This publisher does not exist."
   },
   "fields": {
     "email": "email",
@@ -282,6 +305,7 @@
     "pipeline_id": "pipeline",
     "model_id": "model",
     "reviewer_id": "reviewer",
-    "comment": "comment"
+    "comment": "comment",
+    "publisher_id": "publisher"
   }
 }
