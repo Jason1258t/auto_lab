@@ -502,6 +502,8 @@ Table sessions {
   expires_at timestamptz [not null]
   last_used_at timestamptz
   revoked_at timestamptz [note: 'NULL = active']
+  previous_token_hash text [note: 'token before the last refresh; works for a few seconds']
+  rotated_at timestamptz [note: 'set together with previous_token_hash']
 
   indexes {
     user_id

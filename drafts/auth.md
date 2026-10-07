@@ -81,7 +81,8 @@ Usual access + refresh token scheme:
 
 - **Access token:** short JWT (about 15 minutes), not stored in the DB.
 - **Refresh token:** stored only as a hash. Each refresh replaces it
-  with a new one (rotation).
+  with a new one (rotation). The previous token still works for 10
+  seconds after a refresh (grace period, see `schema_design.md`).
 - After logout, an old access token keeps working until it expires
   (up to about 15 minutes). This is accepted.
 

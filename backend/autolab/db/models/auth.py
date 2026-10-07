@@ -83,5 +83,15 @@ class AuthSession(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The token before the last refresh, accepted for a few seconds after
+    # rotated_at (a reload during a refresh sends it again).
+    previous_token_hash: Mapped[str | None] = mapped_column(Text)
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    __table_args__ = (CheckConstraint("expires_at > created_at", name="sessions_check"),)
+    __table_args__ = (
+        CheckConstraint("expires_at > created_at", name="sessions_check"),
+        CheckConstraint(
+            "(previous_token_hash IS NULL) = (rotated_at IS NULL)",
+            name="sessions_previous_token_check",
+        ),
+    )

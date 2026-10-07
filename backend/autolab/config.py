@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     access_token_minutes: int = 15
     refresh_token_days: int = 30
+    # After a refresh, the previous refresh token still works this long.
+    refresh_grace_seconds: int = 10
     # The refresh cookie is HTTPS-only. Browsers accept that on localhost;
     # a server without HTTPS (plain http://192.168.0.101) needs False until
     # HTTPS exists (BACKLOG.md). Never False on a public address.

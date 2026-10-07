@@ -1,7 +1,7 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migrations 0001-0003 (checked with a pg_dump diff on 2026-10-07). After
+-- migrations 0001-0004 (checked with a pg_dump diff on 2026-10-07). After
 -- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
@@ -401,7 +401,13 @@ CREATE TABLE sessions (
     expires_at         timestamptz NOT NULL,
     last_used_at       timestamptz,
     revoked_at         timestamptz,  -- NULL = active
-    CHECK (expires_at > created_at)
+    -- The token before the last refresh; it still works for a few
+    -- seconds after rotated_at (a page reload during a refresh).
+    previous_token_hash text,
+    rotated_at         timestamptz,
+    CHECK (expires_at > created_at),
+    CONSTRAINT sessions_previous_token_check
+        CHECK ((previous_token_hash IS NULL) = (rotated_at IS NULL))
 );
 
 -- =====================================================================

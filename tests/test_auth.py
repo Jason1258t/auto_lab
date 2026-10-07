@@ -124,15 +124,57 @@ async def test_refresh_moves_expiry_forward(client: httpx.AsyncClient, db: Async
     assert session.expires_at > datetime.now(UTC) + timedelta(days=29)
 
 
-async def test_reused_refresh_token_ends_session(client: httpx.AsyncClient) -> None:
+async def rotated_long_ago(db: AsyncSession) -> None:
+    """Move the last refresh out of the grace period."""
+    session = await db.scalar(select(AuthSession))
+    session.rotated_at = datetime.now(UTC) - timedelta(minutes=1)
+    await db.commit()
+
+
+async def test_reused_refresh_token_ends_session(
+    client: httpx.AsyncClient, db: AsyncSession
+) -> None:
     await signup(client)
     first = (await login(client)).cookies["refresh_token"]
     second = (await refresh_with(client, first)).cookies["refresh_token"]
+    await rotated_long_ago(db)
 
     # The old token is used again: maybe stolen. The whole session ends,
     # so even the newest token stops working.
     assert (await refresh_with(client, first)).status_code == 401
     assert (await refresh_with(client, second)).status_code == 401
+
+
+async def test_previous_token_works_in_grace_period(
+    client: httpx.AsyncClient, db: AsyncSession
+) -> None:
+    """A page reload during a refresh: the browser never got `second` and
+    sends `first` again a moment later. The session goes on."""
+    await signup(client)
+    first = (await login(client)).cookies["refresh_token"]
+    second = (await refresh_with(client, first)).cookies["refresh_token"]
+
+    again = await refresh_with(client, first)
+    assert again.status_code == 200
+    third = again.cookies["refresh_token"]
+    assert third not in (first, second)
+    assert (await refresh_with(client, third)).status_code == 200
+
+    # The window does not move forward with the grace refresh: later the
+    # first token is a reuse again.
+    await rotated_long_ago(db)
+    assert (await refresh_with(client, first)).status_code == 401
+
+
+async def test_older_tokens_get_no_grace(client: httpx.AsyncClient) -> None:
+    """Only the token right before the last refresh has a grace period."""
+    await signup(client)
+    first = (await login(client)).cookies["refresh_token"]
+    second = (await refresh_with(client, first)).cookies["refresh_token"]
+    third = (await refresh_with(client, second)).cookies["refresh_token"]
+
+    assert (await refresh_with(client, first)).status_code == 401
+    assert (await refresh_with(client, third)).status_code == 401
 
 
 async def test_logout(client: httpx.AsyncClient) -> None:

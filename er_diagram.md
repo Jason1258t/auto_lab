@@ -296,6 +296,8 @@ erDiagram
         timestamptz expires_at
         timestamptz last_used_at
         timestamptz revoked_at
+        text previous_token_hash
+        timestamptz rotated_at
     }
 
     users |o--o{ workspaces : "owns / created"
