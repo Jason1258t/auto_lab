@@ -77,6 +77,7 @@ async def my_roles(db: AsyncSession, user: User, workspace_ids: list[int]) -> di
 async def create_workspace(
     db: AsyncSession, user: User, *, name: str, description: str | None
 ) -> Workspace:
+    description = (description or "").strip() or None  # "" = no description
     workspace = Workspace(name=name, description=description, created_by=user.id, owner_id=user.id)
     db.add(workspace)
     await db.commit()
@@ -91,8 +92,8 @@ async def update_workspace(
     workspace = access.workspace
     if name is not None:
         workspace.name = name
-    if description is not None:
-        workspace.description = description
+    if description is not None:  # None = keep it; "" = remove it
+        workspace.description = description.strip() or None
     await db.commit()
     return workspace
 

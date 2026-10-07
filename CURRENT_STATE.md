@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screen 1 done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1 and 2a done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -27,12 +27,16 @@ Screens, one PR each:
 1. ~~Base + log in / sign up~~ (PR #16): API client (access token in memory,
    refresh cookie, one refresh for parallel 401s), session, themes,
    translations, first workspace list, CI job `frontend`.
-2. **Next:** workspace list → workspace page (members, files, tasks).
-   Start: `entities/workspace` already has `useWorkspaces` and
-   `WorkspaceCard`; add create/edit/archive as features, a
-   `pages/workspace` slice, and members/files widgets. Backend routes:
-   `GET/POST /workspaces`, `/workspaces/{id}`, `/members`, `/files`,
-   `/tasks`, `/activity`, `/works`.
+2. Workspaces, in three PRs:
+   - ~~2a: list + workspace page~~: tabs (mine / public / free, the tab is
+     in the URL), create and edit (dialog), archive / unarchive / make
+     public / take / leave / delete (each asks first). `workspaceRights()`
+     in `entities/workspace` hides buttons the user cannot use.
+   - **Next, 2b: members** on the workspace page: list, add by username
+     or email, grant / revoke `editor` and `reviewer`, remove. Routes:
+     `/workspaces/{id}/members...`. Who manages whom: backend_spec.md §6.
+   - 2c: files (upload, download, remove), task list, activity log
+     (owner and editors only).
 3. New task → task page with live steps and LLM calls (full logs).
 4. Review: accept, or reject with a comment.
 5. Work page: text, sources, quotes, *(⚠ no source)* marks.

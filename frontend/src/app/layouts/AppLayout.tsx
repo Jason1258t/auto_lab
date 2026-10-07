@@ -10,7 +10,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const { status } = useSession()
   const location = useLocation()
-  if (status === 'loading') return <p className="p-8 text-muted-foreground">{t('auth.loading')}</p>
+  if (status === 'loading') return <p className="p-8 text-muted-foreground">{t('common.loading')}</p>
   if (status === 'signed_out') return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return children
 }

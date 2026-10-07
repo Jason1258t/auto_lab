@@ -1,21 +1,17 @@
-import { useTranslation } from 'react-i18next'
-
 import { Card, CardDescription, CardHeader, CardTitle } from '@/shared/ui'
 
-import type { Workspace } from './model'
+import { useWorkspaceFacts, type Workspace } from './model'
 
 export function WorkspaceCard({ workspace }: { workspace: Workspace }) {
-  const { t } = useTranslation()
-  const facts = [
-    t(workspace.visibility === 'public' ? 'workspaces.public' : 'workspaces.private'),
-    workspace.archived_at && t('workspaces.archived'),
-    workspace.is_owner && t('workspaces.owner'),
-  ].filter(Boolean)
+  const facts = useWorkspaceFacts(workspace)
   return (
-    <Card>
+    <Card className="h-full transition-colors hover:bg-muted">
       <CardHeader>
         <CardTitle>{workspace.name}</CardTitle>
-        <CardDescription>{facts.join(' · ')}</CardDescription>
+        <CardDescription>{facts}</CardDescription>
+        {workspace.description && (
+          <p className="line-clamp-2 text-sm text-muted-foreground">{workspace.description}</p>
+        )}
       </CardHeader>
     </Card>
   )

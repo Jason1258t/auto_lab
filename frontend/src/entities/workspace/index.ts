@@ -1,2 +1,10 @@
 export { WorkspaceCard } from './WorkspaceCard'
-export { useWorkspaces, workspaceKeys, type Workspace, type WorkspaceScope } from './model'
+export {
+  useWorkspace,
+  useWorkspaceFacts,
+  useWorkspaces,
+  workspaceKeys,
+  workspaceRights,
+  type Workspace,
+  type WorkspaceScope,
+} from './model'

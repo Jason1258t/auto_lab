@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router'
 import { LoginPage } from '@/pages/login'
 import { NotFoundPage } from '@/pages/not-found'
 import { SignupPage } from '@/pages/signup'
+import { WorkspacePage } from '@/pages/workspace'
 import { WorkspacesPage } from '@/pages/workspaces'
 
 import { AppLayout, RequireAuth } from '../layouts/AppLayout'
@@ -20,6 +21,7 @@ export function AppRoutes() {
         }
       >
         <Route index element={<WorkspacesPage />} />
+        <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
