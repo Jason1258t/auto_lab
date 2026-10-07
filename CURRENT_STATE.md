@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend MVP screens 1-7 done).
+Last updated: 2026-10-07 (MVP done: backend, worker and all frontend screens; guides written).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -12,9 +12,20 @@ The database schema is designed, reviewed and migrated (4 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
-real model on the test server. **The frontend is in progress** (`frontend/`).
+real model on the test server. The frontend has all MVP screens
+(`frontend/`), and the API image serves it. Guides for users:
+`docs/USER_GUIDE.md`, `docs/TRY_IT.md`.
 
-## Now: the React frontend
+## Next
+
+1. Deploy the newest `main` to the test server (`DEPLOY.md`, "Update";
+   add `COOKIE_SECURE=false` to its `.env`).
+2. The author goes through `docs/TRY_IT.md` and writes feedback; then
+   fixes and improvements from it, one small PR each.
+3. Later (`BACKLOG.md`): the other three pipelines, live push instead of
+   polling, HTTPS / access from outside, user search.
+
+## The React frontend (how it was built)
 
 Decided 2026-10-07: Vite + React 19 + TypeScript (5.9; `openapi-typescript`
 does not support 6 yet), React Router, TanStack Query, Tailwind +
@@ -88,6 +99,9 @@ Ollama listens on all interfaces without a password, open-webui on
 can run with `COOKIE_SECURE=false` (only on the home network).
 
 ## What exists
+
+**Guides** (for using the app): `docs/USER_GUIDE.md`, `docs/TRY_IT.md`
+(guided tour with expected results and a feedback template).
 
 **Design docs** (reasons for every decision):
 `drafts/schema_design.md` (schema), `drafts/backend_spec.md` (backend,

@@ -16,12 +16,26 @@ npm run api:types  # after a backend API change (needs uv in the repo root)
 ```
 src/
   app/       providers, routes, layouts, global styles: wires everything together
-  pages/     one slice per page (login, signup, workspaces, ...)
-  widgets/   big blocks made of features and entities (app-header, auth-layout)
-  features/  user actions (auth forms, theme-toggle; later: create-task, review)
-  entities/  business things and their data (session, workspace; later: task, work)
+  pages/     one slice per page
+  widgets/   big blocks made of features and entities
+  features/  user actions (a button, a form, a dialog that changes data)
+  entities/  business things: their data hooks and how they look
   shared/    no business logic: api, ui (shadcn atoms), lib, i18n
 ```
+
+What is where (2026-10-07):
+
+| Layer | Slices |
+|---|---|
+| pages | `login`, `signup`, `workspaces`, `workspace`, `task`, `work`, `feed`, `publication`, `publisher`, `admin`, `not-found` |
+| widgets | `app-header`, `auth-layout`, `workspace-tasks`, `workspace-works`, `workspace-files`, `workspace-members`, `workspace-activity` |
+| features | `auth`, `theme-toggle`, `workspace-form`, `workspace-actions`, `member-add`, `member-manage`, `file-upload`, `file-actions`, `task-form`, `task-actions`, `task-review`, `publish-work`, `remove-publication`, `admin-models`, `admin-providers`, `admin-admins` |
+| entities | `session`, `workspace`, `member`, `file`, `task`, `call`, `work`, `review`, `publication`, `catalog`, `activity`, `admin` |
+
+Routes (`app/routes/AppRoutes.tsx`): login needed for `/`, `/tasks/:id`,
+`/admin`; open to everyone for `/workspaces/:id`, `/works/:id`, `/feed`,
+`/publications/:id`, `/publishers/:id` (the backend decides what a
+visitor may see).
 
 Rules:
 
@@ -48,3 +62,14 @@ Rules:
   the refresh token is an httpOnly cookie. Never put tokens in localStorage.
 - **Theme:** colors only from the CSS variables in
   `app/styles/index.css` (light and dark), never fixed colors in components.
+- **Rights:** `workspaceRights()` in `entities/workspace` mirrors
+  `services/permissions.py` to hide buttons a user cannot use. The
+  backend still checks everything; keep both in sync.
+- **Untrusted text:** model output and web quotes go through
+  `shared/ui/markdown.tsx` (no raw HTML) or plain text; never
+  `dangerouslySetInnerHTML`.
+- **Live data:** a task polls every 3 s while queued or running
+  (`refetchInterval` in `entities/task`).
+- **Tests:** whole pages against a fake backend (`src/test/server.ts`).
+  Node's `FormData`/`File` replace jsdom's in `src/test/setup.ts`, so
+  uploads work.
