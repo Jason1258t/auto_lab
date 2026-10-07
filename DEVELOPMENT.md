@@ -64,6 +64,22 @@ was running is queued again at the next start.
 `JWT_SECRET` in `.env` must be at least 32 characters, or the API does
 not start.
 
+## Frontend
+
+```bash
+cd frontend && npm install        # once; packages stay in frontend/node_modules
+npm run dev                       # http://localhost:5173
+```
+
+Needs the API on port 8000 (`uv run uvicorn autolab.api.app:app`). Vite
+passes `/api` to it, so the browser sees one origin and the refresh cookie
+works. Structure and rules: `frontend/README.md`.
+
+Local test account (dev database only): `dev@example.com` /
+`dev-password-local`.
+
+In the Claude desktop app, `.claude/launch.json` starts both (`api`, `web`).
+
 ## Checks
 
 ```bash

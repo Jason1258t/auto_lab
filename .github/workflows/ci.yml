@@ -61,6 +61,36 @@ jobs:
       - name: Tests
         run: uv run pytest -v
 
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci
+      - name: Lint and types
+        run: |
+          npm run lint
+          npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      # The generated API types must match the backend.
+      - name: API types up to date
+        env:
+          DATABASE_URL: postgresql+psycopg://x:y@db/z
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/shared/api
+
   # The production image: catches runtime imports of dev-only packages.
   image:
     runs-on: ubuntu-latest

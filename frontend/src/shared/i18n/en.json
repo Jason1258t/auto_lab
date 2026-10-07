@@ -1,0 +1,57 @@
+{
+  "app": {
+    "name": "AutoLab",
+    "tagline": "Research with sources you can check."
+  },
+  "nav": {
+    "workspaces": "Workspaces",
+    "logout": "Log out"
+  },
+  "theme": {
+    "light": "Light theme",
+    "dark": "Dark theme",
+    "system": "System theme",
+    "toggle": "Change theme (now: {{current}})"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "usernameHint": "3–32 letters, digits or _",
+    "displayName": "Name",
+    "passwordHint": "At least 8 characters",
+    "login": "Log in",
+    "loginTitle": "Log in to AutoLab",
+    "signup": "Sign up",
+    "signupTitle": "Create an account",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?",
+    "loading": "Loading…"
+  },
+  "workspaces": {
+    "title": "Your workspaces",
+    "empty": "No workspaces yet.",
+    "public": "Public",
+    "private": "Private",
+    "archived": "Archived",
+    "owner": "Owner"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to the start"
+  },
+  "errors": {
+    "network": "The server cannot be reached. Try again in a moment.",
+    "invalid_credentials": "Wrong email or password.",
+    "email_taken": "This email is already registered.",
+    "username_taken": "This username is already taken.",
+    "validation_error": "Some fields are not filled in correctly.",
+    "checkFields": "Check: {{fields}}."
+  },
+  "fields": {
+    "email": "email",
+    "username": "username",
+    "display_name": "name",
+    "password": "password"
+  }
+}
