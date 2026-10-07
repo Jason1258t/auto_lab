@@ -1401,8 +1401,12 @@ export interface components {
             my_roles: string[];
             /** Name */
             name: string;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** Owner Id */
             owner_id: number | null;
+            /** Owner Username */
+            owner_username?: string | null;
             visibility: components["schemas"]["WorkspaceVisibility"];
         };
         /** WorkspaceUpdate */

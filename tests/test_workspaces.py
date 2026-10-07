@@ -62,6 +62,22 @@ async def test_public_workspace(client: httpx.AsyncClient, make_user) -> None:
     assert (await client.get(f"{W}/{ws}/members")).status_code == 403
 
 
+async def test_owner_name_is_shown(client: httpx.AsyncClient, make_user) -> None:
+    ann, bob = await make_user("ann"), await make_user("bob")
+    ws = await create(client, ann)
+    await add(client, ws, ann, "bob")
+
+    one = (await client.get(f"{W}/{ws}", headers=bob.headers)).json()
+    assert (one["owner_username"], one["owner_display_name"]) == ("ann", "Ann")
+    listed = (await client.get(W, headers=bob.headers)).json()
+    assert [w["owner_username"] for w in listed] == ["ann"]
+
+    # A free workspace has no owner, so no name.
+    await client.post(f"{W}/{ws}/make-public", headers=ann.headers)
+    archived = (await client.post(f"{W}/{ws}/archive", headers=ann.headers)).json()
+    assert archived["owner_username"] is None
+
+
 async def test_only_owner_edits(client: httpx.AsyncClient, make_user) -> None:
     ann, bob = await make_user("ann"), await make_user("bob")
     ws = await create(client, ann)

@@ -21,17 +21,27 @@ export function WorkspaceMembers({ workspace }: { workspace: Workspace }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          {t('members.title')}
-          {members.data && <span className="ml-2 text-muted-foreground">{members.data.length}</span>}
-        </CardTitle>
+        <CardTitle>{t('members.title')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
         {rights.addMembers && <AddMemberForm workspaceId={workspace.id} />}
         {members.isPending && <p className="text-muted-foreground">{t('common.loading')}</p>}
         {members.isError && <FormError error={errorText(members.error)} />}
-        {members.data?.length === 0 && <p className="text-muted-foreground">{t('members.empty')}</p>}
         <ul className="divide-y divide-border">
+          {workspace.owner_id !== null && workspace.owner_username && (
+            <li>
+              <MemberRow
+                member={{
+                  user_id: workspace.owner_id,
+                  username: workspace.owner_username,
+                  display_name: workspace.owner_display_name ?? workspace.owner_username,
+                  roles: [],
+                }}
+              >
+                <Badge>{t('workspaces.owner')}</Badge>
+              </MemberRow>
+            </li>
+          )}
           {members.data?.map((member) => (
             <li key={member.user_id}>
               <MemberRow member={member}>

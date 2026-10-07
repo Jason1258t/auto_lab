@@ -34,7 +34,9 @@ Screens, one PR each:
      in `entities/workspace` hides buttons the user cannot use.
    - ~~2b: members~~: list, add by username or email, editor / reviewer
      checkboxes (owner: both; editor: reviewer only), remove (asks first).
-     Hidden for visitors of a public workspace.
+     Hidden for visitors of a public workspace. The owner is the first
+     row (`WorkspaceOut.owner_username` / `owner_display_name`, decided
+     2026-10-07).
    - **Next, 2c:** files (upload, download, remove), task list, activity
      log (owner and editors only).
 3. New task → task page with live steps and LLM calls (full logs).
@@ -115,10 +117,6 @@ other three pipelines (`opinion_survey`, `study_notes`,
   drop; dropping is in `BACKLOG.md`).
 
 ## Open questions
-
-- The members list does not show the owner: `GET /members` returns only
-  memberships, and `WorkspaceOut` has only `owner_id`, no name. Option:
-  add `owner_username` / `owner_display_name` to `WorkspaceOut`.
 
 - University course requirements (exact DBMS version, required topics
   like normalization and transactions): assumed PostgreSQL + 3NF so far,

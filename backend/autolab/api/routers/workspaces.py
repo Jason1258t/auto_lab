@@ -24,15 +24,28 @@ Limit = Annotated[int, Query(ge=1, le=100)]
 Offset = Annotated[int, Query(ge=0)]
 
 
-def workspace_out(workspace: Workspace, user: User | None, roles: list[str]) -> WorkspaceOut:
+def workspace_out(
+    workspace: Workspace, user: User | None, roles: list[str], owner: User | None
+) -> WorkspaceOut:
     out = WorkspaceOut.model_validate(workspace)
     out.is_owner = user is not None and workspace.owner_id == user.id
     out.my_roles = roles
+    if owner is not None:
+        out.owner_username = owner.username
+        out.owner_display_name = owner.display_name
     return out
 
 
-def access_out(access: WorkspaceAccess) -> WorkspaceOut:
-    return workspace_out(access.workspace, access.user, sorted(access.roles))
+async def one_out(
+    db: DbSession, workspace: Workspace, user: User | None, roles: list[str]
+) -> WorkspaceOut:
+    found = await workspaces_service.owners(db, [workspace])
+    owner = found.get(workspace.owner_id) if workspace.owner_id is not None else None
+    return workspace_out(workspace, user, roles, owner)
+
+
+async def access_out(db: DbSession, access: WorkspaceAccess) -> WorkspaceOut:
+    return await one_out(db, access.workspace, access.user, sorted(access.roles))
 
 
 def member_out(member: members_service.Member) -> MemberOut:
@@ -54,7 +67,13 @@ async def list_workspaces(
 ) -> list[WorkspaceOut]:
     found = await workspaces_service.list_workspaces(db, user, scope, limit, offset)
     roles = await workspaces_service.my_roles(db, user, [w.id for w in found]) if user else {}
-    return [workspace_out(w, user, roles.get(w.id, [])) for w in found]
+    owners = await workspaces_service.owners(db, found)
+    return [
+        workspace_out(
+            w, user, roles.get(w.id, []), owners.get(w.owner_id) if w.owner_id is not None else None
+        )
+        for w in found
+    ]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -64,12 +83,12 @@ async def create_workspace(
     workspace = await workspaces_service.create_workspace(
         db, principal.user, name=body.name, description=body.description
     )
-    return workspace_out(workspace, principal.user, [])
+    return await one_out(db, workspace, principal.user, [])
 
 
 @router.get("/{workspace_id}")
 async def get_workspace(workspace_id: int, db: DbSession, user: OptionalUser) -> WorkspaceOut:
-    return access_out(await load_access(db, workspace_id, user))
+    return await access_out(db, await load_access(db, workspace_id, user))
 
 
 @router.patch("/{workspace_id}")
@@ -80,7 +99,7 @@ async def update_workspace(
     await workspaces_service.update_workspace(
         db, access, name=body.name, description=body.description
     )
-    return access_out(access)
+    return await access_out(db, access)
 
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -95,14 +114,14 @@ async def delete_workspace(
 async def archive(workspace_id: int, principal: CurrentPrincipal, db: DbSession) -> WorkspaceOut:
     access = await load_access(db, workspace_id, principal.user)
     workspace = await workspaces_service.archive(db, access)
-    return workspace_out(workspace, principal.user, [])
+    return await one_out(db, workspace, principal.user, [])
 
 
 @router.post("/{workspace_id}/unarchive")
 async def unarchive(workspace_id: int, principal: CurrentPrincipal, db: DbSession) -> WorkspaceOut:
     access = await load_access(db, workspace_id, principal.user)
     await workspaces_service.unarchive(db, access)
-    return access_out(access)
+    return await access_out(db, access)
 
 
 @router.post("/{workspace_id}/make-public")
@@ -111,13 +130,13 @@ async def make_public(
 ) -> WorkspaceOut:
     access = await load_access(db, workspace_id, principal.user)
     await workspaces_service.make_public(db, access)
-    return access_out(access)
+    return await access_out(db, access)
 
 
 @router.post("/{workspace_id}/take")
 async def take(workspace_id: int, principal: CurrentPrincipal, db: DbSession) -> WorkspaceOut:
     workspace = await workspaces_service.take(db, principal.user, workspace_id)
-    return workspace_out(workspace, principal.user, [])
+    return await one_out(db, workspace, principal.user, [])
 
 
 # --- Members and roles ---
