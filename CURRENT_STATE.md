@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend started).
+Last updated: 2026-10-07 (backend done and deployed; frontend screen 1 done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -27,7 +27,12 @@ Screens, one PR each:
 1. ~~Base + log in / sign up~~ (PR #16): API client (access token in memory,
    refresh cookie, one refresh for parallel 401s), session, themes,
    translations, first workspace list, CI job `frontend`.
-2. Workspace list → workspace page (members, files, tasks).
+2. **Next:** workspace list → workspace page (members, files, tasks).
+   Start: `entities/workspace` already has `useWorkspaces` and
+   `WorkspaceCard`; add create/edit/archive as features, a
+   `pages/workspace` slice, and members/files widgets. Backend routes:
+   `GET/POST /workspaces`, `/workspaces/{id}`, `/members`, `/files`,
+   `/tasks`, `/activity`, `/works`.
 3. New task → task page with live steps and LLM calls (full logs).
 4. Review: accept, or reject with a comment.
 5. Work page: text, sources, quotes, *(⚠ no source)* marks.
@@ -116,9 +121,14 @@ other three pipelines (`opinion_survey`, `study_notes`,
 ## Working agreements (for agents)
 
 - Read `AGENTS.md` first. Plain English in code, docs and commits.
-- GitHub flow: a `feature/*` branch and a PR per step; CI must pass;
-  auto-merge is allowed for the agent's PRs (merge commit). Docs that the
-  author wants to read first: open the PR, do not merge.
+- GitHub flow: a `feature/*` branch and a PR per step. Required CI checks
+  on `main`: `test` (backend), `frontend` (lint, types, tests, build, API
+  types up to date), `image` (Docker build). Auto-merge is allowed for the
+  agent's PRs (merge commit). Docs the author wants to read first: open
+  the PR, do not merge.
+- Running locally: `docker compose up -d`, then the `api` and `web`
+  configurations in `.claude/launch.json` (or the commands in
+  `DEVELOPMENT.md`). Local test account: see `DEVELOPMENT.md`.
 - Ask the author before schema changes and new product rules; decide
   small rules and list them in the PR description.
 - Never type passwords. Server access is by SSH key (the key is in the
