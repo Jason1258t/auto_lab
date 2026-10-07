@@ -53,6 +53,8 @@ export function workspaceRights(w: Workspace) {
     removeMembers: w.is_owner && !archived,
     editTasks: (w.is_owner || isEditor) && !archived,
     editFiles: (w.is_owner || isEditor) && !archived,
+    /** Review any task here (besides its assigned reviewer). */
+    reviewAny: w.is_owner || isEditor || w.my_roles.includes('reviewer'),
     /** The activity log (admins too). */
     readActivity: w.is_owner || isEditor,
     /** Owner: editor and reviewer; editor: reviewer only. */

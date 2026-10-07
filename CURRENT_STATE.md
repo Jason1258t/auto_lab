@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-07 (backend done and deployed; frontend screens 1-3 done).
+Last updated: 2026-10-07 (backend done and deployed; frontend screens 1-5 done).
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -53,15 +53,18 @@ Screens, one PR each:
      tokens, time, error); click a call to load its full prompt, expected
      JSON shape and answer (`GET /calls/{id}/log`, now typed as
      `CallLogOut`). Shown only as plain text (web pages are untrusted).
-4. **Next:** review: accept, or reject with a comment (task page, for the
-   reviewer, owner, editors and reviewers; rules in backend_spec.md §6).
+4. ~~Review~~: on the task page. The assigned reviewer, the owner,
+   editors and reviewers accept, or reject with a comment (the button
+   stays off without one); a rejection puts the task back in the queue.
+   Review history with names. Owner and editors change the reviewer
+   (select in the header) until the task is done or cancelled.
 5. ~~Work view~~ (done before 4, the reviewer needs it): Markdown text
    (`react-markdown`: no raw HTML, no unsafe links), *(⚠ no source)*
    marks highlighted and counted, sources with their quotes. On the task
    page ("Result"), on `/works/:id`, and as a Works tab / list.
    `/workspaces/:id` and `/works/:id` also work without login (public
    workspaces, accepted works only).
-6. Publish + public feed.
+6. **Next:** publish + public feed.
 7. Admin: models.
 
 All API routes: `drafts/backend_spec.md` section 7, or

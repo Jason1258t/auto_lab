@@ -157,7 +157,9 @@
     "stepNumber": "Step {{n}}",
     "seconds_one": "{{count}} second",
     "seconds_other": "{{count}} seconds",
-    "notFound": "This task does not exist, or you have no access to it."
+    "notFound": "This task does not exist, or you have no access to it.",
+    "nobody": "nobody",
+    "userNumber": "user {{id}}"
   },
   "taskActions": {
     "queue": "Queue",
@@ -203,6 +205,16 @@
     "unsourced_other": "{{count}} sentences have no source. Check them before you accept the work.",
     "notFound": "This work does not exist, or you have no access to it.",
     "backToWorkspace": "Workspace"
+  },
+  "review": {
+    "title": "Review",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "comment": "Comment",
+    "commentHint": "Needed to reject: tell the model what to fix. The last steps then run again with your comment.",
+    "accept": "Accept",
+    "reject": "Reject and run again",
+    "waiting": "Waiting for the review by {{name}}."
   },
   "activity": {
     "title": "Activity",
@@ -252,7 +264,10 @@
     "reviewer_not_member": "The reviewer must be in this workspace.",
     "log_not_found": "The full log of this call is not kept any more.",
     "call_not_found": "This model call does not exist.",
-    "work_not_found": "This work does not exist, or you have no access to it."
+    "work_not_found": "This work does not exist, or you have no access to it.",
+    "task_not_in_review": "This task is not waiting for a review.",
+    "comment_required": "A rejection needs a comment: it tells the model what to fix.",
+    "task_finished": "The task is finished."
   },
   "fields": {
     "email": "email",
@@ -266,6 +281,7 @@
     "input": "task",
     "pipeline_id": "pipeline",
     "model_id": "model",
-    "reviewer_id": "reviewer"
+    "reviewer_id": "reviewer",
+    "comment": "comment"
   }
 }
