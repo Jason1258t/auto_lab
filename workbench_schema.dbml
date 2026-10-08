@@ -319,6 +319,10 @@ Table llm_responses {
 
 Ref: llm_responses.call_id - llm_calls.id [delete: cascade]
 
+// View llm_step_budgets (migration 0007) is only in the SQL: dbdiagram.io
+// has no views. It groups llm_calls + llm_responses by model and
+// pipeline step (drafts/token_budgets.md).
+
 Table log_deletions {
   call_id bigint [pk, note: 'no FK: the call is already deleted; filled by a trigger on llm_calls']
   created_at timestamptz [not null, default: `now()`]

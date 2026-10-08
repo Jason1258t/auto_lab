@@ -8,7 +8,7 @@ out again.
 
 ## In one paragraph
 
-The database schema is designed, reviewed and migrated (6 migrations).
+The database schema is designed, reviewed and migrated (7 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
@@ -26,7 +26,10 @@ Unfinished, in the order the author cares about:
    step is barely a couple of sentences). **Accepted** on 2026-10-08:
    columns on `models`; thinking left at the model's default; six size
    classes (`small`, `medium`, `large` and `small_think`,
-   `medium_think`, `large_think`); phase 1 first (no schema change). Also
+   `medium_think`, `large_think`); phase 1 first. Done in phase 1:
+   retry a cut answer with 2× the limit and window guard (PR #42);
+   budget report view `llm_step_budgets` (PR #43). Next: per-call
+   timeout, shorter `verify` answers in new pipeline versions. Also
    in scope: the **per-call timeout** should follow the step's token
    limit and the model's speed (today one global `LLM_TIMEOUT_SECONDS`;
    raised to 3600 on the server on 2026-10-08 because 14B models write
@@ -195,6 +198,8 @@ After-MVP ideas: `BACKLOG.md`.
   longer logs the user out).
 - 0005 (data only): pipeline rows `deep_research`, `code`, `python_cli`.
 - 0006: activity action `pipeline_uploaded`, target type `pipeline`.
+- 0007: view `llm_step_budgets` (token use per model and pipeline step:
+  limit, average/max output, cut and invalid share, seconds, speed).
 - Snapshots kept in sync (checked with a `pg_dump` diff):
   `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
 - **Outdated:** `drafts/schema_design.html` (the published schema page)

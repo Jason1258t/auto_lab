@@ -14,7 +14,9 @@ How to read the lines:
 | `o\|` | zero or one (1 : 0..1 tables like `works`, `llm_responses`) |
 
 Not shown as lines: `activity_events` and `log_deletions` have no FKs
-on purpose (their rows must survive deletes). `llm_calls.task_id` is
+on purpose (their rows must survive deletes). The view
+`llm_step_budgets` (a report over `llm_calls` and `llm_responses`) is not
+an entity, so it is not drawn. `llm_calls.task_id` is
 covered by the line to `task_steps` (composite FK `(task_id, step_index)`).
 
 ## 1. Overview (entities and relationships)

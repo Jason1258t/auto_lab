@@ -297,6 +297,14 @@ async def test_cut_answer_retried_with_more_room(setup, db: AsyncSession) -> Non
     assert [r.params["max_tokens"] for r in adapter.requests] == [512, 1024]
     assert (await db.get(Task, task_id)).status == TaskStatus.IN_REVIEW
 
+    # The budget report (a view) sees both calls.
+    row = (
+        await db.execute(text("SELECT * FROM llm_step_budgets WHERE model_name = 'fake-model'"))
+    ).one()
+    assert (row.pipeline_name, row.step_index, row.revise_step) == ("creative_writing", 0, False)
+    assert (row.calls, row.failed_calls, row.avg_limit) == (2, 0, 768)
+    assert (row.max_output_tokens, row.cut_share, row.invalid_share) == (5, 0.5, 0.5)
+
 
 async def test_limit_lowered_to_fit_the_window(setup, db: AsyncSession) -> None:
     step = {**PLAN_STEP, "llm": {**PLAN_STEP["llm"], "max_tokens": 8000}}
