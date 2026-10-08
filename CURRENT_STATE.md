@@ -55,7 +55,7 @@ Unfinished, in the order the author cares about:
      produce any number of files; today a work is one Markdown text (code
      works put files as code blocks into it). Design: a work with
      several files (download one or all), shown in the web app.
-5. **Chat language**5. **Chat language**: the author may write Russian or English at any
+5. **Chat language**: the author may write Russian or English at any
    time; reply in the language of the message (repository texts stay
    English).
 
