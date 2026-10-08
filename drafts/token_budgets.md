@@ -77,7 +77,9 @@ So for the 3B model the limits are fine. The problems are elsewhere:
 
 ### Phase 1: safe fixes, no schema change
 
-0. **Cut useless output.** New pipeline versions drop or shorten fields
+0. **Cut useless output** (done, PR #45: `research 1.2.0`,
+   `deep_research 1.1.0`; `reason` optional, max 60 characters,
+   `max_tokens` 150 → 60). New pipeline versions drop or shorten fields
    that code does not use (e.g. `verify.reason` → optional, max 60
    characters, or removed). Biggest time win for slow models, no code.
 1. **Retry a cut answer with more room** (done, PR #42). If an attempt ends with

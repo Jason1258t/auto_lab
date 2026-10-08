@@ -38,6 +38,12 @@ def test_research_file_is_valid() -> None:
     ]
 
 
+@pytest.mark.parametrize("path", sorted(Path("pipelines").glob("*/*.yaml")), ids=str)
+def test_every_built_in_file_is_valid(path: Path) -> None:
+    pipeline = load_pipeline(path)
+    assert (pipeline.pipeline, pipeline.version) == (path.parent.name, path.stem)
+
+
 @pytest.mark.parametrize(
     ("change", "message"),
     [
