@@ -1,7 +1,9 @@
 """Research step kinds and work assembly, with a fake model and fake web."""
 
+import asyncio
 import json
 import shutil
+import socket
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -348,3 +350,31 @@ async def test_empty_search_is_tried_again() -> None:
     out = await research.search(ctx)
     assert calls == ["sky", "sky", "sky"]
     assert [r["url"] for r in out["results"]] == ["http://a.test/1"]
+
+
+async def test_temporary_dns_failure_is_tried_again(monkeypatch) -> None:
+    from autolab.worker import web
+
+    monkeypatch.setattr(web, "DNS_RETRY_SECONDS", (0.0, 0.0))
+    calls = []
+
+    async def flaky(host, port, **kwargs):
+        calls.append(host)
+        if len(calls) < 3:
+            raise socket.gaierror(socket.EAI_AGAIN, "Temporary failure in name resolution")
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+
+    loop = asyncio.get_running_loop()
+    monkeypatch.setattr(loop, "getaddrinfo", flaky)
+    assert await web.resolve("example.test") == ["93.184.216.34"]
+    assert len(calls) == 3
+
+    async def missing(host, port, **kwargs):
+        calls.append(host)
+        raise socket.gaierror(socket.EAI_NONAME, "Name or service not known")
+
+    monkeypatch.setattr(loop, "getaddrinfo", missing)
+    calls.clear()
+    with pytest.raises(socket.gaierror):
+        await web.resolve("nope.test")
+    assert len(calls) == 1  # a missing name is not tried again

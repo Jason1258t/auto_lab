@@ -8,14 +8,13 @@ server access deploys (the agent, when it has access). How: `DEPLOY.md`,
 After a deploy: check the items below, then empty the list (keep the
 header) and write the date in `CURRENT_STATE.md`.
 
-Last deploy: 2026-10-08, 16:25 (up to PR #49; migration 0008).
+Last deploy: 2026-10-08, 21:40 (up to PR #53).
 
 ## Changes
 
 | PR | What | Check after deploy |
 |---|---|---|
-| #53 | Durations as "12 min 5 s" / "1 h 23 min" on the task page | a long step shows minutes |
-| #51 | Search: an empty or failed query is tried again after 10 and 30 s | **deploy only when no task is running** (a deploy restarts the worker); then a task's search step survives a short SearxNG block |
+| #54 | DNS: a temporary failure (EAI_AGAIN) is tried again after 1 and 3 s | fewer "the host name cannot be resolved" in the worker log |
 
 ## Needs sudo (the author runs it)
 
