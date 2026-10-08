@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from autolab.config import Settings
 from autolab.db.models import ActivityEvent, PipelineVersion
 from autolab.services.admins import grant_admin
-from autolab.worker.pipelines import file_hash, load_pipeline
+from autolab_engine.pipelines import file_hash, load_pipeline
 
 API = "/api/v1"
 CODE_FILE = Path("pipelines/code/1.0.0.yaml").read_bytes()

@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 from autolab.worker.kinds.base import StepContext, StepFailed
 from autolab.worker.llm_manager import CHARS_PER_TOKEN
-from autolab.worker.web import FetchError, fetch_page, searxng_search
+from autolab_engine.web import FetchError, fetch_page, searxng_search
 
 log = logging.getLogger(__name__)
 

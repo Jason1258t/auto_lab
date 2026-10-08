@@ -8,7 +8,7 @@ import pytest
 from autolab.db.models.enums import FinishReason
 from autolab.worker.kinds.base import StepContext, StepFailed
 from autolab.worker.llm_manager import CallResult
-from autolab.worker.pipelines import Step
+from autolab_engine.pipelines import Step
 
 OUTPUT = {
     "type": "object",

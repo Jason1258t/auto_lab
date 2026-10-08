@@ -10,13 +10,13 @@ import httpx
 from autolab.config import Settings
 from autolab.db.models import Model, Task
 from autolab.db.models.enums import FinishReason
-from autolab.worker import templates
-from autolab.worker.gateway import Message
-from autolab.worker.language import Language, detect, matches
-from autolab.worker.language import note as language_note
 from autolab.worker.llm_manager import LlmCallFailed, LlmManager, PromptTooLong
-from autolab.worker.pipelines import PipelineFile, Step
-from autolab.worker.web import Resolver
+from autolab_engine import templates
+from autolab_engine.gateway import Message
+from autolab_engine.language import Language, detect, matches
+from autolab_engine.language import note as language_note
+from autolab_engine.pipelines import PipelineFile, Step
+from autolab_engine.web import Resolver
 
 log = logging.getLogger(__name__)
 

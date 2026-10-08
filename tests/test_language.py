@@ -13,9 +13,9 @@ from autolab.config import Settings
 from autolab.db.models import Model, Pipeline, PipelineVersion, Task, Work, Workspace
 from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
-from autolab.worker.gateway import GenerateRequest
-from autolab.worker.language import ENGLISH, detect, matches, note
 from autolab.worker.main import Worker
+from autolab_engine.gateway import GenerateRequest
+from autolab_engine.language import ENGLISH, detect, matches, note
 from tests.fakes import FakeAdapter
 from tests.test_research import fake_model as english_model
 from tests.test_research import fake_resolver, fake_web, step_summaries

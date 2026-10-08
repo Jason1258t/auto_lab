@@ -2,6 +2,21 @@
 
 from enum import StrEnum
 
+# Shared with the pipeline engine (same values as the DB types).
+from autolab_engine.enums import FinishReason, ModelSizeClass
+
+__all__ = [
+    "CapabilityKind",
+    "FinishReason",
+    "LlmCallStatus",
+    "ModelSizeClass",
+    "ReviewResult",
+    "SourceKind",
+    "TaskStatus",
+    "TaskStepStatus",
+    "WorkspaceVisibility",
+]
+
 
 class WorkspaceVisibility(StrEnum):
     PRIVATE = "private"
@@ -35,28 +50,6 @@ class LlmCallStatus(StrEnum):
     DONE = "done"
     FAILED = "failed"
     CANCELLED = "cancelled"
-
-
-class FinishReason(StrEnum):
-    STOP = "stop"
-    LENGTH = "length"
-    OTHER = "other"
-
-
-class ModelSizeClass(StrEnum):
-    """How big a step a model handles; *_think = a thinking model of that
-    size, it gets models.reasoning_tokens of extra room (migration 0008)."""
-
-    SMALL = "small"
-    MEDIUM = "medium"
-    LARGE = "large"
-    SMALL_THINK = "small_think"
-    MEDIUM_THINK = "medium_think"
-    LARGE_THINK = "large_think"
-
-    @property
-    def thinks(self) -> bool:
-        return self.value.endswith("_think")
 
 
 class SourceKind(StrEnum):

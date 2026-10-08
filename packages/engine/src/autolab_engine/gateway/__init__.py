@@ -1,13 +1,13 @@
 """Adapters by name (`model_providers.adapter`)."""
 
-from autolab.worker.gateway.base import (
+from autolab_engine.gateway.base import (
     Adapter,
     GatewayError,
     GenerateRequest,
     GenerateResult,
     Message,
 )
-from autolab.worker.gateway.ollama import OllamaAdapter
+from autolab_engine.gateway.ollama import OllamaAdapter
 
 __all__ = [
     "Adapter",

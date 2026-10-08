@@ -7,7 +7,7 @@ GenerateRequest; the adapter of the model's provider answers.
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from autolab.db.models.enums import FinishReason
+from autolab_engine.enums import FinishReason
 
 
 @dataclass(frozen=True)

@@ -17,7 +17,7 @@ from autolab.config import Settings
 from autolab.db.models import Quote, Task, Work, WorkSource
 from autolab.db.models.enums import SourceKind
 from autolab.worker.kinds.base import StepFailed
-from autolab.worker.pipelines import PipelineFile
+from autolab_engine.pipelines import PipelineFile
 
 
 def work_path(settings: Settings, task_id: int, when: datetime) -> Path:

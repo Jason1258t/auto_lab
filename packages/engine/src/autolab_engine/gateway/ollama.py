@@ -2,8 +2,8 @@
 
 import httpx
 
-from autolab.db.models.enums import FinishReason
-from autolab.worker.gateway.base import GatewayError, GenerateRequest, GenerateResult
+from autolab_engine.enums import FinishReason
+from autolab_engine.gateway.base import GatewayError, GenerateRequest, GenerateResult
 
 DEFAULT_BASE_URL = "http://localhost:11434"
 

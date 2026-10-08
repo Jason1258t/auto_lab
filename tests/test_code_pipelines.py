@@ -14,9 +14,9 @@ from autolab.config import Settings
 from autolab.db.models import Model, Pipeline, PipelineVersion, Task, TaskStep, Work, Workspace
 from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
-from autolab.worker.gateway import GenerateRequest
 from autolab.worker.kinds import code
 from autolab.worker.main import Worker
+from autolab_engine.gateway import GenerateRequest
 from tests.fakes import FakeAdapter
 
 # --- unit tests ---

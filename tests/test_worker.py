@@ -28,9 +28,9 @@ from autolab.db.models.enums import (
     TaskStepStatus,
 )
 from autolab.logstore import FileLogStore
-from autolab.worker.gateway import GatewayError, GenerateRequest
 from autolab.worker.main import Worker, claim_next_task, clean_up_logs, recover_tasks
 from autolab.worker.runner import output_path
+from autolab_engine.gateway import GatewayError, GenerateRequest
 from tests.fakes import FakeAdapter
 
 QUERIES = json.dumps({"queries": ["why is the sky blue"]})

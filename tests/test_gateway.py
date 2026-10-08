@@ -5,9 +5,9 @@ import json
 import httpx
 
 from autolab.db.models.enums import FinishReason
-from autolab.worker.gateway.base import GenerateRequest, GenerateResult, Message
-from autolab.worker.gateway.ollama import OllamaAdapter
 from autolab.worker.llm_manager import Speed
+from autolab_engine.gateway.base import GenerateRequest, GenerateResult, Message
+from autolab_engine.gateway.ollama import OllamaAdapter
 
 
 async def test_ollama_request_has_the_context_window() -> None:
