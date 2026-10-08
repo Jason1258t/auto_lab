@@ -20,8 +20,9 @@ real model on the test server. The frontend has all MVP screens
 
 Server access for the agent is back (2026-10-08, afternoon). Still list
 every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and
-empty it after a deploy. Last deploy: 2026-10-08 (migrations 0007-0008,
-PRs #42-#46; checked: model classes, new pipeline versions, the view).
+empty it after a deploy. Last deploy: 2026-10-08, 16:25 (up to PR #49,
+migrations 0007-0008; checked: model classes, new pipeline versions
+research 1.3.0 / deep_research 1.2.0, the view).
 
 Unfinished, in the order the author cares about:
 
