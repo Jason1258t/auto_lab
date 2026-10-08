@@ -44,9 +44,10 @@ Unfinished, in the order the author cares about:
    for models in the admin page. Phase 3: config values by size class
    and `fetch.max_chars: auto` (PR #48); batches in `verify` / `group`
    with `research 1.3.0` and `deep_research 1.2.0` (PR #49). Phases 1-3
-   are done. Next: measure on the server (a 7B `deep_research` with
-   1.0.0 vs 1.2.0, `llm_step_budgets`), then phase 4 (suggest values
-   from the report).
+   are done. Measured on 2026-10-08 (`drafts/token_budgets.md`,
+   "Measurements"): fact extraction is 2/3 of a 7B deep research. Still
+   to measure: 1.2.0 on `qwen2.5:7b` (task 6 failed on search). Then
+   phase 4 (suggest values from the report).
 2. ~~A heavy model~~: `mistral-small:22b` (12 GB) is in the catalog:
    ~2 tok/s writing, ~27 tok/s prompt reading, valid JSON and exact
    quotes in the benchmark. `llama3:8b` and `phi3:mini` were removed to
@@ -275,6 +276,13 @@ stage) and the API serves it (`api/frontend.py`), so the whole app is at
   drop; dropping is in `BACKLOG.md`).
 
 ## Open questions
+
+- **Fact extraction on slow models** (2026-10-08 benchmark): the model
+  always fills the maximum of 3 facts per page, and `verify` drops more
+  than half of them; on a 7B model this step is 60 of 88 minutes.
+  Options: fewer facts per page on bigger classes; or ask only for facts
+  whose quote fully supports the claim (fewer, better facts, cheaper
+  `verify`); or both. Waiting for the author.
 
 - University course requirements (exact DBMS version, required topics
   like normalization and transactions): assumed PostgreSQL + 3NF so far,
