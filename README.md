@@ -26,6 +26,7 @@ admin page. Details: `CURRENT_STATE.md`.
 
 - `DEVELOPMENT.md`: on your machine (Docker + uv + npm).
 - `DEPLOY.md`: the test server (`http://192.168.0.101:8000`).
+- `DEPLOY_PENDING.md`: merged changes not yet on the server.
 
 ## How it is built
 

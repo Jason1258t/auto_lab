@@ -18,6 +18,10 @@ real model on the test server. The frontend has all MVP screens
 
 ## Start here next session (handoff 2026-10-08)
 
+**No server access for the agent** (since 2026-10-08). Everything
+merged but not deployed is listed in `DEPLOY_PENDING.md`; add to it with
+every PR that needs a deploy step.
+
 Unfinished, in the order the author cares about:
 
 1. **Token budgets per step** (`drafts/token_budgets.md`, PR #37). The
@@ -31,8 +35,8 @@ Unfinished, in the order the author cares about:
    budget report view `llm_step_budgets` (PR #43); per-call timeout
    from the learned model speed (PR #44; `LLM_TIMEOUT_SECONDS` is now
    the first-call timeout and the upper bound, 3600 on the server).
-   Next: shorter `verify` answers in new pipeline versions (item 0),
-   then phase 2 (schema: `size_class`, `reasoning_tokens`,
+   Short `verify` answers: `research 1.2.0`, `deep_research 1.1.0`
+   (PR #45). Phase 1 is done. Next: phase 2 (schema: `size_class`, `reasoning_tokens`,
    `max_output_tokens` on `models`).
 2. ~~A heavy model~~: `mistral-small:22b` (12 GB) is in the catalog:
    ~2 tok/s writing, ~27 tok/s prompt reading, valid JSON and exact
