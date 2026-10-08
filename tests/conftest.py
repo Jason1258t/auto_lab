@@ -24,6 +24,13 @@ from autolab.api.app import create_app  # noqa: E402
 from autolab.api.deps import get_session  # noqa: E402
 from autolab.config import Settings, get_settings  # noqa: E402
 from autolab.logstore import FileLogStore  # noqa: E402
+from autolab.worker.kinds import research  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def no_search_pauses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Retry empty searches at once in tests (no 10 and 30 s pauses)."""
+    monkeypatch.setattr(research, "SEARCH_RETRY_SECONDS", (0.0, 0.0))
 
 
 @pytest.fixture(scope="session")

@@ -332,3 +332,19 @@ def test_page_chars_auto_follows_the_window() -> None:
     assert research.page_chars(ctx, "auto") == 14336  # half of 8192 tokens x 3.5
     assert research.page_chars(ctx, 6000) == 6000
     assert research.page_chars(SimpleNamespace(model=None), "auto") == 6000
+
+
+async def test_empty_search_is_tried_again() -> None:
+    calls = []
+
+    def blocked_then_ok(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.params["q"])
+        if len(calls) < 3:  # the engines are blocked for a moment
+            return httpx.Response(200, json={"results": []})
+        return httpx.Response(200, json={"results": [{"title": "A", "url": "http://a.test/1"}]})
+
+    ctx = step_ctx({"max_candidates": 5}, ["sky"])
+    ctx.http = httpx.AsyncClient(transport=httpx.MockTransport(blocked_then_ok))
+    out = await research.search(ctx)
+    assert calls == ["sky", "sky", "sky"]
+    assert [r["url"] for r in out["results"]] == ["http://a.test/1"]

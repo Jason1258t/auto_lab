@@ -148,7 +148,7 @@ usage notes. Its output fields are the fields of your `output` schema.
 
 | Kind | Model | Input | Config (default) | Output |
 |---|---|---|---|---|
-| `search` | no | queries (`from`) | `results_per_query` (5), `max_candidates` (5; old name `max_sources`), `max_per_domain` (no limit), `skip_seen` (false: skip URLs earlier steps found or read), `optional` (false: no queries or results is not an error) | `results`: title, url, snippet |
+| `search` | no | queries (`from`) | `results_per_query` (5), `max_candidates` (5; old name `max_sources`), `max_per_domain` (no limit), `skip_seen` (false: skip URLs earlier steps found or read), `optional` (false: no queries or results is not an error); an empty or failed query is tried again after 10 and 30 s (search engines sometimes block for a minute) | `results`: title, url, snippet |
 | `fetch` | no | results (`from`) | `target_sources` (all), `min_sources` (1), `min_chars` (1: text needed to count a page as readable), `parallel` (1), `max_chars` (6000; `auto` = half of the model's window, e.g. 14 336 characters for 8192 tokens), `max_bytes` (2 000 000) | `sources`: title, url, text |
 | `summarize` | yes, per source | sources (`for_each`) | `optional` (false); your numbers (e.g. `max_facts`) | `facts`: claim, quote, source; `dropped_quotes` |
 | `verify` | yes, per fact (or per batch) | facts (`for_each`) | `keep` ([supported]), `batch_size` (none) | `facts` (with `verdict`), `verdicts` |
