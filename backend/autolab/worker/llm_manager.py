@@ -40,6 +40,7 @@ SessionFactory = Callable[[], AsyncSession]
 CHARS_PER_TOKEN = 3.5
 TOKENS_PER_MESSAGE = 10  # the chat template around each message
 MIN_ANSWER_TOKENS = 64  # less room than this: do not even try
+DEFAULT_REASONING_TOKENS = 1024  # models.reasoning_tokens is NULL
 
 # Per-call timeout (phase 1, item 3): expected time x 2, plus time to load
 # the model into memory (a 12 GB model takes about a minute from disk).
@@ -123,6 +124,20 @@ def estimate_tokens(messages: list[Message]) -> int:
     """A rough prompt size in tokens, from the length of the text."""
     chars = sum(len(m.content) for m in messages)
     return math.ceil(chars / CHARS_PER_TOKEN) + TOKENS_PER_MESSAGE * len(messages)
+
+
+def add_model_budget(params: dict[str, Any], model: Model) -> dict[str, Any]:
+    """max_tokens in a pipeline file is the answer size. A thinking model
+    (a *_think class) gets extra room to think before the answer; the
+    model's own output cap is the upper bound (token_budgets.md, phase 2)."""
+    if "max_tokens" not in params:
+        return params
+    limit = params["max_tokens"]
+    if model.size_class.thinks:
+        limit += model.reasoning_tokens or DEFAULT_REASONING_TOKENS
+    if model.max_output_tokens is not None:
+        limit = min(limit, model.max_output_tokens)
+    return {**params, "max_tokens": limit}
 
 
 def fit_to_window(
@@ -252,7 +267,9 @@ class LlmManager:
 
         prompt_tokens = estimate_tokens(job.messages)
         try:
-            params = fit_to_window(job.params, prompt_tokens, model.context_length)
+            params = fit_to_window(
+                add_model_budget(job.params, model), prompt_tokens, model.context_length
+            )
         except PromptTooLong as exc:
             await self._set_status(job.call_id, LlmCallStatus.FAILED, error=str(exc))
             job.future.set_exception(exc)

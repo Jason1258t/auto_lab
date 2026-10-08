@@ -106,7 +106,7 @@ So for the 3B model the limits are fine. The problems are elsewhere:
    `llm_responses`: per model and step, calls, average/max output, cut
    share, invalid share, seconds. (Fits the course: a reporting view.)
 
-### Phase 2: model profiles in the catalog (schema change, ask first)
+### Phase 2: model profiles in the catalog (done, PR #46, migration 0008)
 
 New columns on `models`:
 

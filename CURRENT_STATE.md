@@ -36,8 +36,11 @@ Unfinished, in the order the author cares about:
    from the learned model speed (PR #44; `LLM_TIMEOUT_SECONDS` is now
    the first-call timeout and the upper bound, 3600 on the server).
    Short `verify` answers: `research 1.2.0`, `deep_research 1.1.0`
-   (PR #45). Phase 1 is done. Next: phase 2 (schema: `size_class`, `reasoning_tokens`,
-   `max_output_tokens` on `models`).
+   (PR #45). Phase 1 is done. Phase 2 is done (PR #46, migration 0008):
+   `models.size_class` / `reasoning_tokens` / `max_output_tokens`, the
+   output limit adds thinking room for `*_think` classes, an edit dialog
+   for models in the admin page. Next: phase 3 (batching in `group` /
+   `verify`, size-dependent config values, `fetch.max_chars: auto`).
 2. ~~A heavy model~~: `mistral-small:22b` (12 GB) is in the catalog:
    ~2 tok/s writing, ~27 tok/s prompt reading, valid JSON and exact
    quotes in the benchmark. `llama3:8b` and `phi3:mini` were removed to
@@ -204,6 +207,9 @@ After-MVP ideas: `BACKLOG.md`.
 - 0006: activity action `pipeline_uploaded`, target type `pipeline`.
 - 0007: view `llm_step_budgets` (token use per model and pipeline step:
   limit, average/max output, cut and invalid share, seconds, speed).
+- 0008: ENUM `model_size_class` (6 values); `models.size_class`,
+  `reasoning_tokens`, `max_output_tokens`; classes set for the server's
+  models by name; `deepseek-r1:7b` available again (`medium_think`).
 - Snapshots kept in sync (checked with a `pg_dump` diff):
   `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
 - **Outdated:** `drafts/schema_design.html` (the published schema page)

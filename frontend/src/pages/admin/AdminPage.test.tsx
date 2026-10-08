@@ -1,5 +1,5 @@
 // The admin page and removing a publication, with a fake backend.
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 
@@ -15,6 +15,7 @@ const PROVIDER = { id: 1, name: 'ollama', adapter: 'ollama', base_url: null }
 const MODEL: AdminModel = {
   id: 1, provider_id: 1, name: 'qwen2.5:3b', context_length: 32768, vram_mb: 2500, ram_mb: null,
   cost_per_1m_input: null, cost_per_1m_output: null, description: null, available: false, created_at: '2026-10-07T10:00:00Z',
+  size_class: 'small', reasoning_tokens: null, max_output_tokens: null,
 }
 
 test('an admin adds a model and makes it available', async () => {
@@ -38,7 +39,7 @@ test('an admin adds a model and makes it available', async () => {
   renderApp('/admin')
   const user = userEvent.setup()
   expect(await screen.findByText('qwen2.5:3b')).toBeInTheDocument()
-  expect(screen.getByText(/ollama · 32768 tokens context · 2500 MB VRAM/)).toBeInTheDocument()
+  expect(screen.getByText(/ollama · 32768 tokens context · 2500 MB VRAM · Small \(about 3B\)/)).toBeInTheDocument()
 
   await user.click(screen.getByRole('checkbox', { name: 'Available' }))
   await user.click(screen.getByRole('button', { name: 'Add model' }))
@@ -48,7 +49,38 @@ test('an admin adds a model and makes it available', async () => {
   expect(await screen.findByText('llama3.2:3b')).toBeInTheDocument()
   expect(sent).toEqual([
     { available: true },
-    { provider_id: 1, name: 'llama3.2:3b', context_length: 4096, vram_mb: null, description: null },
+    {
+      provider_id: 1, name: 'llama3.2:3b', context_length: 4096, vram_mb: null,
+      size_class: 'small', reasoning_tokens: null, max_output_tokens: null, description: null,
+    },
+  ])
+})
+
+test('an admin makes a model a thinking model', async () => {
+  const sent: unknown[] = []
+  server.use(
+    ...asAdmin,
+    http.get(`${API}/admin/models`, () => HttpResponse.json([MODEL])),
+    http.get(`${API}/admin/model-providers`, () => HttpResponse.json([PROVIDER])),
+    http.patch(`${API}/admin/models/1`, async ({ request }) => {
+      sent.push(await request.json())
+      return HttpResponse.json({ ...MODEL, size_class: 'medium_think', reasoning_tokens: 2048 })
+    }),
+  )
+  renderApp('/admin')
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Edit qwen2.5:3b' }))
+  const dialog = await screen.findByRole('dialog')
+  expect(within(dialog).queryByLabelText('Tokens to think')).not.toBeInTheDocument()
+  await user.selectOptions(within(dialog).getByLabelText('Size class'), 'medium_think')
+  await user.type(within(dialog).getByLabelText('Tokens to think'), '2048')
+  await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  expect(sent).toEqual([
+    {
+      name: 'qwen2.5:3b', context_length: 32768, vram_mb: 2500,
+      size_class: 'medium_think', reasoning_tokens: 2048, max_output_tokens: null, description: null,
+    },
   ])
 })
 

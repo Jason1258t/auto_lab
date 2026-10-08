@@ -144,6 +144,18 @@ workspace"). Add / remove: owner, editor. List / download: members.
 | description | text | yes | for people |
 | available | boolean | no | default `true`; models are never deleted |
 | created_at | timestamptz | no | default `now()` |
+| size_class | model_size_class | no | default `small`; see below (0008) |
+| reasoning_tokens | integer | yes | `> 0`; NULL = 1024; only `*_think` classes use it (0008) |
+| max_output_tokens | integer | yes | `> 0`; NULL = no own cap (0008) |
+
+Token budget columns (migration 0008, `drafts/token_budgets.md`): a step
+in a pipeline file says how big its *answer* is; the model row says how
+big a step the model handles and how much room it needs to think. The
+ENUM `model_size_class` has six values: `small`, `medium`, `large` and
+`small_think`, `medium_think`, `large_think`. An ENUM, not a lookup
+table: the list is fixed by code (pipelines use the class names as keys).
+No separate `thinking` column: the class says it, so the two cannot
+disagree.
 
 Unique: `(provider_id, name)`. The same model on two providers is two rows.
 

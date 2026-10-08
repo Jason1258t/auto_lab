@@ -729,6 +729,18 @@
       ],
       "title": "Description"
      },
+     "max_output_tokens": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Output Tokens"
+     },
      "name": {
       "maxLength": 200,
       "minLength": 1,
@@ -750,6 +762,22 @@
        }
       ],
       "title": "Ram Mb"
+     },
+     "reasoning_tokens": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reasoning Tokens"
+     },
+     "size_class": {
+      "$ref": "#/components/schemas/ModelSizeClass",
+      "default": "small"
      },
      "vram_mb": {
       "anyOf": [
@@ -826,6 +854,17 @@
       "title": "Id",
       "type": "integer"
      },
+     "max_output_tokens": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Output Tokens"
+     },
      "name": {
       "title": "Name",
       "type": "string"
@@ -844,6 +883,20 @@
        }
       ],
       "title": "Ram Mb"
+     },
+     "reasoning_tokens": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reasoning Tokens"
+     },
+     "size_class": {
+      "$ref": "#/components/schemas/ModelSizeClass"
      },
      "vram_mb": {
       "anyOf": [
@@ -868,10 +921,26 @@
      "cost_per_1m_output",
      "description",
      "available",
-     "created_at"
+     "created_at",
+     "size_class",
+     "reasoning_tokens",
+     "max_output_tokens"
     ],
     "title": "ModelOut",
     "type": "object"
+   },
+   "ModelSizeClass": {
+    "description": "How big a step a model handles; *_think = a thinking model of that\nsize, it gets models.reasoning_tokens of extra room (migration 0008).",
+    "enum": [
+     "small",
+     "medium",
+     "large",
+     "small_think",
+     "medium_think",
+     "large_think"
+    ],
+    "title": "ModelSizeClass",
+    "type": "string"
    },
    "ModelUpdate": {
     "properties": {
@@ -952,6 +1021,18 @@
       ],
       "title": "Description"
      },
+     "max_output_tokens": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Max Output Tokens"
+     },
      "name": {
       "anyOf": [
        {
@@ -976,6 +1057,28 @@
        }
       ],
       "title": "Ram Mb"
+     },
+     "reasoning_tokens": {
+      "anyOf": [
+       {
+        "exclusiveMinimum": 0.0,
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reasoning Tokens"
+     },
+     "size_class": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/ModelSizeClass"
+       },
+       {
+        "type": "null"
+       }
+      ]
      },
      "vram_mb": {
       "anyOf": [

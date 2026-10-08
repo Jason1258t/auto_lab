@@ -1,1 +1,1 @@
-export { AddModelButton, AvailableCheckbox } from './ModelControls'
+export { AddModelButton, AvailableCheckbox, EditModelButton } from './ModelControls'

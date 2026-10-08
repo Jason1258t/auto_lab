@@ -1064,12 +1064,18 @@ export interface components {
             cost_per_1m_output?: number | string | null;
             /** Description */
             description?: string | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
             /** Name */
             name: string;
             /** Provider Id */
             provider_id: number;
             /** Ram Mb */
             ram_mb?: number | null;
+            /** Reasoning Tokens */
+            reasoning_tokens?: number | null;
+            /** @default small */
+            size_class: components["schemas"]["ModelSizeClass"];
             /** Vram Mb */
             vram_mb?: number | null;
         };
@@ -1092,15 +1098,27 @@ export interface components {
             description: string | null;
             /** Id */
             id: number;
+            /** Max Output Tokens */
+            max_output_tokens: number | null;
             /** Name */
             name: string;
             /** Provider Id */
             provider_id: number;
             /** Ram Mb */
             ram_mb: number | null;
+            /** Reasoning Tokens */
+            reasoning_tokens: number | null;
+            size_class: components["schemas"]["ModelSizeClass"];
             /** Vram Mb */
             vram_mb: number | null;
         };
+        /**
+         * ModelSizeClass
+         * @description How big a step a model handles; *_think = a thinking model of that
+         *     size, it gets models.reasoning_tokens of extra room (migration 0008).
+         * @enum {string}
+         */
+        ModelSizeClass: "small" | "medium" | "large" | "small_think" | "medium_think" | "large_think";
         /** ModelUpdate */
         ModelUpdate: {
             /** Available */
@@ -1115,10 +1133,15 @@ export interface components {
             cost_per_1m_output?: number | string | null;
             /** Description */
             description?: string | null;
+            /** Max Output Tokens */
+            max_output_tokens?: number | null;
             /** Name */
             name?: string | null;
             /** Ram Mb */
             ram_mb?: number | null;
+            /** Reasoning Tokens */
+            reasoning_tokens?: number | null;
+            size_class?: components["schemas"]["ModelSizeClass"] | null;
             /** Vram Mb */
             vram_mb?: number | null;
         };

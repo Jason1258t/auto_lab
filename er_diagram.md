@@ -135,6 +135,9 @@ erDiagram
         text description
         boolean available
         timestamptz created_at
+        model_size_class size_class
+        integer reasoning_tokens
+        integer max_output_tokens
     }
     capabilities {
         smallint id PK
