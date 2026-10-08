@@ -119,6 +119,7 @@ docker build -t autolab .
 uv run pytest        # needs the Docker database running
 uv run ruff check .  # lint
 uv run ruff format . # format
+uv run autolab-engine check pipelines/*/*.yaml  # validate pipeline files
 
 cd frontend
 npm test             # Vitest + Testing Library + MSW (fake backend)

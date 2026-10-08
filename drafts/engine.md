@@ -67,7 +67,7 @@ Rules:
    backend imports them from `autolab_engine`.
 2. **Step kinds and budgets** (done, PR #58): `StepContext` over `LlmClient` and plain
    data; `fit_to_window`, `add_model_budget`, `Speed` into `budget.py`.
-3. **Run and CLI**: `run.py` (steps in order, outputs to a folder),
+3. **Run and CLI** (done, PR #59): `run.py` (steps in order, outputs to a folder),
    `work.py` (the Markdown part of `assemble`), `autolab-engine run`.
    The worker's runner uses the same step code.
 4. **Docs**: engine README, step reference moves from `docs/PIPELINES.md`

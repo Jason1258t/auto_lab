@@ -27,8 +27,13 @@ uv workspace) with `pipelines` (format and validation), `templates`,
 `language`, `web`, `gateway`, `enums`; `sync_pipelines` moved to
 `autolab.worker.sync`. Step 2 done (PR #58): `kinds`, `budget`, `llm`
 (`LlmClient`), `types` in the engine; the worker implements `LlmClient`
-with `TaskLlm` over its LLM manager. Next: step 3 (run a whole pipeline
-without a database, `autolab-engine run`), then a quality set of topics.
+with `TaskLlm` over its LLM manager. Step 3 done (PR #59): `run`
+(`run_step`, `run_pipeline`), `work` (Markdown + cited facts), CLI
+`autolab-engine check | run` (writes step outputs, `work.md`, `run.json`,
+`calls.jsonl`); tried on the server's Ollama with local SearxNG:
+`research 1.3.0` on 3B in 2.5 min. Next: step 5, a quality set of topics
+and a report, then the quality work (author: "solid text, not a
+collection of quotes").
 
 Server access for the agent is back (2026-10-08, afternoon). Still list
 every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and

@@ -31,17 +31,18 @@ from autolab.db.models.enums import ReviewResult, TaskStatus, TaskStepStatus
 from autolab.worker.assemble import assemble_work
 from autolab.worker.llm_manager import LlmManager, SessionFactory, TaskCancelled, TaskLlm
 from autolab_engine import templates
-from autolab_engine.kinds import HANDLERS, StepContext, StepFailed
+from autolab_engine.kinds import StepFailed
 from autolab_engine.pipelines import (
     PipelineError,
     PipelineFile,
     Step,
     file_hash,
-    for_size,
     load_pipeline,
 )
+from autolab_engine.run import Services, run_step
 from autolab_engine.types import ModelInfo, TaskInput
 from autolab_engine.web import Resolver, resolve
+from autolab_engine.work import has_work
 
 log = logging.getLogger(__name__)
 
@@ -100,8 +101,7 @@ class TaskRunner:
             for index, step, note in plan:
                 # A revise step replaces the output of the same step id.
                 outputs[step.id] = await self._run_step(task, pipeline, index, step, note, outputs)
-            # A work comes from a write step (text) or a code_check step (code).
-            if any(step.kind in ("write", "code_check") for step in pipeline.steps):
+            if has_work(pipeline):
                 async with self.session_factory() as db:
                     await assemble_work(db, self.settings, task, pipeline, outputs)
         except TaskCancelled:
@@ -190,36 +190,20 @@ class TaskRunner:
             await db.commit()
             model = await db.get(Model, task.model_id)
 
-        handler = HANDLERS.get(step.kind)
-        if handler is None:
-            raise StepFailed(f"step kind '{step.kind}' is not built yet")
-        # Config values that depend on the model's size class: picked here,
-        # so kinds and prompts ({{ config.x }}) see plain values.
-        step = step.model_copy(update={"config": for_size(step.config, model.size_class)})
-        ctx = StepContext(
-            TaskInput(task.id, task.title, task.input),
-            pipeline,
-            step,
-            index,
-            outputs,
-            TaskLlm(self.llm, task.id, task.model_id),
-            searxng_url=self.settings.searxng_url,
-            http=self.http,
-            resolver=self.resolver,
-            note=note if step.llm else None,
+        result = await run_step(
+            task=TaskInput(task.id, task.title, task.input),
+            pipeline=pipeline,
+            step=step,
+            step_index=index,
+            outputs=outputs,
             model=model_info(model),
+            llm=TaskLlm(self.llm, task.id, task.model_id),
+            services=Services(self.settings.searxng_url, self.http, self.resolver),
+            note=note,
         )
-        output = await handler(ctx)
-
+        output, summary = result.output, result.summary
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(output, ensure_ascii=False, indent=1), encoding="utf-8")
-        summary = templates.render(step.summary, {"output": output}) if step.summary else None
-        if ctx.skipped:
-            summary = f"{summary or 'done'} ({ctx.skipped} skipped)"
-        if ctx.wrong_language:
-            ctx.notes.append(f"{ctx.wrong_language} not in {ctx.language.name}")
-        if ctx.notes:
-            summary = f"{summary or 'done'}; " + "; ".join(ctx.notes)
         async with self.session_factory() as db:
             await db.execute(
                 update(TaskStep)
