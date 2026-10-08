@@ -8,25 +8,23 @@ server access deploys (the agent, when it has access). How: `DEPLOY.md`,
 After a deploy: check the items below, then empty the list (keep the
 header) and write the date in `CURRENT_STATE.md`.
 
-Last deploy: 2026-10-08, 21:40 (up to PR #53).
+Last deploy: 2026-10-09 (up to PR #60: engine package, stricter language check, DNS retry). Not checked yet: one short `research` task from the web app finishes (the agent cannot create tasks).
 
 ## Changes
 
 | PR | What | Check after deploy |
 |---|---|---|
-| #54 | DNS: a temporary failure (EAI_AGAIN) is tried again after 1 and 3 s | fewer "the host name cannot be resolved" in the worker log |
-| #56 | Pipeline engine as its own package (`packages/engine`); no behavior change | the image builds; the worker starts and syncs pipelines; one short task finishes |
-| #57 | Stricter language check: no letters of a third alphabet (Chinese in Russian text), up to 2 retries | a new Russian task on `qwen2.5:7b` has no Chinese characters in its work |
-| #58 | Engine step 2: step kinds and token budgets move into the engine; no behavior change | the worker runs one short task to the end |
-| #59 | Engine step 3: the worker uses the engine's `run_step` and `build_work`; new CLI (not used on the server) | one research task finishes and its work has sources |
 
 ## Needs sudo (the author runs it)
 
 - Limits for Ollama: `DEPLOY.md`, "Keep the server alive". Then check
   with a task on a 14B model.
 
-## Worth measuring after the deploy
+## Running now
 
-- Two `deep_research` tasks on `qwen2.5:7b`, versions 1.0.0 and 1.2.0,
-  same input (task 4): compare time and calls per step in
-  `llm_step_budgets` (`verify` = step 13, `group` = step 14).
+- Baseline of the quality set (started 2026-10-09, ~7-8 h): container
+  `autolab-eval` on the server, `deep_research 1.2.0` on `qwen2.5:7b`
+  (medium), all six topics, results in
+  `~/autolab/data/runs/deep-1.2.0-7b-baseline/` (`report.md`, one folder
+  per topic). Progress: `docker logs -f autolab-eval`. Stop:
+  `docker stop autolab-eval`. Remove when read: `docker rm autolab-eval`.

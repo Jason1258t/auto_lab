@@ -35,8 +35,11 @@ with `TaskLlm` over its LLM manager. Step 3 done (PR #59): `run`
 `quality/topics.yaml` (six technical topics: RAG, quantization, local LLM
 tools, attention and long context, PostgreSQL MVCC, Rust vs C++; the
 author asked for CS / LLM topics) and `autolab-engine eval | compare`.
-Next: a baseline eval, then the quality work itself (author: "solid
-text, not a collection of quotes").
+Baseline eval runs on the server since 2026-10-09 (see
+`DEPLOY_PENDING.md`, "Running now"). Next: read its report and works,
+then the quality work itself (author: "solid text, not a collection of
+quotes": a deeper outline, several paragraphs per section that connect
+facts, introduction and conclusion).
 
 Server access for the agent is back (2026-10-08, afternoon). Still list
 every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and
