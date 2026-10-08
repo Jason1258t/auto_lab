@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from autolab.db.models.enums import ModelSizeClass
+
 Adapter = Literal["ollama", "openai_compatible", "anthropic"]
 
 
@@ -43,6 +45,9 @@ class ModelIn(BaseModel):
     cost_per_1m_input: Decimal | None = Field(default=None, ge=0)
     cost_per_1m_output: Decimal | None = Field(default=None, ge=0)
     description: str | None = None
+    size_class: ModelSizeClass = ModelSizeClass.SMALL
+    reasoning_tokens: int | None = Field(default=None, gt=0)
+    max_output_tokens: int | None = Field(default=None, gt=0)
 
 
 class ModelUpdate(BaseModel):
@@ -55,6 +60,9 @@ class ModelUpdate(BaseModel):
     cost_per_1m_output: Decimal | None = Field(default=None, ge=0)
     description: str | None = None
     available: bool | None = None
+    size_class: ModelSizeClass | None = None
+    reasoning_tokens: int | None = Field(default=None, gt=0)
+    max_output_tokens: int | None = Field(default=None, gt=0)
 
 
 class ModelOut(BaseModel):
@@ -71,6 +79,9 @@ class ModelOut(BaseModel):
     description: str | None
     available: bool
     created_at: datetime
+    size_class: ModelSizeClass
+    reasoning_tokens: int | None
+    max_output_tokens: int | None
 
 
 class PipelineOut(BaseModel):

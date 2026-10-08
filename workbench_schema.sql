@@ -1,7 +1,7 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migrations 0001-0007 (checked with a pg_dump diff on 2026-10-08). After
+-- migrations 0001-0008 (checked with a pg_dump diff on 2026-10-08). After
 -- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
@@ -29,6 +29,9 @@ CREATE TYPE llm_call_status      AS ENUM ('queued', 'running', 'done',
 CREATE TYPE finish_reason        AS ENUM ('stop', 'length', 'other');
 CREATE TYPE source_kind          AS ENUM ('web', 'file');
 CREATE TYPE review_result        AS ENUM ('accepted', 'rejected');
+-- How big a step a model handles; *_think = a thinking model (0008).
+CREATE TYPE model_size_class     AS ENUM ('small', 'medium', 'large',
+                                          'small_think', 'medium_think', 'large_think');
 
 -- =====================================================================
 -- Group 1: People and access
@@ -136,6 +139,10 @@ CREATE TABLE models (
     description        text,
     available          boolean       NOT NULL DEFAULT true,
     created_at         timestamptz   NOT NULL DEFAULT now(),
+    -- Token budgets (drafts/token_budgets.md, migration 0008).
+    size_class         model_size_class NOT NULL DEFAULT 'small',
+    reasoning_tokens   integer       CHECK (reasoning_tokens > 0),   -- NULL = 1024; *_think only
+    max_output_tokens  integer       CHECK (max_output_tokens > 0),  -- NULL = no own cap
     UNIQUE (provider_id, name)
 );
 

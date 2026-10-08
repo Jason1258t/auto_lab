@@ -61,6 +61,15 @@ Enum review_result {
   rejected
 }
 
+Enum model_size_class {
+  small
+  medium
+  large
+  small_think
+  medium_think
+  large_think
+}
+
 // ---------------------------------------------------------------------
 // Group 1: People and access
 // ---------------------------------------------------------------------
@@ -175,6 +184,9 @@ Table models {
   description text
   available boolean [not null, default: true]
   created_at timestamptz [not null, default: `now()`]
+  size_class model_size_class [not null, default: 'small', note: '*_think = thinking model']
+  reasoning_tokens integer [note: 'NULL = 1024; *_think classes only']
+  max_output_tokens integer [note: 'NULL = no own cap']
 
   indexes {
     (provider_id, name) [unique]

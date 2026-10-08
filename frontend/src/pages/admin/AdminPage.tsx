@@ -9,7 +9,7 @@ import { ActivityLine } from '@/entities/activity'
 import { useAdminModels, useAdminPipelines, useGlobalActivity, usePipelineFile, useProviders, type AdminPipeline } from '@/entities/admin'
 import { useSession } from '@/entities/session'
 import { AdminRights } from '@/features/admin-admins'
-import { AddModelButton, AvailableCheckbox } from '@/features/admin-models'
+import { AddModelButton, AvailableCheckbox, EditModelButton } from '@/features/admin-models'
 import { UploadPipelineButton } from '@/features/admin-pipelines'
 import { AddProviderButton } from '@/features/admin-providers'
 import { errorText } from '@/shared/api'
@@ -44,10 +44,14 @@ function ModelsTab() {
                 <span className="text-sm text-muted-foreground">
                   {providerName(model.provider_id)} · {t('admin.contextShort', { n: model.context_length })}
                   {model.vram_mb !== null && ` · ${model.vram_mb} MB VRAM`}
+                  {` · ${t(`admin.sizeClasses.${model.size_class}`)}`}
                 </span>
                 {model.description && <span className="text-sm text-muted-foreground">{model.description}</span>}
               </div>
-              <AvailableCheckbox model={model} />
+              <span className="flex items-center gap-3">
+                <EditModelButton model={model} />
+                <AvailableCheckbox model={model} />
+              </span>
             </li>
           ))}
         </ul>

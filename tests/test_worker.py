@@ -20,7 +20,13 @@ from autolab.db.models import (
     TaskStep,
     Workspace,
 )
-from autolab.db.models.enums import FinishReason, LlmCallStatus, TaskStatus, TaskStepStatus
+from autolab.db.models.enums import (
+    FinishReason,
+    LlmCallStatus,
+    ModelSizeClass,
+    TaskStatus,
+    TaskStepStatus,
+)
 from autolab.logstore import FileLogStore
 from autolab.worker.gateway import GatewayError, GenerateRequest
 from autolab.worker.main import Worker, claim_next_task, clean_up_logs, recover_tasks
@@ -330,3 +336,16 @@ async def test_prompt_too_long_fails_at_once(setup, db: AsyncSession) -> None:
     step_row = await db.get(TaskStep, (task_id, 0))
     await db.refresh(step_row)
     assert step_row.summary.startswith("Failed: the prompt is too long")
+
+
+async def test_thinking_model_gets_room_to_think(setup, db: AsyncSession) -> None:
+    worker, adapter, _ = await setup([PLAN_STEP], lambda _: QUERIES)
+    model = await db.scalar(select(Model).where(Model.name == "fake-model"))
+    model.size_class = ModelSizeClass.MEDIUM_THINK
+    model.reasoning_tokens = 2000
+    model.max_output_tokens = 2400
+    await db.commit()
+    await worker.run_once()
+
+    # 512 for the answer + 2000 to think, then the model's own cap.
+    assert adapter.requests[0].params["max_tokens"] == 2400

@@ -211,7 +211,12 @@ sources and quotes. A publisher page shows everything it published.
 - **Models**: add a model (provider, name exactly as the provider calls
   it, for example `qwen2.5:3b`, context length) and tick **Available**.
   Only available models appear in *New task*. For Ollama the model must
-  also be pulled on the server: `ollama pull qwen2.5:3b`.
+  also be pulled on the server: `ollama pull qwen2.5:3b`. **Edit**
+  changes a model, including its token budget: **size class** (small
+  about 3B, medium about 7-8B, large 14B and more; a *thinking* class for
+  models that reason before they answer, like `deepseek-r1`), **tokens
+  to think** (thinking classes only, empty = 1024) and **max output
+  tokens** (the model's own limit, empty = none).
 - **Providers**: where models run. Only `ollama` works today.
 - **Pipelines**: every pipeline and its versions (built-in or uploaded,
   how many tasks use each); click a version to read its YAML. **Upload
@@ -232,8 +237,7 @@ The first admin is made on the server: `autolab create-admin <user_id>`.
   yet (planned).
 - Generated code is never run (a sandbox is planned).
 - English only (all texts are ready for translation).
-- No user search, no list of admins, no edit dialog for models (only
-  add and *available*).
+- No user search, no list of admins.
 - Progress is polled every 3 seconds (no live push yet).
 - No password reset or email confirmation.
 - The test server has no HTTPS and is reachable only on the home network.

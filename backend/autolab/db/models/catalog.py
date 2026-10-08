@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from autolab.db.models.base import Base, bigint_pk, created_at, pg_enum, smallint_pk
-from autolab.db.models.enums import CapabilityKind
+from autolab.db.models.enums import CapabilityKind, ModelSizeClass
 
 
 class ModelProvider(Base):
@@ -60,9 +60,17 @@ class Model(Base):
     description: Mapped[str | None] = mapped_column(Text)
     available: Mapped[bool] = mapped_column(server_default=text("true"))
     created_at: Mapped[datetime] = created_at()
+    # Token budgets (drafts/token_budgets.md, phase 2).
+    size_class: Mapped[ModelSizeClass] = mapped_column(
+        pg_enum(ModelSizeClass, "model_size_class"), server_default="small"
+    )
+    reasoning_tokens: Mapped[int | None]  # NULL = 1024; *_think classes only
+    max_output_tokens: Mapped[int | None]  # NULL = no own cap
 
     __table_args__ = (
         UniqueConstraint("provider_id", "name"),
+        CheckConstraint("reasoning_tokens > 0", name="models_reasoning_tokens_check"),
+        CheckConstraint("max_output_tokens > 0", name="models_max_output_tokens_check"),
         CheckConstraint("context_length > 0", name="models_context_length_check"),
         CheckConstraint("vram_mb >= 0", name="models_vram_mb_check"),
         CheckConstraint("ram_mb >= 0", name="models_ram_mb_check"),

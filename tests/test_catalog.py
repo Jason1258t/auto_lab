@@ -43,6 +43,22 @@ async def test_admin_manages_models(client: httpx.AsyncClient, make_user, db: As
     assert hidden.json()["available"] is False
     assert (await client.get(f"{API}/models")).json() == []
 
+    # Token budget profile (migration 0008): 'small' by default.
+    assert created.json()["size_class"] == "small"
+    thinking = await client.patch(
+        f"{API}/admin/models/{model_id}",
+        json={"size_class": "medium_think", "reasoning_tokens": 2048},
+        headers=root.headers,
+    )
+    assert (thinking.json()["size_class"], thinking.json()["reasoning_tokens"]) == (
+        "medium_think",
+        2048,
+    )
+    wrong = await client.patch(
+        f"{API}/admin/models/{model_id}", json={"size_class": "huge"}, headers=root.headers
+    )
+    assert wrong.status_code == 422
+
 
 async def test_admin_manages_providers(
     client: httpx.AsyncClient, make_user, db: AsyncSession
