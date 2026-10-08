@@ -184,7 +184,7 @@ test('a running task shows each step, and a revision after a review', async () =
   server.use(...taskAnswers(() => running))
   renderApp('/tasks/11')
   expect(await screen.findByText('search finished')).toBeInTheDocument()
-  expect(screen.getAllByText('4 seconds')).toHaveLength(3)
+  expect(screen.getAllByText('4 s')).toHaveLength(3)
   expect(screen.getByText('Revision after a rejected review')).toBeInTheDocument()
   expect(screen.getByLabelText('Running')).toBeInTheDocument()
 })

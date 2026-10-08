@@ -159,11 +159,16 @@
     "noPlan": "The pipeline file cannot be read, so the steps are unknown.",
     "revision": "Revision after a rejected review",
     "stepNumber": "Step {{n}}",
-    "seconds_one": "{{count}} second",
-    "seconds_other": "{{count}} seconds",
     "notFound": "This task does not exist, or you have no access to it.",
     "nobody": "nobody",
     "userNumber": "user {{id}}"
+  },
+  "duration": {
+    "seconds": "{{n}} s",
+    "minutes": "{{m}} min",
+    "minutesSeconds": "{{m}} min {{s}} s",
+    "hours": "{{h}} h",
+    "hoursMinutes": "{{h}} h {{m}} min"
   },
   "taskActions": {
     "queue": "Queue",
@@ -178,7 +183,6 @@
     "call": "Model call {{id}}",
     "attempt": "attempt {{n}}",
     "tokens": "{{input}} → {{output}} tokens",
-    "seconds": "{{n}} s",
     "cutOff": "cut off (too long)",
     "invalidJson": "not valid JSON",
     "status": {
