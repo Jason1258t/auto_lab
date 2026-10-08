@@ -15,7 +15,7 @@ from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
 from autolab.worker.main import Worker
 from autolab_engine.gateway import GenerateRequest
-from autolab_engine.language import ENGLISH, detect, matches, note
+from autolab_engine.language import ENGLISH, detect, foreign_letters, matches, note
 from tests.fakes import FakeAdapter
 from tests.test_research import fake_model as english_model
 from tests.test_research import fake_resolver, fake_web, step_summaries
@@ -34,6 +34,18 @@ from tests.test_research import fake_resolver, fake_web, step_summaries
 )
 def test_detect(text: str, code: str) -> None:
     assert detect(text).code == code
+
+
+def test_letters_of_a_third_alphabet_do_not_match() -> None:
+    russian = detect("Привет")
+    # Seen in a real work (qwen2.5:7b): Chinese inside Russian words.
+    mixed = "Они обеспечивают эффективное供暖 в регионах, где зимой бывают морозы."
+    assert foreign_letters(mixed, russian) == "供暖"
+    assert not matches(mixed, russian)
+    assert not matches("Медные 金属 трубки", russian)  # also in a short text
+    # Latin is fine for names, terms and units.
+    assert matches("Котлы BAXI и COP выше 3 при морозе до −15 °C, мощность 5 kW.", russian)
+    assert foreign_letters("Rayleigh scattering, рассеяние", ENGLISH) == "рассеяние"
 
 
 def test_matches_and_note() -> None:
@@ -120,11 +132,25 @@ async def test_russian_task_gets_russian_text(
     assert "Рэлеевское рассеяние делает небо голубым [1]." in text
 
 
+async def test_mixed_alphabet_is_asked_again(
+    db: AsyncSession, session_factory, settings: Settings, tmp_path: Path
+) -> None:
+    prompts: list[str] = []
+    mixed = "Рэлеевское рассеяние делает небо 蓝色 голубым [1]. Это видно днём."
+    # Two answers with Chinese letters, then a clean one.
+    model = russian_model([mixed, mixed, RU_PARAGRAPH], prompts)
+    task, summaries = await run_research(model, db, session_factory, settings, tmp_path)
+    assert any("letters of another alphabet (蓝色)" in p for p in prompts)
+    assert summaries[-1] == "1 paragraphs written; 1 sentences without a source"
+    text = Path((await db.get(Work, task.id)).file_path).read_text()
+    assert "蓝" not in text
+
+
 async def test_text_still_in_wrong_language_is_reported(
     db: AsyncSession, session_factory, settings: Settings, tmp_path: Path
 ) -> None:
     english = "Rayleigh scattering makes the sky blue [1]."
-    model = russian_model([english, english], [])
+    model = russian_model([english] * 3, [])  # the first answer and two retries
     task, summaries = await run_research(model, db, session_factory, settings, tmp_path)
     assert task.status == TaskStatus.IN_REVIEW, summaries
     assert summaries[-1] == "1 paragraphs written; 1 not in Russian"

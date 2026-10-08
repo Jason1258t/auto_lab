@@ -259,7 +259,13 @@ steps keep their outputs. Without `revise`, the rerun starts at the first
 Code finds the task's language by its alphabet. If it is not English,
 every prompt gets a line: write your own text in that language, copy
 quotes word for word, keep code and JSON keys. `write` and `abstract`
-check the answer's alphabet and ask once more if it is wrong. You do not
+check the answer: most letters must be in the task's alphabet, and no
+letter may come from a third alphabet (Latin is always allowed, for
+names, terms and units). Small models sometimes put Chinese words into a
+Russian sentence; such an answer is asked for again, up to two times,
+with a note that names the wrong letters. If it is still wrong, the
+answer with the fewest wrong letters is kept and the step summary says
+"N not in <language>". You do not
 need to do anything in your file; `{{ task.language }}` is there if you
 want to say more.
 

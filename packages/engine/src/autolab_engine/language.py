@@ -68,17 +68,37 @@ def detect(text: str) -> Language:
     return next(lang for prefix, lang in _SCRIPTS if prefix == best)
 
 
-def matches(text: str, language: Language, minimum: float = 0.5) -> bool:
-    """Is most of the text in the alphabet of this language? Short texts
-    (a few letters) always match: there is nothing to judge."""
-    shares = _shares(text)
-    letters_needed = 20
-    if sum(1 for c in text if c.isalpha()) < letters_needed:
-        return True
+def _own_scripts(language: Language) -> set[str]:
     prefixes = {p for p, lang in _SCRIPTS if lang.code == language.code}
     if language.code == "ja":
         prefixes.add("CJK")
-    return sum(shares.get(p, 0) for p in prefixes) >= minimum
+    return prefixes
+
+
+def foreign_letters(text: str, language: Language) -> str:
+    """Letters of other alphabets in a text of this language. Latin is
+    always allowed (terms, names, units: COP, BAXI, kW). Small models mix
+    in words of other alphabets, e.g. Chinese inside a Russian sentence
+    ("эффективное供暖")."""
+    allowed = _own_scripts(language) | {"LATIN"}
+    found = []
+    for char in _NOISE.sub(" ", text):
+        if char.isalpha() and (script := _script(char)) and script not in allowed:
+            found.append(char)
+    return "".join(found)
+
+
+def matches(text: str, language: Language, minimum: float = 0.5) -> bool:
+    """Is most of the text in the alphabet of this language, with no
+    letter of a third alphabet? Short texts (a few letters) are judged
+    only by the second rule: there is not enough text for the first."""
+    if foreign_letters(text, language):
+        return False
+    letters_needed = 20
+    if sum(1 for c in text if c.isalpha()) < letters_needed:
+        return True
+    shares = _shares(text)
+    return sum(shares.get(p, 0) for p in _own_scripts(language)) >= minimum
 
 
 def note(language: Language) -> str | None:
