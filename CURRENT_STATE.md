@@ -31,9 +31,12 @@ with `TaskLlm` over its LLM manager. Step 3 done (PR #59): `run`
 (`run_step`, `run_pipeline`), `work` (Markdown + cited facts), CLI
 `autolab-engine check | run` (writes step outputs, `work.md`, `run.json`,
 `calls.jsonl`); tried on the server's Ollama with local SearxNG:
-`research 1.3.0` on 3B in 2.5 min. Next: step 5, a quality set of topics
-and a report, then the quality work (author: "solid text, not a
-collection of quotes").
+`research 1.3.0` on 3B in 2.5 min. Step 5 done (PR #60): the quality set
+`quality/topics.yaml` (six technical topics: RAG, quantization, local LLM
+tools, attention and long context, PostgreSQL MVCC, Rust vs C++; the
+author asked for CS / LLM topics) and `autolab-engine eval | compare`.
+Next: a baseline eval, then the quality work itself (author: "solid
+text, not a collection of quotes").
 
 Server access for the agent is back (2026-10-08, afternoon). Still list
 every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and
