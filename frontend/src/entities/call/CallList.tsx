@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { formatDuration } from '@/shared/lib/format'
 import { Badge } from '@/shared/ui'
 
 import { CallLogError, CallLogView } from './CallLogView'
@@ -23,7 +24,7 @@ function CallRow({ call }: { call: LlmCall }) {
   const facts = [
     call.attempt > 1 && t('calls.attempt', { n: call.attempt }),
     call.input_tokens !== null && t('calls.tokens', { input: call.input_tokens, output: call.output_tokens ?? 0 }),
-    took !== null && t('calls.seconds', { n: took }),
+    took !== null && formatDuration(took),
     call.finish_reason === 'length' && t('calls.cutOff'),
     call.valid_json === false && t('calls.invalidJson'),
   ].filter(Boolean)

@@ -2,6 +2,8 @@ import { CircleCheck, CircleDashed, LoaderCircle } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { formatDuration } from '@/shared/lib/format'
+
 import type { TaskStep } from './model'
 
 function seconds(step: TaskStep): number | null {
@@ -44,7 +46,7 @@ export function TaskSteps({ steps, extra }: { steps: TaskStep[]; extra?: (step: 
                     )}
                   </span>
                   {took !== null && (
-                    <span className="text-xs text-muted-foreground">{t('task.seconds', { count: took })}</span>
+                    <span className="text-xs text-muted-foreground">{formatDuration(took)}</span>
                   )}
                 </div>
                 {step.summary && <p className="text-sm text-muted-foreground">{step.summary}</p>}
