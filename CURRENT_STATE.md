@@ -281,14 +281,10 @@ stage) and the API serves it (`api/frontend.py`), so the whole app is at
   not confirmed against the actual course.
 - Should `DEVELOPMENT.md` also cover the SSH tunnel for DataGrip to the
   server's Postgres (port 5432 is localhost-only there)?
-- Search engines behind SearxNG block us at times (Brave: too many
-  requests, DuckDuckGo: CAPTCHA; seen 2026-10-08, a deep research failed
-  at its search step). PR #51 retries empty queries; if it is not
-  enough: more or other engines in `docker/searxng/settings.yml`, or a
-  pause between queries.
-- `qwen2.5:7b` wrote one search query in Chinese for a Russian task
-  (2026-10-08). The plan steps may need the same language check as the
-  text steps (`in_task_language`).
+- Search languages and search engines: moved to `BACKLOG.md` ("Worker
+  and pipelines"). Decided: the language of search queries does not
+  matter (a Chinese query from `qwen2.5:7b` is fine); only the finished
+  work must be in the task's language.
 
 ## Working agreements (for agents)
 
