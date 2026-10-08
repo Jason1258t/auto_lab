@@ -142,7 +142,8 @@ Admin page: the new fields in *Add model*, and an edit dialog.
 
 ### Phase 3: steps that grow with the model
 
-1. **Batching in per-item kinds** where the prompt is the cost
+1. **Batching in per-item kinds** (done, PR #49: `verify`, `group`;
+   `research 1.3.0`, `deep_research 1.2.0`) where the prompt is the cost
    (`group`, `verify` with a long shared prompt; not `summarize`, whose
    answer is the cost): `config.batch_size` (default 1 = today). The
    model gets N items and answers a list. Code still checks every item
@@ -164,7 +165,7 @@ Admin page: the new fields in *Add model*, and an edit dialog.
    values only where they differ.
 3. **Inputs follow the window** (done, PR #48): `fetch.max_chars: auto` = a share of the
    window (e.g. 50 %), so a large-window model reads whole pages.
-4. New pipeline versions (`research 1.2.0`, `deep_research 1.1.0`, ...)
+4. New pipeline versions (done: `research 1.3.0`, `deep_research 1.2.0`)
    use these knobs; old versions run as before.
 
 Expected effect for a 7B model on `deep_research`: about half the time

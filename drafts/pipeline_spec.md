@@ -86,7 +86,7 @@ Step kinds:
 | `search` | no | queries | `results`: title, url, snippet | calls the search service, removes duplicate URLs, keeps up to `config.max_candidates` (old name `max_sources`), at most `config.max_per_domain` per site |
 | `fetch` | no | results | `sources`: title, url, text | downloads pages (section 8), `config.parallel` at a time, until `config.target_sources` pages have at least `config.min_chars` of text; fewer than `config.min_sources`: the step fails; cuts text to `config.max_chars` (`auto`: half of the model's window) |
 | `summarize` | yes, per source | one source | `facts`: claim, quote, source | **drops a fact if its quote is not in the source text**; adds which source it came from |
-| `verify` | yes, per fact | one fact | `facts`: only the kept ones | keeps facts whose verdict is in `config.keep` |
+| `verify` | yes, per fact | one fact | `facts`: only the kept ones | keeps facts whose verdict is in `config.keep`; `config.batch_size`: several facts per call (`docs/PIPELINES.md`, "Batches") |
 | `synthesize` | yes | all kept facts, numbered | `summary`, `sections`: heading + fact numbers | checks that every fact number exists |
 | `write` | yes, per section | one section; code replaces `fact_numbers` with the facts (`number`, `claim`) | `paragraphs`, `unsourced_sentences` | removes `[n]` marks that are not in the section; marks every sentence without a mark as *(⚠ no source)* for the reviewer (decided 2026-10-07) |
 
@@ -96,7 +96,7 @@ Deep research kinds (`kinds/deep.py`, added 2026-10-07):
 |---|---|---|---|---|
 | `plan_each` | yes, per item | sub-questions | `queries` | joins the queries of all items, drops repeats, keeps `config.max_queries` |
 | `gaps` | yes | facts so far | `queries`, `missing` | gives the model `claims` (at most `config.max_claims`, spread over all facts); drops queries an earlier step already had; an empty list is fine |
-| `group` | yes, per fact | kept facts | like `synthesize`: `sections`, `facts` | the model picks the sub-question of each fact (`config.questions_from`); one section per sub-question with facts, at most `config.max_facts_per_section` |
+| `group` | yes, per fact | kept facts | like `synthesize`: `sections`, `facts` | the model picks the sub-question of each fact (`config.questions_from`); one section per sub-question with facts, at most `config.max_facts_per_section`; `config.batch_size` as for `verify` |
 | `abstract` | yes | the written paragraphs | `summary` | becomes the work summary (wins over the plan's) |
 
 Code kinds (`kinds/code.py`, added 2026-10-07; pipelines with

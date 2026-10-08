@@ -151,7 +151,7 @@ usage notes. Its output fields are the fields of your `output` schema.
 | `search` | no | queries (`from`) | `results_per_query` (5), `max_candidates` (5; old name `max_sources`), `max_per_domain` (no limit), `skip_seen` (false: skip URLs earlier steps found or read), `optional` (false: no queries or results is not an error) | `results`: title, url, snippet |
 | `fetch` | no | results (`from`) | `target_sources` (all), `min_sources` (1), `min_chars` (1: text needed to count a page as readable), `parallel` (1), `max_chars` (6000; `auto` = half of the model's window, e.g. 14 336 characters for 8192 tokens), `max_bytes` (2 000 000) | `sources`: title, url, text |
 | `summarize` | yes, per source | sources (`for_each`) | `optional` (false); your numbers (e.g. `max_facts`) | `facts`: claim, quote, source; `dropped_quotes` |
-| `verify` | yes, per fact | facts (`for_each`) | `keep` ([supported]) | `facts` (with `verdict`), `verdicts` |
+| `verify` | yes, per fact (or per batch) | facts (`for_each`) | `keep` ([supported]), `batch_size` (none) | `facts` (with `verdict`), `verdicts` |
 | `synthesize` | yes, once | facts (`from`) | your numbers | `summary`, `sections` (heading, fact_numbers, facts), `facts` (numbered) |
 | `write` | yes, per section | sections (`for_each`) | — | `paragraphs` (heading, text, fact_numbers), `unsourced_sentences` |
 
@@ -172,12 +172,40 @@ mark as *(⚠ no source)*.
 |---|---|---|---|---|
 | `plan_each` | yes, per item | items, e.g. sub-questions (`for_each`) | `max_queries` (50) | `queries` (joined, no repeats) |
 | `gaps` | yes, once | facts so far (`from`, often a list) | `max_claims` (40), `max_queries` (10) | `queries` (new ones only), `missing` |
-| `group` | yes, per fact | facts (`for_each`) | `questions_from` (**required**, e.g. `outline.questions`), `max_facts_per_section` (12) | like `synthesize`: one section per question |
+| `group` | yes, per fact | facts (`for_each`) | `questions_from` (**required**, e.g. `outline.questions`), `max_facts_per_section` (12), `batch_size` (none) | like `synthesize`: one section per question |
 | `abstract` | yes, once | anything (`from`) | — | `summary` (becomes the work summary) |
 
 Answers: `plan_each` → `queries: [string]`; `gaps` → `queries`
 (+ optional `missing`); `group` → `question` (a number, 0 = none);
 `abstract` → `summary`.
+
+**Batches** (`verify` and `group`). With `config.batch_size: N` (often a
+size map, e.g. `{ small: 1, medium: 4, large: 8 }`) the step asks about
+up to N items in one call. Then the prompt uses `{{ items }}` (a list;
+number them with `{{ loop.index }}`) instead of `{{ item }}`, and the
+answer is one entry per item:
+
+```yaml
+output:
+  type: object
+  required: [answers]
+  properties:
+    answers:
+      type: array
+      items:
+        type: object
+        required: [n, verdict]      # n = the item's number in the batch
+        properties:
+          n: { type: integer, minimum: 1 }
+          verdict: { type: string, enum: [supported, partly, not_supported] }
+```
+
+Code matches the answers by `n` (a wrong or repeated `n` is ignored).
+An item the model left out is asked again alone; if it still has no
+answer, it is skipped. Batches save time where the prompt is long and
+the answer short (`group` reads the whole question list each time). Make
+`llm.max_tokens` big enough for the largest batch. Examples:
+`research 1.3.0`, `deep_research 1.2.0`.
 
 ### Code (with `evidence: none`)
 
@@ -289,6 +317,8 @@ Good habits:
 | `revise: unknown step 'x'` | `rerun_from` must be a step id |
 | `config 'x': a size map needs a 'small' value` | add `small:` to the map |
 | `config 'x': unknown size class y` | keys are the six size classes only |
+| `kind 'x' cannot use batch_size` | only `verify` and `group` work in batches |
+| `with batch_size the output must be {answers: [{n, ...}]}` | change the schema, see "Batches" in section 6 |
 | `already has version X; the new one must be newer` | raise the version |
 
 Errors while a task runs (shown as *Failed* on the step): for example

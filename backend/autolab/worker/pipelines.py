@@ -39,6 +39,9 @@ KINDS: dict[str, bool] = {
     "code_review": True,
 }
 
+# Kinds that may ask about several items at once (config.batch_size).
+BATCH_KINDS = {"verify", "group"}
+
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 
@@ -166,6 +169,8 @@ class PipelineFile(BaseModel):
             for name, value in step.config.items():
                 if is_size_map(value) and (problem := size_map_problem(value)):
                     problems.append(f"{where}: config '{name}': {problem}")
+            if "batch_size" in step.config:
+                problems += [f"{where}: {p}" for p in _batch_problems(step)]
             seen.append(step.id)
         if self.revise is not None:
             if self.revise.rerun_from not in seen:
@@ -187,6 +192,18 @@ def _templates(step: Step) -> list[tuple[str, str]]:
         if step.llm.system:
             found.append(("system", step.llm.system))
     return found
+
+
+def _batch_problems(step: Step) -> list[str]:
+    """A batch step answers {"answers": [{"n": <int>, ...}, ...]}."""
+    if step.kind not in BATCH_KINDS:
+        return [f"kind '{step.kind}' cannot use batch_size"]
+    output = step.llm.output if step.llm else {}
+    answers = output.get("properties", {}).get("answers", {})
+    entry = answers.get("items", {}) if answers.get("type") == "array" else {}
+    if "answers" not in output.get("required", []) or "n" not in entry.get("required", []):
+        return ["with batch_size the output must be {answers: [{n, ...}]} (n required)"]
+    return []
 
 
 def _schema_problems(schema: dict[str, Any]) -> list[str]:

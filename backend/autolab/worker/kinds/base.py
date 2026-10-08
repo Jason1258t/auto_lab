@@ -127,16 +127,53 @@ class StepContext:
 
     async def ask_each(self, items: list[Any]) -> list[tuple[Any, dict[str, Any]]]:
         """One question per item, one after another (one GPU). Items without
-        a valid answer are skipped; if all of them fail, the step fails."""
-        answers = []
-        for item in items:
-            data = await self.ask(item=item)
-            if data is None:
-                self.skipped += 1
-            else:
-                answers.append((item, data))
+        a valid answer are skipped; if all of them fail, the step fails.
+        With config.batch_size, several items per question (ask_batches)."""
+        if "batch_size" in self.step.config:
+            answers = await self.ask_batches(items, int(self.step.config["batch_size"]))
+        else:
+            answers = []
+            for item in items:
+                data = await self.ask(item=item)
+                if data is None:
+                    self.skipped += 1
+                else:
+                    answers.append((item, data))
         if items and not answers:
             raise StepFailed("the model gave no valid answer for any item")
+        return answers
+
+    async def ask_batches(self, items: list[Any], size: int) -> list[tuple[Any, dict[str, Any]]]:
+        """Up to `size` items per question (drafts/token_budgets.md, phase 3):
+        the prompt gets {{ items }}, the answer is {"answers": [{"n": 1,
+        ...}, ...]} with n = the item's number in the batch. Items the
+        model left out are asked again alone (a batch of one)."""
+        found: dict[int, dict[str, Any]] = {}  # item index -> answer
+        missing: list[int] = []
+        for start in range(0, len(items), max(1, size)):
+            batch = list(range(start, min(start + size, len(items))))
+            answers = await self._ask_batch([items[i] for i in batch])
+            for n, index in enumerate(batch, start=1):
+                if n in answers:
+                    found[index] = answers[n]
+                else:
+                    missing.append(index)
+        if size > 1:
+            for index in missing:
+                answers = await self._ask_batch([items[index]])
+                if 1 in answers:
+                    found[index] = answers[1]
+        self.skipped += len(items) - len(found)
+        return [(items[i], found[i]) for i in sorted(found)]
+
+    async def _ask_batch(self, batch: list[Any]) -> dict[int, dict[str, Any]]:
+        """n -> answer without n. The first answer for each n counts."""
+        data = await self.ask(items=batch)
+        answers: dict[int, dict[str, Any]] = {}
+        for entry in (data or {}).get("answers", []):
+            n = entry.get("n")
+            if isinstance(n, int) and 1 <= n <= len(batch) and n not in answers:
+                answers[n] = {k: v for k, v in entry.items() if k != "n"}
         return answers
 
     async def in_task_language(self, item: Any, answer: dict[str, Any], key: str) -> dict[str, Any]:

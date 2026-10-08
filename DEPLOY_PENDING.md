@@ -14,6 +14,7 @@ Last deploy: 2026-10-08, 14:37 (up to migration 0008, PR #46).
 
 | PR | What | Check after deploy |
 |---|---|---|
+| #49 | Batches in `verify` / `group`; `research 1.3.0`, `deep_research 1.2.0` | the new versions sync; one `deep_research` task on a 7B model finishes, and `verify`/`group` have fewer calls in `llm_step_budgets` |
 | #48 | Config values by model size class; `fetch.max_chars: auto` | nothing yet (no built-in pipeline uses them); upload of a file with a bad size map shows the error |
 
 ## Needs sudo (the author runs it)

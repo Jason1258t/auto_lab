@@ -65,6 +65,14 @@ def test_every_built_in_file_is_valid(path: Path) -> None:
             lambda d: d["steps"][0]["config"].update(max_queries={"small": 3, "huge": 9}),
             "unknown size class huge",
         ),
+        (
+            lambda d: d["steps"][0]["config"].update(batch_size=3),
+            "kind 'plan' cannot use batch_size",
+        ),
+        (
+            lambda d: d["steps"][4].setdefault("config", {}).update(batch_size=3),
+            "with batch_size the output must be",
+        ),
     ],
 )
 def test_invalid_files(tmp_path: Path, change, message: str) -> None:
