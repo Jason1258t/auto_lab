@@ -465,6 +465,18 @@ refresh sends the old cookie again; without this, reuse detection ended
 the session. A grace refresh does not move `rotated_at`, so the window
 never grows. Older tokens get no grace.
 
+## Views
+
+- `llm_step_budgets` (migration 0007, 2026-10-08): a report for admins,
+  one row per model, pipeline version and step index (revise steps
+  apart). It shows whether a step's token limit fits the model: average
+  limit sent, average/max output, share of cut answers
+  (`finish_reason = 'length'`), share of invalid JSON, seconds per call
+  and output tokens per second. A view, not a table: it is always
+  computed from `llm_calls` + `llm_responses`, so nothing to keep in
+  sync. The step id is not in the DB (it is in the pipeline file), so
+  the view shows `step_index`. Plan: `drafts/token_budgets.md`.
+
 ## Normalization (final review, 2026-10-06)
 
 The schema is in 3NF: every non-key column depends on the key, the whole

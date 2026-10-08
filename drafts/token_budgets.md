@@ -95,7 +95,8 @@ So for the 3B model the limits are fine. The problems are elsewhere:
    call: prompt tokens / prompt speed + output limit / output speed,
    times 2, with the model's measured speed (a `models` field in
    phase 2, or learned from earlier calls).
-4. **Budget report** for admins: a SQL view over `llm_calls` /
+4. **Budget report** (done, PR #43: view `llm_step_budgets`, migration
+   0007; no admin page yet) for admins: a SQL view over `llm_calls` /
    `llm_responses`: per model and step, calls, average/max output, cut
    share, invalid share, seconds. (Fits the course: a reporting view.)
 
