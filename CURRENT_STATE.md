@@ -31,13 +31,11 @@ Unfinished, in the order the author cares about:
    limit and the model's speed (today one global `LLM_TIMEOUT_SECONDS`;
    raised to 3600 on the server on 2026-10-08 because 14B models write
    ~3 tok/s and a 900-token step takes ~5 min).
-2. **A heavy model (~1 tok/s)**: `mistral-small:22b` (~13 GB) was being
-   downloaded on the server (log: `~/ollama-pull-heavy.log`). To do:
-   check it finished, benchmark it (`~/bench.py` on the server: speed,
-   valid JSON, exact quotes), add it to the catalog (Admin -> Models, or
-   SQL like the other rows). `llama3:8b` and `phi3:mini` were removed to
-   make room (the author's choice). RAM is the limit: 14 GB total; a 22B
-   Q4 model needs ~3.5 GB VRAM + ~9.5 GB RAM; 32B models do not fit.
+2. ~~A heavy model~~: `mistral-small:22b` (12 GB) is in the catalog:
+   ~2 tok/s writing, ~27 tok/s prompt reading, valid JSON and exact
+   quotes in the benchmark. `llama3:8b` and `phi3:mini` were removed to
+   make room (the author's choice); 9 GB of disk are left. 32B models do
+   not fit in 14 GB of RAM.
 3. **Limit Ollama's resources** so a big model cannot take the server
    down: commands are ready in `DEPLOY.md` ("Keep the server alive").
    They need sudo, so the author runs them; then check with a 14B task.
@@ -58,7 +56,8 @@ Unfinished, in the order the author cares about:
 Models on the server (2026-10-08; benchmark = the summarize step with a
 6000-character page, 8k context): qwen2.5:3b and qwen2.5-coder:3b ~49
 tok/s, gemma2:2b ~48, gemma3:4b ~16, qwen2.5:7b and qwen2.5-coder:7b ~9,
-llama3.1:8b ~7.5, qwen2.5:14b and qwen2.5-coder:14b ~3.2 (all available);
+llama3.1:8b ~7.5, qwen2.5:14b and qwen2.5-coder:14b ~3.2, mistral-small:22b ~2
+(all available);
 deepseek-r1:7b off (thinking uses up the small step limits). All gave
 valid JSON with exact quotes.
 
