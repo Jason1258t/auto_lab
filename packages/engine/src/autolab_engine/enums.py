@@ -15,7 +15,7 @@ class FinishReason(StrEnum):
 
 class ModelSizeClass(StrEnum):
     """How big a step a model handles; *_think = a thinking model of that
-    size, it gets extra room to think (drafts/token_budgets.md)."""
+    size, it gets models.reasoning_tokens of extra room (migration 0008)."""
 
     SMALL = "small"
     MEDIUM = "medium"
