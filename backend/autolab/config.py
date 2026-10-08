@@ -36,7 +36,9 @@ class Settings(BaseSettings):
     # Worker
     worker_poll_seconds: float = 3.0  # wait between checks for queued tasks
     log_cleanup_seconds: float = 300.0
-    llm_timeout_seconds: float = 300.0  # small GPU: one call can be slow
+    # The first call of a model (speed unknown) and the upper bound; later
+    # calls get a timeout from the model's measured speed (llm_manager).
+    llm_timeout_seconds: float = 300.0
 
     data_dir: str = "data"
     max_upload_bytes: int = 50 * 1024 * 1024  # one workspace file

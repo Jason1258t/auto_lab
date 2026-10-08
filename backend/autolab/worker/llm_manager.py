@@ -22,7 +22,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from autolab.db.models import LlmCall, LlmResponse, Model, ModelProvider, Task
 from autolab.db.models.enums import FinishReason, LlmCallStatus, TaskStatus
 from autolab.logstore import LogStore
-from autolab.worker.gateway import Adapter, GatewayError, GenerateRequest, Message
+from autolab.worker.gateway import (
+    Adapter,
+    GatewayError,
+    GenerateRequest,
+    GenerateResult,
+    Message,
+)
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +40,12 @@ SessionFactory = Callable[[], AsyncSession]
 CHARS_PER_TOKEN = 3.5
 TOKENS_PER_MESSAGE = 10  # the chat template around each message
 MIN_ANSWER_TOKENS = 64  # less room than this: do not even try
+
+# Per-call timeout (phase 1, item 3): expected time x 2, plus time to load
+# the model into memory (a 12 GB model takes about a minute from disk).
+TIMEOUT_FACTOR = 2.0
+LOAD_SECONDS = 120.0
+SPEED_WEIGHT = 0.3  # how much one new call changes the learned speed
 
 
 class TaskCancelled(Exception):
@@ -67,6 +79,32 @@ class _Job:
     schema: dict[str, Any] | None
     params: dict[str, Any]
     future: asyncio.Future
+
+
+@dataclass
+class Speed:
+    """A model's measured speed in tokens per second, learned from the
+    calls of this worker process (none yet after a start)."""
+
+    prompt: float | None = None
+    output: float | None = None
+
+    def learn(self, result: GenerateResult) -> None:
+        if result.input_tokens and result.prompt_seconds:
+            self.prompt = average(self.prompt, result.input_tokens / result.prompt_seconds)
+        if result.output_tokens and result.output_seconds:
+            self.output = average(self.output, result.output_tokens / result.output_seconds)
+
+    def timeout(self, prompt_tokens: int, max_tokens: int | None) -> float | None:
+        """None while the speed is unknown: the adapter's own timeout."""
+        if self.prompt is None or self.output is None or max_tokens is None:
+            return None
+        expected = prompt_tokens / self.prompt + max_tokens / self.output
+        return TIMEOUT_FACTOR * expected + LOAD_SECONDS
+
+
+def average(old: float | None, new: float) -> float:
+    return new if old is None else (1 - SPEED_WEIGHT) * old + SPEED_WEIGHT * new
 
 
 def parse_answer(text: str, schema: dict[str, Any] | None) -> tuple[dict[str, Any] | None, bool]:
@@ -113,6 +151,7 @@ class LlmManager:
         self.adapters = adapters
         self.queues: dict[int, asyncio.Queue[_Job]] = {}
         self.consumers: dict[int, asyncio.Task] = {}
+        self.speeds: dict[int, Speed] = {}  # by model id
 
     async def recover(self) -> int:
         """At start: queues were in memory, so calls left as queued or
@@ -211,8 +250,9 @@ class LlmManager:
             job.future.set_exception(LlmCallFailed(message))
             return
 
+        prompt_tokens = estimate_tokens(job.messages)
         try:
-            params = fit_to_window(job.params, estimate_tokens(job.messages), model.context_length)
+            params = fit_to_window(job.params, prompt_tokens, model.context_length)
         except PromptTooLong as exc:
             await self._set_status(job.call_id, LlmCallStatus.FAILED, error=str(exc))
             job.future.set_exception(exc)
@@ -226,6 +266,9 @@ class LlmManager:
             # The context window from the catalog. Without it Ollama uses
             # its own default and silently cuts longer prompts.
             params={**params, "context_length": model.context_length},
+            timeout_seconds=self.speeds.setdefault(model_id, Speed()).timeout(
+                prompt_tokens, params.get("max_tokens")
+            ),
         )
         # The row keeps the limit really sent (it may be lower than asked).
         await self._set_status(
@@ -247,6 +290,7 @@ class LlmManager:
             job.future.set_exception(LlmCallFailed("The model did not answer"))
             return
 
+        self.speeds[model_id].learn(result)
         await self.log_store.add_response(job.call_id, {"text": result.text, "raw": result.raw})
         data, valid = parse_answer(result.text, job.schema)
         async with self.session_factory() as db:

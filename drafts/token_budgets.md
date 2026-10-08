@@ -88,7 +88,11 @@ So for the 3B model the limits are fine. The problems are elsewhere:
    real `prompt_eval_count` of earlier calls of the same step) and lower
    the output limit, or fail with a clear message, if prompt + output
    would not fit. Today Ollama would cut silently.
-3. **Per-call timeout from the budget.** Today one global
+3. **Per-call timeout from the budget** (done, PR #44: speed learned
+   per model in the worker's memory from Ollama's durations, weighted
+   average; timeout = expected × 2 + 120 s to load the model; while
+   the speed is unknown, and as the upper bound: `LLM_TIMEOUT_SECONDS`).
+   Before: one global
    `LLM_TIMEOUT_SECONDS` (300 by default; 3600 on the server since
    2026-10-08). A 14B model writes ~3 tok/s, so a 900-token step needs
    ~5 minutes and a 2500-token code step ~14. Compute the timeout per

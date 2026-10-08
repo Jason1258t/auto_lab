@@ -28,12 +28,12 @@ Unfinished, in the order the author cares about:
    classes (`small`, `medium`, `large` and `small_think`,
    `medium_think`, `large_think`); phase 1 first. Done in phase 1:
    retry a cut answer with 2× the limit and window guard (PR #42);
-   budget report view `llm_step_budgets` (PR #43). Next: per-call
-   timeout, shorter `verify` answers in new pipeline versions. Also
-   in scope: the **per-call timeout** should follow the step's token
-   limit and the model's speed (today one global `LLM_TIMEOUT_SECONDS`;
-   raised to 3600 on the server on 2026-10-08 because 14B models write
-   ~3 tok/s and a 900-token step takes ~5 min).
+   budget report view `llm_step_budgets` (PR #43); per-call timeout
+   from the learned model speed (PR #44; `LLM_TIMEOUT_SECONDS` is now
+   the first-call timeout and the upper bound, 3600 on the server).
+   Next: shorter `verify` answers in new pipeline versions (item 0),
+   then phase 2 (schema: `size_class`, `reasoning_tokens`,
+   `max_output_tokens` on `models`).
 2. ~~A heavy model~~: `mistral-small:22b` (12 GB) is in the catalog:
    ~2 tok/s writing, ~27 tok/s prompt reading, valid JSON and exact
    quotes in the benchmark. `llama3:8b` and `phi3:mini` were removed to
