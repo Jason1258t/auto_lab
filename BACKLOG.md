@@ -66,6 +66,18 @@ open live in `drafts/schema_design.md` ("Parked for later").
 - `fetch`: protect against DNS rebinding (connect to the checked address).
 - Drop or rewrite sentences without a source before publishing (now they
   are only marked for the reviewer).
+- **Search in several languages** (author, 2026-10-08): one language
+  segment of the web may not have the needed facts. Planned coverage per
+  question: queries in the task's language, in English, and in any
+  language the model picks. The language of search queries does not
+  matter; only the finished work must be in the task's language (already
+  checked by `in_task_language`). Needs a design: a config on `plan` /
+  `plan_each` (e.g. `query_languages: [task, en, any]`), and how many
+  queries per language.
+- **Search engines** (seen 2026-10-08: Brave "too many requests",
+  DuckDuckGo CAPTCHA, a search step failed): PR #51 retries empty
+  queries. If not enough: more or other engines in
+  `docker/searxng/settings.yml`, or a pause between queries.
 
 ## Operations
 
