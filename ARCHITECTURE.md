@@ -26,7 +26,10 @@ React (Vite) ──> api (FastAPI) ──> PostgreSQL <── worker ──> LLM
 ```
 
 `api` and `worker` are separate processes that talk only through the
-database (`drafts/backend_spec.md`). All of it runs in Docker
+database (`drafts/backend_spec.md`). The pipeline engine (file format,
+step kinds, model gateway, web search and download) is its own package,
+`packages/engine` (`autolab_engine`), without a database; the worker is
+a thin layer over it (`drafts/engine.md`, in progress). All of it runs in Docker
 (`compose.yaml` locally, `compose.server.yaml` on the server).
 
 ## Data model
@@ -165,7 +168,7 @@ OpenAI-compatible API, so one adapter can cover most future self-hosted
 cases; a hosted-API adapter (OpenAI-compatible / Anthropic) can be added
 later without changing any pipeline step. The adapter is chosen by
 `model_providers.adapter`; only `ollama` exists in code now
-(`backend/autolab/worker/gateway/`).
+(`packages/engine/src/autolab_engine/gateway/`).
 
 ## File storage
 

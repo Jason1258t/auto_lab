@@ -28,11 +28,11 @@ from sqlalchemy import select, update
 from autolab.config import Settings
 from autolab.db.models import Model, PipelineVersion, Task, TaskReview, TaskStep
 from autolab.db.models.enums import ReviewResult, TaskStatus, TaskStepStatus
-from autolab.worker import templates
 from autolab.worker.assemble import assemble_work
 from autolab.worker.kinds import HANDLERS, StepContext, StepFailed
 from autolab.worker.llm_manager import LlmManager, SessionFactory, TaskCancelled
-from autolab.worker.pipelines import (
+from autolab_engine import templates
+from autolab_engine.pipelines import (
     PipelineError,
     PipelineFile,
     Step,
@@ -40,7 +40,7 @@ from autolab.worker.pipelines import (
     for_size,
     load_pipeline,
 )
-from autolab.worker.web import Resolver, resolve
+from autolab_engine.web import Resolver, resolve
 
 log = logging.getLogger(__name__)
 

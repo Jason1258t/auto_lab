@@ -23,10 +23,13 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Dependencies first: this layer is cached until uv.lock changes.
+# Dependencies first: this layer is cached until uv.lock changes. The
+# pipeline engine is a workspace member (packages/engine).
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --locked --no-dev --no-install-project
+COPY packages/engine/pyproject.toml packages/engine/README.md packages/engine/
+RUN uv sync --locked --no-dev --no-install-workspace
 
+COPY packages packages
 COPY backend backend
 COPY migrations migrations
 COPY alembic.ini ./

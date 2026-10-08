@@ -26,12 +26,12 @@ from autolab.db.models import (
 )
 from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
-from autolab.worker.gateway import GenerateRequest
 from autolab.worker.kinds import research
 from autolab.worker.kinds.base import StepFailed
 from autolab.worker.kinds.research import quote_in_text
 from autolab.worker.main import Worker
-from autolab.worker.web import FetchError, check_url, fetch_page, html_to_text
+from autolab_engine.gateway import GenerateRequest
+from autolab_engine.web import FetchError, check_url, fetch_page, html_to_text
 from tests.fakes import FakeAdapter
 
 SKY_HTML = """<html><head><title>Why is the sky blue?</title>
@@ -353,7 +353,7 @@ async def test_empty_search_is_tried_again() -> None:
 
 
 async def test_temporary_dns_failure_is_tried_again(monkeypatch) -> None:
-    from autolab.worker import web
+    from autolab_engine import web
 
     monkeypatch.setattr(web, "DNS_RETRY_SECONDS", (0.0, 0.0))
     calls = []

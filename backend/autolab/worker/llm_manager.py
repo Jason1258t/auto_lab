@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from autolab.db.models import LlmCall, LlmResponse, Model, ModelProvider, Task
 from autolab.db.models.enums import FinishReason, LlmCallStatus, TaskStatus
 from autolab.logstore import LogStore
-from autolab.worker.gateway import (
+from autolab_engine.gateway import (
     Adapter,
     GatewayError,
     GenerateRequest,

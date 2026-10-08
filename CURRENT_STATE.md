@@ -18,6 +18,16 @@ real model on the test server. The frontend has all MVP screens
 
 ## Start here next session (handoff 2026-10-08)
 
+**Now (2026-10-09): the pipeline engine becomes its own package**
+(`drafts/engine.md`, accepted). Author's goal after that: **quality**
+before speed: "a well written text with checked facts, and enough
+material; for a ~3 hour run a solid piece of work, not a collection of
+quotes". Step 1 done (PR #56): `packages/engine` (`autolab_engine`,
+uv workspace) with `pipelines` (format and validation), `templates`,
+`language`, `web`, `gateway`, `enums`; `sync_pipelines` moved to
+`autolab.worker.sync`. Next: step 2 (kinds and budgets over an
+`LlmClient` interface), then the CLI and a quality set of topics.
+
 Server access for the agent is back (2026-10-08, afternoon). Still list
 every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and
 empty it after a deploy. Last deploy: 2026-10-08, 16:25 (up to PR #49,

@@ -15,6 +15,8 @@ Last deploy: 2026-10-08, 21:40 (up to PR #53).
 | PR | What | Check after deploy |
 |---|---|---|
 | #54 | DNS: a temporary failure (EAI_AGAIN) is tried again after 1 and 3 s | fewer "the host name cannot be resolved" in the worker log |
+| #56 | Pipeline engine as its own package (`packages/engine`); no behavior change | the image builds; the worker starts and syncs pipelines; one short task finishes |
+| #57 | Stricter language check: no letters of a third alphabet (Chinese in Russian text), up to 2 retries | a new Russian task on `qwen2.5:7b` has no Chinese characters in its work |
 
 ## Needs sudo (the author runs it)
 

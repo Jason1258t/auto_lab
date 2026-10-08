@@ -20,7 +20,7 @@ from autolab.config import Settings
 from autolab.db.models import Pipeline, PipelineVersion, Task, User
 from autolab.errors import AppError
 from autolab.services import activity
-from autolab.worker.pipelines import VERSION, PipelineError, parse_pipeline, version_key
+from autolab_engine.pipelines import VERSION, PipelineError, parse_pipeline, version_key
 
 NAME = re.compile(r"^[a-z][a-z0-9_]{1,49}$")
 MAX_FILE_BYTES = 200_000

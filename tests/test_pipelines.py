@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from autolab.db.models import Pipeline, PipelineVersion
-from autolab.worker.pipelines import PipelineError, for_size, load_pipeline, sync_pipelines
+from autolab.worker.sync import sync_pipelines
+from autolab_engine.pipelines import PipelineError, for_size, load_pipeline
 
 RESEARCH = Path("pipelines/research/1.0.0.yaml")
 

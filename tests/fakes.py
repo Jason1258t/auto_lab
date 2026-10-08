@@ -3,7 +3,7 @@
 from collections.abc import Callable
 
 from autolab.db.models.enums import FinishReason
-from autolab.worker.gateway import GenerateRequest, GenerateResult
+from autolab_engine.gateway import GenerateRequest, GenerateResult
 
 
 class FakeAdapter:

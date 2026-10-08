@@ -40,7 +40,7 @@ Examples from the history:
 
 | File | What |
 |---|---|
-| `backend/autolab/worker/pipelines.py` | the file format (pydantic), `KINDS` (name → needs a model?), validation |
+| `packages/engine/src/autolab_engine/pipelines.py` | the file format (pydantic), `KINDS` (name → needs a model?), validation |
 | `backend/autolab/worker/kinds/__init__.py` | `HANDLERS`: kind name → function |
 | `backend/autolab/worker/kinds/base.py` | `StepContext`: inputs, `ask`, `ask_each`, notes |
 | `backend/autolab/worker/kinds/research.py`, `deep.py`, `code.py` | the kinds, by area |

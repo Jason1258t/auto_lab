@@ -22,11 +22,12 @@ from autolab.db.engine import make_engine, make_session_factory
 from autolab.db.models import LogDeletion, Task, TaskStep
 from autolab.db.models.enums import TaskStatus, TaskStepStatus
 from autolab.logstore import LogStore, make_log_store
-from autolab.worker.gateway import Adapter, make_adapters
 from autolab.worker.llm_manager import LlmManager, SessionFactory
-from autolab.worker.pipelines import PipelineError, sync_pipelines
 from autolab.worker.runner import TaskRunner, now
-from autolab.worker.web import Resolver, resolve
+from autolab.worker.sync import sync_pipelines
+from autolab_engine.gateway import Adapter, make_adapters
+from autolab_engine.pipelines import PipelineError
+from autolab_engine.web import Resolver, resolve
 
 log = logging.getLogger("autolab.worker")
 

@@ -10,13 +10,13 @@ import httpx
 from autolab.config import Settings
 from autolab.db.models import Model, Task
 from autolab.db.models.enums import FinishReason
-from autolab.worker import templates
-from autolab.worker.gateway import Message
-from autolab.worker.language import Language, detect, matches
-from autolab.worker.language import note as language_note
 from autolab.worker.llm_manager import LlmCallFailed, LlmManager, PromptTooLong
-from autolab.worker.pipelines import PipelineFile, Step
-from autolab.worker.web import Resolver
+from autolab_engine import templates
+from autolab_engine.gateway import Message
+from autolab_engine.language import Language, detect, foreign_letters, matches
+from autolab_engine.language import note as language_note
+from autolab_engine.pipelines import PipelineFile, Step
+from autolab_engine.web import Resolver
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +24,16 @@ log = logging.getLogger(__name__)
 class StepFailed(Exception):
     """The step cannot finish. The message goes into the step summary,
     so it must be short and safe for users."""
+
+
+# How many times a text in the wrong language (or with letters of another
+# alphabet) is asked for again.
+LANGUAGE_RETRIES = 2
+
+
+def _language_score(text: str, language: Language) -> tuple[int, int]:
+    """Lower is better: (foreign letters, 0 if the language matches)."""
+    return (len(foreign_letters(text, language)), 0 if matches(text, language) else 1)
 
 
 @dataclass
@@ -177,20 +187,36 @@ class StepContext:
         return answers
 
     async def in_task_language(self, item: Any, answer: dict[str, Any], key: str) -> dict[str, Any]:
-        """If answer[key] is not in the task language, ask once more with a
-        clear note. Returns the better answer; a still wrong one is counted
-        in the step summary."""
+        """If answer[key] is not in the task language, or mixes in letters
+        of another alphabet, ask again (up to LANGUAGE_RETRIES times) with
+        a note that names the problem. Returns the first good answer, else
+        the one with the fewest foreign letters; that one is counted in
+        the step summary."""
         language = self.language
-        if matches(answer[key], language):
-            return answer
-        retry = await self.ask(
-            item=item,
-            extra_note=f"Your last answer was not in {language.name}. Write it in {language.name}.",
-        )
-        if retry is not None and matches(retry[key], language):
-            return retry
+        best = answer
+        for _ in range(LANGUAGE_RETRIES):
+            if matches(best[key], language):
+                return best
+            foreign = foreign_letters(best[key], language)
+            problem = (
+                f"Your last answer mixed in letters of another alphabet ({foreign[:20]})."
+                if foreign
+                else f"Your last answer was not in {language.name}."
+            )
+            retry = await self.ask(
+                item=item,
+                extra_note=f"{problem} Write it again, every word in {language.name}. "
+                f"Use only the {language.name} alphabet; Latin letters only for "
+                "names, terms and units.",
+            )
+            if retry is not None and _language_score(retry[key], language) < _language_score(
+                best[key], language
+            ):
+                best = retry
+        if matches(best[key], language):
+            return best
         self.wrong_language += 1
-        return answer
+        return best
 
 
 Handler = Callable[[StepContext], Awaitable[dict[str, Any]]]

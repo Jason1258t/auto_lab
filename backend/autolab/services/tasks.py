@@ -35,8 +35,8 @@ from autolab.services.permissions import (
     require_not_archived,
     require_task_editor,
 )
-from autolab.worker.pipelines import PipelineError, load_pipeline
 from autolab.worker.runner import rerun_start
+from autolab_engine.pipelines import PipelineError, load_pipeline
 
 log = logging.getLogger(__name__)
 

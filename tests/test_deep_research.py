@@ -24,8 +24,8 @@ from autolab.db.models import (
 )
 from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
-from autolab.worker.gateway import GenerateRequest
 from autolab.worker.main import Worker
+from autolab_engine.gateway import GenerateRequest
 from tests.fakes import FakeAdapter
 
 QUOTE = "The sky looks blue because of Rayleigh scattering."
