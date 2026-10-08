@@ -16,36 +16,58 @@ real model on the test server. The frontend has all MVP screens
 (`frontend/`), and the API image serves it. Guides for users:
 `docs/USER_GUIDE.md`, `docs/TRY_IT.md`.
 
-## Start here next session (handoff 2026-10-08)
+## Start here next session (handoff 2026-10-09)
 
-**Now (2026-10-09): the pipeline engine becomes its own package**
-(`drafts/engine.md`, accepted). Author's goal after that: **quality**
-before speed: "a well written text with checked facts, and enough
-material; for a ~3 hour run a solid piece of work, not a collection of
-quotes". Step 1 done (PR #56): `packages/engine` (`autolab_engine`,
-uv workspace) with `pipelines` (format and validation), `templates`,
-`language`, `web`, `gateway`, `enums`; `sync_pipelines` moved to
-`autolab.worker.sync`. Step 2 done (PR #58): `kinds`, `budget`, `llm`
-(`LlmClient`), `types` in the engine; the worker implements `LlmClient`
-with `TaskLlm` over its LLM manager. Step 3 done (PR #59): `run`
-(`run_step`, `run_pipeline`), `work` (Markdown + cited facts), CLI
-`autolab-engine check | run` (writes step outputs, `work.md`, `run.json`,
-`calls.jsonl`); tried on the server's Ollama with local SearxNG:
-`research 1.3.0` on 3B in 2.5 min. Step 5 done (PR #60): the quality set
-`quality/topics.yaml` (six technical topics: RAG, quantization, local LLM
-tools, attention and long context, PostgreSQL MVCC, Rust vs C++; the
-author asked for CS / LLM topics) and `autolab-engine eval | compare`.
-Baseline eval runs on the server since 2026-10-09 (see
-`DEPLOY_PENDING.md`, "Running now"). Next: read its report and works,
-then the quality work itself (author: "solid text, not a collection of
-quotes": a deeper outline, several paragraphs per section that connect
-facts, introduction and conclusion).
+**Goal now: quality, not speed** (author, 2026-10-09): "a well written
+text with checked facts, and enough material; for a ~3 hour run a solid
+piece of work, not a collection of quotes". Speed work is paused.
 
-Server access for the agent is back (2026-10-08, afternoon). Still list
-every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and
-empty it after a deploy. Last deploy: 2026-10-08, 16:25 (up to PR #49,
-migrations 0007-0008; checked: model classes, new pipeline versions
-research 1.3.0 / deep_research 1.2.0, the view).
+**First thing to do:** read the overnight baseline.
+- It runs on the server in the container `autolab-eval` (started
+  2026-10-09 ~00:15): `deep_research 1.2.0` on `qwen2.5:7b` (medium),
+  the six topics of `quality/topics.yaml`. Results:
+  `~/autolab/data/runs/deep-1.2.0-7b-baseline/` (`report.md`, and per
+  topic `work.md`, step outputs, `calls.jsonl`). `docker logs
+  autolab-eval` shows progress; `docker rm autolab-eval` when done.
+- Copy the folder to the laptop (`scp -r`), read `report.md` and two or
+  three `work.md`, and write down what makes the text weak.
+
+**Then: the quality work** (needs a short design first, ask the
+author). Known problems from a test run (`research 1.3.0`, 3B): one
+paragraph per section with 1-3 facts, the heading repeated inside the
+text, a list of retold quotes. Ideas: a deeper outline (sections and
+sub-sections), several paragraphs per sub-section that connect facts
+around one idea, an introduction, transitions and a conclusion, more
+facts per section. Facts and exact quotes stay required. Compare every
+new version with the baseline: `autolab-engine eval` + `compare`.
+
+**State of the code (all merged and deployed, PRs #54-#61):**
+- The pipeline engine is its own package, `packages/engine`
+  (`autolab_engine`, uv workspace; plan: `drafts/engine.md`, steps 1-3
+  and 5 done; step 4, moving the step reference docs, is left). It has
+  no database; the worker is a thin layer (`TaskLlm` implements
+  `LlmClient`, the runner calls `run_step`, `assemble_work` saves what
+  `build_work` makes).
+- CLI: `uv run autolab-engine check | run | eval | compare` (engine
+  README). Local runs can use the server's Ollama
+  (`--ollama-url http://192.168.0.101:11434`) and the local SearxNG
+  (`docker compose up -d searxng`, port 8888); the server's SearxNG is
+  not reachable from the LAN.
+- Stricter language check (PR #57): no letter of a third alphabet
+  (Chinese inside Russian text), up to 2 retries.
+- Not checked after the deploy: one short `research` task from the web
+  app (the agent cannot create tasks: writes to the server database are
+  blocked for it).
+
+**Other open items:**
+- serverload (host panel) is its own private repo,
+  `Jason1258t/serverload`, installed on the server (port 8002). The
+  author will send UI/UX notes for AutoLab and the panel later.
+- Backlog from this session: search in several languages (task
+  language, English, model's choice), search engine blocks
+  (`BACKLOG.md`).
+- Moving Ollama into a container: not needed now (systemd limits are
+  applied); see the answer of 2026-10-08 if it comes up again.
 
 Unfinished, in the order the author cares about:
 
