@@ -39,19 +39,33 @@ Unfinished, in the order the author cares about:
 3. **Limit Ollama's resources** so a big model cannot take the server
    down: commands are ready in `DEPLOY.md` ("Keep the server alive").
    They need sudo, so the author runs them; then check with a 14B task.
-4. **nginx: `192.168.0.101/autolab` instead of `:8000`** (asked
-   2026-10-08). Answer: possible. Plan: nginx in Docker on port 80 (no
-   sudo needed), `client_max_body_size 55m` (file uploads), long
-   timeouts. AutoLab needs a base path setting (Vite `base`, router
-   `basename`, API prefix, refresh-cookie path, FastAPI `root_path` for
-   /docs): one PR, default `/` so development is unchanged. "Server
-   load" (a host app on :8002) uses `EventSource('/api/stream')`, an
-   absolute path: under `/serverload/` it needs a change in that app
-   (relative `api/stream`) or an nginx `sub_filter`; its SSE also needs
-   `proxy_buffering off`. Waiting for the author's go.
-5. **Chat language**: the author may write Russian or English at any
+4. **New pipelines and features** (asked 2026-10-08), each needs a
+   short design first:
+   - **A "giga" pipeline** that may run up to ~8 hours (e.g. on
+     `mistral-small:22b` or a 14B model): more sub-questions, more
+     rounds, a longer report. Come up with an example task for it (e.g.
+     "a review of open-source self-hosted LLM tools in 2026: features,
+     licenses, hardware needs, with sources").
+   - **Code review pipeline** with attached files: first check that file
+     upload works end to end, then a pipeline that reads up to ~10
+     attached files (workspace files for now) and reviews them.
+   - **Reports in review mode**: what the code is (structure, purpose,
+     main parts) and what could be improved, as a readable report.
+   - **Several output files per task.** The original spec said a task may
+     produce any number of files; today a work is one Markdown text (code
+     works put files as code blocks into it). Design: a work with
+     several files (download one or all), shown in the web app.
+5. **Chat language**5. **Chat language**: the author may write Russian or English at any
    time; reply in the language of the message (repository texts stay
    English).
+
+Server disk (2026-10-08): `/` was only 100 GB (the Ubuntu installer
+keeps the rest of the LVM volume group free). The author grew it to
+300 GB with `lvextend -r`; about 628 GB are still free in the volume
+group (`sudo lvextend -r -L +200G /dev/ubuntu-vg/ubuntu-lv` to add more,
+online). Ubuntu is on a 1 TB HDD (`sda`); Windows is on the NVMe disk
+(`nvme0n1`), never touch it. Models load slowly from the HDD (a 12 GB
+model takes 1-2 minutes the first time).
 
 Models on the server (2026-10-08; benchmark = the summarize step with a
 6000-character page, 8k context): qwen2.5:3b and qwen2.5-coder:3b ~49

@@ -5,6 +5,16 @@ open live in `drafts/schema_design.md` ("Parked for later").
 
 ## Tasks and pipelines
 
+- **Agent mode** (2026-10-08, far future): a task where the model plans
+  and calls tools in a loop, instead of a fixed list of steps.
+- **nginx in front of the apps** (2026-10-08, dropped for now): open
+  AutoLab as `192.168.0.101/autolab` instead of `:8000`. Needs a base
+  path setting in AutoLab (Vite `base`, router `basename`, API prefix,
+  refresh-cookie path, FastAPI `root_path`), nginx in Docker on port 80
+  (`client_max_body_size 55m`). "Server load" (:8002) uses an absolute
+  `EventSource('/api/stream')`, so it needs a relative path or an nginx
+  `sub_filter`, and `proxy_buffering off` for its SSE.
+
 - `schedules`: repeat a task by time.
 - Per-step model override.
 - **A library of scenarios and actions** (asked 2026-10-08): authors
