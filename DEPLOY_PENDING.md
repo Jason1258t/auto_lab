@@ -8,14 +8,12 @@ server access deploys (the agent, when it has access). How: `DEPLOY.md`,
 After a deploy: check the items below, then empty the list (keep the
 header) and write the date in `CURRENT_STATE.md`.
 
-Last deploy: 2026-10-08, 14:37 (up to migration 0008, PR #46).
+Last deploy: 2026-10-08, 16:25 (up to PR #49; migration 0008).
 
 ## Changes
 
 | PR | What | Check after deploy |
 |---|---|---|
-| #49 | Batches in `verify` / `group`; `research 1.3.0`, `deep_research 1.2.0` | the new versions sync; one `deep_research` task on a 7B model finishes, and `verify`/`group` have fewer calls in `llm_step_budgets` |
-| #48 | Config values by model size class; `fetch.max_chars: auto` | nothing yet (no built-in pipeline uses them); upload of a file with a bad size map shows the error |
 
 ## Needs sudo (the author runs it)
 
@@ -24,6 +22,6 @@ Last deploy: 2026-10-08, 14:37 (up to migration 0008, PR #46).
 
 ## Worth measuring after the deploy
 
-- One `deep_research` task on a 7B model with 1.1.0: compare the time of
-  the `verify` step with the old version (`llm_step_budgets`,
-  `avg_seconds` and `avg_output_tokens` of the verify step index).
+- Two `deep_research` tasks on `qwen2.5:7b`, versions 1.0.0 and 1.2.0,
+  same input (task 4): compare time and calls per step in
+  `llm_step_budgets` (`verify` = step 13, `group` = step 14).
