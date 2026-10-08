@@ -16,6 +16,7 @@ anything sensitive runs next to the worker.
 
 import asyncio
 import ipaddress
+import logging
 import re
 import socket
 from collections.abc import Awaitable, Callable
@@ -24,6 +25,8 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
 import httpx
+
+log = logging.getLogger(__name__)
 
 Resolver = Callable[[str], Awaitable[list[str]]]
 
@@ -60,9 +63,24 @@ class Page:
     text: str
 
 
+# A temporary DNS failure (EAI_AGAIN) is tried again after these pauses.
+# Seen on the server: six parallel page downloads all failed to resolve in
+# the same millisecond, and the same names resolved a moment later.
+DNS_RETRY_SECONDS = (1.0, 3.0)
+
+
 async def resolve(host: str) -> list[str]:
-    infos = await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
-    return sorted({info[4][0] for info in infos})
+    loop = asyncio.get_running_loop()
+    for pause in (*DNS_RETRY_SECONDS, None):
+        try:
+            infos = await loop.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        except socket.gaierror as exc:
+            if exc.errno != socket.EAI_AGAIN or pause is None:
+                raise
+            await asyncio.sleep(pause)
+        else:
+            return sorted({info[4][0] for info in infos})
+    raise AssertionError("unreachable")
 
 
 async def check_url(url: str, resolver: Resolver) -> None:
@@ -72,6 +90,7 @@ async def check_url(url: str, resolver: Resolver) -> None:
     try:
         addresses = await resolver(parts.hostname)
     except OSError as exc:
+        log.info("cannot resolve %s: %s", parts.hostname, exc)
         raise FetchError("the host name cannot be resolved") from exc
     if not addresses:
         raise FetchError("the host name cannot be resolved")
