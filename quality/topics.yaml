@@ -1,0 +1,48 @@
+# The quality set (drafts/engine.md, step 5): fixed topics to run a
+# pipeline version on and compare versions by the same numbers.
+# Technical topics on purpose (the author reads the results): CS, LLMs,
+# databases, systems. Three in Russian, three in English.
+#
+#   uv run autolab-engine eval pipelines/deep_research/1.2.0.yaml \
+#       --topics quality/topics.yaml --model qwen2.5:7b --size-class medium \
+#       --out runs/deep-1.2.0-7b
+topics:
+  - id: rag
+    title: Retrieval-augmented generation in practice
+    input: >
+      How does retrieval-augmented generation (RAG) work in practice:
+      chunking, embeddings, vector search and rerankers, how answers are
+      grounded in the retrieved text, and the most common ways RAG systems
+      fail?
+  - id: quantization
+    title: Квантизация больших языковых моделей
+    input: >
+      Как работает квантизация больших языковых моделей (GGUF, GPTQ, AWQ):
+      что именно сжимается, сколько памяти это экономит и как разные
+      уровни квантизации влияют на качество ответов?
+  - id: local_llm
+    title: Self-hosted LLM tools
+    input: >
+      Compare tools for running LLMs on your own hardware (Ollama,
+      llama.cpp, vLLM, LM Studio): what each is for, how they use CPU and
+      GPU memory, their licenses, and which one fits a single small GPU
+      server.
+  - id: attention
+    title: Механизм внимания и длинный контекст
+    input: >
+      Как устроен механизм внимания в трансформерах, почему длинный
+      контекст так дорого стоит по памяти и времени, и какие подходы это
+      смягчают (FlashAttention, скользящее окно, RoPE scaling, KV-кэш)?
+  - id: postgres_mvcc
+    title: PostgreSQL MVCC and vacuum
+    input: >
+      How does PostgreSQL MVCC keep several versions of a row, why does
+      table bloat happen, and how do VACUUM and autovacuum work and get
+      tuned on a busy database?
+  - id: rust_cpp
+    title: Rust и C++ в системном программировании
+    input: >
+      Rust и C++ в системном программировании: как Rust обеспечивает
+      безопасность памяти без сборщика мусора, чем это оплачивается, как
+      они сравниваются по производительности и где проекты переходят на
+      Rust (Linux, Android, браузеры)?

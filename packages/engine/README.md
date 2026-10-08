@@ -22,6 +22,24 @@ parameters, answer, tokens, seconds). No queue and no database: the
 calls go straight to the model, with the same token budgets as in
 AutoLab.
 
+### The quality set
+
+```bash
+uv run autolab-engine eval pipelines/deep_research/1.2.0.yaml \
+    --topics quality/topics.yaml --model qwen2.5:7b --size-class medium \
+    --ollama-url http://192.168.0.101:11434 --out runs/deep-1.2.0-7b
+uv run autolab-engine compare runs/deep-1.2.0-7b runs/deep-1.3.0-7b
+```
+
+`eval` runs the pipeline on every topic of `quality/topics.yaml` (six
+technical topics, Russian and English; `--only rag attention` for a
+few), each into its own folder, and writes `report.md` / `report.json`:
+minutes, calls, words, sections, words per section, facts found / kept /
+cited, sources, sentences without a source, letters of a wrong alphabet,
+sub-questions covered. The report is updated after every topic.
+`compare` shows two reports side by side with the changes. The numbers
+make versions comparable; read the works too.
+
 Work in progress: the plan and the order of work are in
 `drafts/engine.md` of the AutoLab repository.
 
@@ -38,7 +56,8 @@ What is here now:
 - `run`: `run_step` (one step and its summary; AutoLab's worker uses it)
   and `run_pipeline` (all steps, then the work);
 - `work`: the final Markdown and the cited facts;
-- `cli`: `autolab-engine check` and `run`, with `DirectLlm`;
+- `cli`: `autolab-engine check`, `run`, `eval`, `compare`, with `DirectLlm`;
+- `quality`: topics of the quality set, the numbers of a run, reports;
 - `types`: `TaskInput`, `ModelInfo` (plain data from the caller);
 - `enums`: fixed lists shared with AutoLab's database.
 

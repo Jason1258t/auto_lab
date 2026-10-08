@@ -72,7 +72,8 @@ Rules:
    The worker's runner uses the same step code.
 4. **Docs**: engine README, step reference moves from `docs/PIPELINES.md`
    (the doc keeps the pipeline-author view and links to it).
-5. **Quality set**: a few fixed topics and a script that runs a pipeline
+5. **Quality set** (done, PR #60: `quality/topics.yaml`, `autolab-engine
+   eval` and `compare`): a few fixed topics and a script that runs a pipeline
    version on them and writes a report (facts kept, sub-question
    coverage, sentences without a source, length). Then the quality work
    itself.
