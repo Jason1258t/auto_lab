@@ -172,6 +172,52 @@ Expected effect for a 7B model on `deep_research`: about half the time
 (mostly from shorter `verify` answers and batched `group`), and richer
 facts and sections from the size-dependent values.
 
+### Measurements after phases 1-3 (server, 2026-10-08)
+
+Topic for tasks 7 and 8: heat pumps in a cold climate (Russian). Task 4:
+growing mushrooms (Russian). Times are the pipeline run, without the
+review.
+
+| Task | Model | Version | Time | Calls | Output tokens |
+|---|---|---|---|---|---|
+| 4 | qwen2.5:3b | deep_research 1.0.0 | 26.5 min | 226 | 20 300 |
+| 7 | qwen2.5:7b | deep_research 1.0.0 | 88.5 min | 244 | 28 062 |
+| 8 | qwen2.5:3b | deep_research 1.2.0 | 21.6 min | 153 | 20 742 |
+
+(Task 6, 1.2.0 on the 7B model, failed at its search step: the search
+engines blocked us; fixed by PR #51.)
+
+Per step:
+
+- **Extract facts** (`r1_facts`, `r2_facts`, `r3_facts`) is the main
+  cost on the 7B model: 60 calls, 60 of 88 minutes (~61 s per page,
+  ~300 output tokens at ~5 tok/s). Almost every page gives exactly the
+  maximum of 3 facts (57 of 60 pages), ~250 characters each, and more
+  than half of them are dropped later by `verify`.
+- **verify**, 1.0.0 on 7B: 118 calls, 19 minutes, ~67 output tokens each.
+  On 3B, 1.2.0 (batch of 1 on small) writes 30 tokens instead of 52.
+- **group**: 7B 1.0.0: 54 calls, 130 s; 3B 1.2.0 (batch 5): 3 calls,
+  11 s (3B 1.0.0 in task 4: 48 calls, 29 s).
+- No answer was cut (`cut_share` 0) and no JSON was invalid.
+
+**Verdicts on the same facts.** Task 8 kept only 14 of 88 facts, so the
+88 facts were checked again on `qwen2.5:3b` with each prompt version:
+
+| Prompt | supported | partly | not supported | Time |
+|---|---|---|---|---|
+| 1.0.0 (reason required) | 9 | 60 | 19 | 283 s |
+| 1.1.0 (reason optional) | 19 | 42 | 27 | 59 s |
+| 1.2.0 (batch format) | 14 | 31 | 43 | (in the task) |
+
+The low number came from the facts, not from the new prompt: the old
+prompt keeps even fewer (9). 1.1.0 is ~5× faster than 1.0.0 on the same
+facts. Agreement: 70 of 88 (1.0.0 vs 1.1.0), 59-63 of 88 with 1.2.0.
+
+Expected for the 7B model with 1.2.0 (not measured yet): `verify` ~19 →
+~5 minutes (shorter answers, 4 facts per call), `group` 130 → ~15 s; the
+whole task ~88 → ~72 minutes. The next lever is fact extraction
+(output-bound): see the open question in `CURRENT_STATE.md`.
+
 ### Phase 4: calibration (later)
 
 Use the phase-1 report to suggest values: e.g. "`write` on `qwen2.5:7b`
