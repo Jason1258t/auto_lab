@@ -9,11 +9,12 @@ import httpx
 
 from autolab.config import Settings
 from autolab.db.models import Task
+from autolab.db.models.enums import FinishReason
 from autolab.worker import templates
 from autolab.worker.gateway import Message
 from autolab.worker.language import Language, detect, matches
 from autolab.worker.language import note as language_note
-from autolab.worker.llm_manager import LlmCallFailed, LlmManager
+from autolab.worker.llm_manager import LlmCallFailed, LlmManager, PromptTooLong
 from autolab.worker.pipelines import PipelineFile, Step
 from autolab.worker.web import Resolver
 
@@ -93,6 +94,7 @@ class StepContext:
         max_attempts times. None if no attempt gave a valid answer."""
         llm = self.step.llm
         messages = self.messages(self.variables(**extra), extra_note)
+        max_tokens = llm.max_tokens
         for attempt in range(1, llm.max_attempts + 1):
             try:
                 result = await self.llm.call(
@@ -101,13 +103,19 @@ class StepContext:
                     model_id=self.task.model_id,
                     messages=messages,
                     schema=llm.output,
-                    params={"temperature": llm.temperature, "max_tokens": llm.max_tokens},
+                    params={"temperature": llm.temperature, "max_tokens": max_tokens},
                     attempt=attempt,
                 )
+            except PromptTooLong as exc:  # a retry cannot help
+                raise StepFailed(str(exc)[0].lower() + str(exc)[1:]) from exc
             except LlmCallFailed:
                 continue
             if result.data is not None:
                 return result.data
+            # Cut by the limit: the same limit would cut it again. The
+            # manager lowers it back if the window is too small.
+            if result.finish_reason == FinishReason.LENGTH:
+                max_tokens *= 2
             log.info(
                 "task %s step %s: invalid answer (call %s)",
                 self.task.id,

@@ -12,6 +12,8 @@ class FakeAdapter:
     def __init__(self, answer: Callable[[GenerateRequest], str]) -> None:
         self.answer = answer
         self.requests: list[GenerateRequest] = []
+        # Finish reasons for the next answers, in order; then always 'stop'.
+        self.finish_reasons: list[FinishReason] = []
 
     async def generate(self, request: GenerateRequest) -> GenerateResult:
         self.requests.append(request)
@@ -19,6 +21,6 @@ class FakeAdapter:
             text=self.answer(request),
             input_tokens=12,
             output_tokens=5,
-            finish_reason=FinishReason.STOP,
+            finish_reason=self.finish_reasons.pop(0) if self.finish_reasons else FinishReason.STOP,
             raw={"fake": True},
         )

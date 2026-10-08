@@ -20,7 +20,7 @@ from autolab.db.models import (
     TaskStep,
     Workspace,
 )
-from autolab.db.models.enums import LlmCallStatus, TaskStatus, TaskStepStatus
+from autolab.db.models.enums import FinishReason, LlmCallStatus, TaskStatus, TaskStepStatus
 from autolab.logstore import FileLogStore
 from autolab.worker.gateway import GatewayError, GenerateRequest
 from autolab.worker.main import Worker, claim_next_task, clean_up_logs, recover_tasks
@@ -285,3 +285,40 @@ async def test_two_workers_never_take_the_same_task(migrated_db: str) -> None:
             conn.execute(text("DELETE FROM pipeline_versions WHERE id = :v"), {"v": version_id})
             conn.execute(text("DELETE FROM models WHERE id = :m"), {"m": model_id})
         sync_engine.dispose()
+
+
+async def test_cut_answer_retried_with_more_room(setup, db: AsyncSession) -> None:
+    answers = iter(['{"queries": ["why is', QUERIES])
+    worker, adapter, task_id = await setup([PLAN_STEP], lambda _: next(answers))
+    adapter.finish_reasons = [FinishReason.LENGTH, FinishReason.STOP]
+    await worker.run_once()
+
+    # The default limit is 512; the second attempt gets twice as much.
+    assert [r.params["max_tokens"] for r in adapter.requests] == [512, 1024]
+    assert (await db.get(Task, task_id)).status == TaskStatus.IN_REVIEW
+
+
+async def test_limit_lowered_to_fit_the_window(setup, db: AsyncSession) -> None:
+    step = {**PLAN_STEP, "llm": {**PLAN_STEP["llm"], "max_tokens": 8000}}
+    worker, adapter, _ = await setup([step], lambda _: QUERIES)
+    await worker.run_once()
+
+    sent = adapter.requests[0].params["max_tokens"]
+    assert 4000 < sent < 4096  # the window of the fake model, minus the prompt
+    call = await db.scalar(select(LlmCall))
+    assert call.params["max_tokens"] == sent
+
+
+async def test_prompt_too_long_fails_at_once(setup, db: AsyncSession) -> None:
+    step = {**PLAN_STEP, "llm": {**PLAN_STEP["llm"], "prompt": "word " * 4000}}
+    worker, adapter, task_id = await setup([step], lambda _: QUERIES)
+    await worker.run_once()
+
+    assert adapter.requests == []  # never sent
+    calls = (await db.scalars(select(LlmCall))).all()
+    assert len(calls) == 1  # no second attempt
+    assert calls[0].status == LlmCallStatus.FAILED
+    assert calls[0].error.startswith("The prompt is too long")
+    step_row = await db.get(TaskStep, (task_id, 0))
+    await db.refresh(step_row)
+    assert step_row.summary.startswith("Failed: the prompt is too long")

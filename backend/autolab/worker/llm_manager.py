@@ -9,6 +9,7 @@ answer go to the log store under the same id.
 import asyncio
 import json
 import logging
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -19,13 +20,20 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from autolab.db.models import LlmCall, LlmResponse, Model, ModelProvider, Task
-from autolab.db.models.enums import LlmCallStatus, TaskStatus
+from autolab.db.models.enums import FinishReason, LlmCallStatus, TaskStatus
 from autolab.logstore import LogStore
 from autolab.worker.gateway import Adapter, GatewayError, GenerateRequest, Message
 
 log = logging.getLogger(__name__)
 
 SessionFactory = Callable[[], AsyncSession]
+
+# Window guard (drafts/token_budgets.md, phase 1). We do not have the
+# model's tokenizer, so the prompt size is an estimate; 3.5 characters per
+# token is a careful guess for English and code (Russian is denser).
+CHARS_PER_TOKEN = 3.5
+TOKENS_PER_MESSAGE = 10  # the chat template around each message
+MIN_ANSWER_TOKENS = 64  # less room than this: do not even try
 
 
 class TaskCancelled(Exception):
@@ -36,6 +44,11 @@ class LlmCallFailed(Exception):
     """The provider could not answer. The message is safe for users."""
 
 
+class PromptTooLong(LlmCallFailed):
+    """The prompt leaves no room for an answer in the model's window.
+    Trying again with the same prompt cannot help."""
+
+
 @dataclass(frozen=True)
 class CallResult:
     call_id: int
@@ -43,6 +56,7 @@ class CallResult:
     # The parsed answer if a schema was given and the answer matches it;
     # None otherwise (the caller may try again).
     data: dict[str, Any] | None
+    finish_reason: FinishReason
 
 
 @dataclass
@@ -65,6 +79,29 @@ def parse_answer(text: str, schema: dict[str, Any] | None) -> tuple[dict[str, An
     except (ValueError, jsonschema.ValidationError):
         return None, False
     return data, True
+
+
+def estimate_tokens(messages: list[Message]) -> int:
+    """A rough prompt size in tokens, from the length of the text."""
+    chars = sum(len(m.content) for m in messages)
+    return math.ceil(chars / CHARS_PER_TOKEN) + TOKENS_PER_MESSAGE * len(messages)
+
+
+def fit_to_window(
+    params: dict[str, Any], prompt_tokens: int, context_length: int
+) -> dict[str, Any]:
+    """Lower max_tokens so that prompt + answer fit the window. Without
+    this Ollama silently cuts the prompt. Raises PromptTooLong if there is
+    no useful room left."""
+    room = context_length - prompt_tokens
+    if room < MIN_ANSWER_TOKENS:
+        raise PromptTooLong(
+            f"The prompt is too long for the model's window "
+            f"(about {prompt_tokens} tokens of {context_length})"
+        )
+    if "max_tokens" in params and params["max_tokens"] > room:
+        return {**params, "max_tokens": room}
+    return params
 
 
 class LlmManager:
@@ -174,6 +211,13 @@ class LlmManager:
             job.future.set_exception(LlmCallFailed(message))
             return
 
+        try:
+            params = fit_to_window(job.params, estimate_tokens(job.messages), model.context_length)
+        except PromptTooLong as exc:
+            await self._set_status(job.call_id, LlmCallStatus.FAILED, error=str(exc))
+            job.future.set_exception(exc)
+            return
+
         request = GenerateRequest(
             model=model.name,
             base_url=model.base_url or provider.base_url,
@@ -181,9 +225,12 @@ class LlmManager:
             schema=job.schema,
             # The context window from the catalog. Without it Ollama uses
             # its own default and silently cuts longer prompts.
-            params={**job.params, "context_length": model.context_length},
+            params={**params, "context_length": model.context_length},
         )
-        await self._set_status(job.call_id, LlmCallStatus.RUNNING, started_at=datetime.now(UTC))
+        # The row keeps the limit really sent (it may be lower than asked).
+        await self._set_status(
+            job.call_id, LlmCallStatus.RUNNING, started_at=datetime.now(UTC), params=params
+        )
         await self.log_store.create(job.call_id, request.as_log())
 
         try:
@@ -220,7 +267,7 @@ class LlmManager:
                 .values(status=LlmCallStatus.DONE, finished_at=datetime.now(UTC))
             )
             await db.commit()
-        job.future.set_result(CallResult(job.call_id, result.text, data))
+        job.future.set_result(CallResult(job.call_id, result.text, data, result.finish_reason))
 
     async def close(self) -> None:
         for consumer in self.consumers.values():

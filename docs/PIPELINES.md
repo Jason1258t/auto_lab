@@ -84,7 +84,7 @@ Use `from` **or** `for_each`, not both. References must point to an
 | `prompt` | required | the user message, a template (section 5) |
 | `output` | required | a JSON schema of the answer; must be `type: object` |
 | `temperature` | 0.2 | 0 for checks, 0.2-0.4 for writing |
-| `max_tokens` | 512 | keep it small: small models drift on long answers (max 8192) |
+| `max_tokens` | 512 | keep it small: small models drift on long answers (max 8192); lowered if the prompt leaves less room in the window; doubled on a retry after a cut answer |
 | `max_attempts` | 2 | 1-5; invalid JSON or schema mismatch → another attempt |
 
 Tips for small models:
