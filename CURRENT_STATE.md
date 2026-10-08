@@ -18,9 +18,10 @@ real model on the test server. The frontend has all MVP screens
 
 ## Start here next session (handoff 2026-10-08)
 
-**No server access for the agent** (since 2026-10-08). Everything
-merged but not deployed is listed in `DEPLOY_PENDING.md`; add to it with
-every PR that needs a deploy step.
+Server access for the agent is back (2026-10-08, afternoon). Still list
+every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and
+empty it after a deploy. Last deploy: 2026-10-08 (migrations 0007-0008,
+PRs #42-#46; checked: model classes, new pipeline versions, the view).
 
 Unfinished, in the order the author cares about:
 
