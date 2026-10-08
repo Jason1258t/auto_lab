@@ -147,7 +147,8 @@ Admin page: the new fields in *Add model*, and an edit dialog.
    answer is the cost): `config.batch_size` (default 1 = today). The
    model gets N items and answers a list. Code still checks every item
    (quotes stay exact; a missing item is retried alone).
-2. **Size-dependent config**: a config value may depend on the model's
+2. **Size-dependent config** (done, PR #48; fallback to the next smaller
+   class, `small` required): a config value may depend on the model's
    `size_class`:
 
    ```yaml
@@ -161,7 +162,7 @@ Admin page: the new fields in *Add model*, and an edit dialog.
    `*_think` class falls back to its normal class when the file has no
    key for it (`medium_think` → `medium`), so files may give think
    values only where they differ.
-3. **Inputs follow the window**: `fetch.max_chars: auto` = a share of the
+3. **Inputs follow the window** (done, PR #48): `fetch.max_chars: auto` = a share of the
    window (e.g. 50 %), so a large-window model reads whole pages.
 4. New pipeline versions (`research 1.2.0`, `deep_research 1.1.0`, ...)
    use these knobs; old versions run as before.

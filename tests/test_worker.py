@@ -349,3 +349,15 @@ async def test_thinking_model_gets_room_to_think(setup, db: AsyncSession) -> Non
 
     # 512 for the answer + 2000 to think, then the model's own cap.
     assert adapter.requests[0].params["max_tokens"] == 2400
+
+
+async def test_config_follows_the_model_size(setup, db: AsyncSession) -> None:
+    llm = {**PLAN_STEP["llm"], "prompt": "Write {{ config.max_queries }} queries."}
+    step = {**PLAN_STEP, "config": {"max_queries": {"small": 2, "medium": 5}}, "llm": llm}
+    worker, adapter, _ = await setup([step], lambda _: QUERIES)
+    model = await db.scalar(select(Model).where(Model.name == "fake-model"))
+    model.size_class = ModelSizeClass.MEDIUM_THINK  # no medium_think key: medium
+    await db.commit()
+    await worker.run_once()
+
+    assert "Write 5 queries." in adapter.requests[0].messages[-1].content

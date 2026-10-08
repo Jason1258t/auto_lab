@@ -42,6 +42,45 @@ KINDS: dict[str, bool] = {
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 
+# Size classes of models (enum model_size_class, migration 0008). A config
+# value may be a map by class (drafts/token_budgets.md, phase 3):
+#   max_facts: { small: 3, medium: 5, large: 8 }
+# A class without a key takes the next smaller one: large_think -> large
+# -> medium -> small. So 'small' is required.
+SIZE_FALLBACK = {
+    "small": ["small"],
+    "medium": ["medium", "small"],
+    "large": ["large", "medium", "small"],
+    "small_think": ["small_think", "small"],
+    "medium_think": ["medium_think", "medium", "small"],
+    "large_think": ["large_think", "large", "medium", "small"],
+}
+
+
+def is_size_map(value: Any) -> bool:
+    return isinstance(value, dict) and any(key in SIZE_FALLBACK for key in value)
+
+
+def size_map_problem(value: dict) -> str | None:
+    unknown = [key for key in value if key not in SIZE_FALLBACK]
+    if unknown:
+        return f"unknown size class {', '.join(map(str, unknown))}"
+    if "small" not in value:
+        return "a size map needs a 'small' value (the default)"
+    return None
+
+
+def for_size(config: dict[str, Any], size_class: str) -> dict[str, Any]:
+    """The config with every size map replaced by the value for this class."""
+    found = {}
+    for name, value in config.items():
+        if is_size_map(value):
+            key = next(k for k in SIZE_FALLBACK[size_class] if k in value)
+            value = value[key]
+        found[name] = value
+    return found
+
+
 class PipelineError(Exception):
     """A pipeline file is invalid, or sync found a problem."""
 
@@ -124,6 +163,9 @@ class PipelineFile(BaseModel):
                     problems.append(f"{where}: template '{name}': {error}")
             if step.llm is not None:
                 problems += [f"{where}: {p}" for p in _schema_problems(step.llm.output)]
+            for name, value in step.config.items():
+                if is_size_map(value) and (problem := size_map_problem(value)):
+                    problems.append(f"{where}: config '{name}': {problem}")
             seen.append(step.id)
         if self.revise is not None:
             if self.revise.rerun_from not in seen:

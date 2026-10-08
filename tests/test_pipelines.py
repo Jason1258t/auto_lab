@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from autolab.db.models import Pipeline, PipelineVersion
-from autolab.worker.pipelines import PipelineError, load_pipeline, sync_pipelines
+from autolab.worker.pipelines import PipelineError, for_size, load_pipeline, sync_pipelines
 
 RESEARCH = Path("pipelines/research/1.0.0.yaml")
 
@@ -57,6 +57,14 @@ def test_every_built_in_file_is_valid(path: Path) -> None:
         (lambda d: d["revise"].update(rerun_from="nope"), "unknown step 'nope'"),
         (lambda d: d.update(evidence="maybe"), "evidence"),
         (lambda d: d.update(extra_key=1), "extra_key"),
+        (
+            lambda d: d["steps"][0]["config"].update(max_queries={"medium": 5}),
+            "config 'max_queries': a size map needs a 'small' value",
+        ),
+        (
+            lambda d: d["steps"][0]["config"].update(max_queries={"small": 3, "huge": 9}),
+            "unknown size class huge",
+        ),
     ],
 )
 def test_invalid_files(tmp_path: Path, change, message: str) -> None:
@@ -64,6 +72,15 @@ def test_invalid_files(tmp_path: Path, change, message: str) -> None:
     change(data)
     with pytest.raises(PipelineError, match=message):
         load_pipeline(write(tmp_path, data))
+
+
+def test_config_for_size() -> None:
+    config = {"max_facts": {"small": 3, "large": 8}, "keep": ["supported"], "n": 2}
+    assert for_size(config, "small")["max_facts"] == 3
+    assert for_size(config, "medium")["max_facts"] == 3  # no medium: the next smaller
+    assert for_size(config, "large_think")["max_facts"] == 8  # no large_think: large
+    assert for_size(config, "large")["keep"] == ["supported"]  # plain values stay
+    assert for_size({"opts": {"a": 1}}, "large") == {"opts": {"a": 1}}  # not a size map
 
 
 def test_name_must_match_path(tmp_path: Path) -> None:

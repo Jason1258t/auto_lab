@@ -26,7 +26,7 @@ import httpx
 from sqlalchemy import select, update
 
 from autolab.config import Settings
-from autolab.db.models import PipelineVersion, Task, TaskReview, TaskStep
+from autolab.db.models import Model, PipelineVersion, Task, TaskReview, TaskStep
 from autolab.db.models.enums import ReviewResult, TaskStatus, TaskStepStatus
 from autolab.worker import templates
 from autolab.worker.assemble import assemble_work
@@ -37,6 +37,7 @@ from autolab.worker.pipelines import (
     PipelineFile,
     Step,
     file_hash,
+    for_size,
     load_pipeline,
 )
 from autolab.worker.web import Resolver, resolve
@@ -175,10 +176,14 @@ class TaskRunner:
             row.status = TaskStepStatus.RUNNING
             row.started_at = now()
             await db.commit()
+            model = await db.get(Model, task.model_id)
 
         handler = HANDLERS.get(step.kind)
         if handler is None:
             raise StepFailed(f"step kind '{step.kind}' is not built yet")
+        # Config values that depend on the model's size class: picked here,
+        # so kinds and prompts ({{ config.x }}) see plain values.
+        step = step.model_copy(update={"config": for_size(step.config, model.size_class)})
         ctx = StepContext(
             task,
             pipeline,
@@ -190,6 +195,7 @@ class TaskRunner:
             http=self.http,
             resolver=self.resolver,
             note=note if step.llm else None,
+            model=model,
         )
         output = await handler(ctx)
 

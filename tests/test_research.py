@@ -325,3 +325,10 @@ async def test_fetch_fails_with_too_few_pages() -> None:
     ctx = step_ctx({"min_sources": 1, "min_chars": 200}, candidates)
     with pytest.raises(StepFailed, match="only 0 of 2 pages could be read"):
         await research.fetch(ctx)
+
+
+def test_page_chars_auto_follows_the_window() -> None:
+    ctx = SimpleNamespace(model=SimpleNamespace(context_length=8192))
+    assert research.page_chars(ctx, "auto") == 14336  # half of 8192 tokens x 3.5
+    assert research.page_chars(ctx, 6000) == 6000
+    assert research.page_chars(SimpleNamespace(model=None), "auto") == 6000

@@ -14,6 +14,7 @@ Last deploy: 2026-10-08 (up to migration 0006, PR #36).
 
 | PR | What | Check after deploy |
 |---|---|---|
+| #48 | Config values by model size class; `fetch.max_chars: auto` | nothing yet (no built-in pipeline uses them); upload of a file with a bad size map shows the error |
 | #42 | Retry a cut answer with 2× the limit; window guard | nothing to do |
 | #43 | Migration 0007: view `llm_step_budgets` | `SELECT * FROM llm_step_budgets ORDER BY cut_share DESC;` in psql returns rows |
 | #44 | Per-call timeout from the learned model speed | `LLM_TIMEOUT_SECONDS=3600` stays in the server's `.env` (it is now the first-call timeout and the upper bound) |

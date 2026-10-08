@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 
 from autolab.config import Settings
-from autolab.db.models import Task
+from autolab.db.models import Model, Task
 from autolab.db.models.enums import FinishReason
 from autolab.worker import templates
 from autolab.worker.gateway import Message
@@ -43,6 +43,7 @@ class StepContext:
     # without a source" (pipeline files cannot change after sync).
     notes: list[str] = field(default_factory=list)
     wrong_language: int = field(default=0)  # texts still not in the task language
+    model: Model | None = None  # the task's model (size class, window)
 
     @property
     def language(self) -> Language:

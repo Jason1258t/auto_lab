@@ -76,6 +76,23 @@ YAML anchors work: `llm: &extract` once, `llm: *extract` later
 Use `from` **or** `for_each`, not both. References must point to an
 **earlier** step.
 
+**Values by model size.** Any `config` value may depend on the size
+class of the task's model (set by an admin per model: `small`,
+`medium`, `large`, and `small_think`, `medium_think`, `large_think` for
+thinking models):
+
+```yaml
+config:
+  max_facts: { small: 3, medium: 5, large: 8 }
+```
+
+`small` is required. A class without its own key takes the next smaller
+one: `large_think` → `large` → `medium` → `small`. Kinds and prompts
+see the plain value (`{{ config.max_facts }}` is `5` on a medium model).
+A plain number works as before. A bigger model can get a bigger step,
+but keep `llm.max_tokens` (the answer size) big enough for the largest
+value.
+
 ## 4. The `llm` block
 
 | Key | Default | Meaning |
@@ -132,7 +149,7 @@ usage notes. Its output fields are the fields of your `output` schema.
 | Kind | Model | Input | Config (default) | Output |
 |---|---|---|---|---|
 | `search` | no | queries (`from`) | `results_per_query` (5), `max_candidates` (5; old name `max_sources`), `max_per_domain` (no limit), `skip_seen` (false: skip URLs earlier steps found or read), `optional` (false: no queries or results is not an error) | `results`: title, url, snippet |
-| `fetch` | no | results (`from`) | `target_sources` (all), `min_sources` (1), `min_chars` (1: text needed to count a page as readable), `parallel` (1), `max_chars` (6000), `max_bytes` (2 000 000) | `sources`: title, url, text |
+| `fetch` | no | results (`from`) | `target_sources` (all), `min_sources` (1), `min_chars` (1: text needed to count a page as readable), `parallel` (1), `max_chars` (6000; `auto` = half of the model's window, e.g. 14 336 characters for 8192 tokens), `max_bytes` (2 000 000) | `sources`: title, url, text |
 | `summarize` | yes, per source | sources (`for_each`) | `optional` (false); your numbers (e.g. `max_facts`) | `facts`: claim, quote, source; `dropped_quotes` |
 | `verify` | yes, per fact | facts (`for_each`) | `keep` ([supported]) | `facts` (with `verdict`), `verdicts` |
 | `synthesize` | yes, once | facts (`from`) | your numbers | `summary`, `sections` (heading, fact_numbers, facts), `facts` (numbered) |
@@ -270,6 +287,8 @@ Good habits:
 | `output must be a JSON object (type: object)` | the schema's top level must be an object |
 | `output is not a valid JSON schema` | fix the schema |
 | `revise: unknown step 'x'` | `rerun_from` must be a step id |
+| `config 'x': a size map needs a 'small' value` | add `small:` to the map |
+| `config 'x': unknown size class y` | keys are the six size classes only |
 | `already has version X; the new one must be newer` | raise the version |
 
 Errors while a task runs (shown as *Failed* on the step): for example
