@@ -39,7 +39,49 @@ KINDS: dict[str, bool] = {
     "code_review": True,
 }
 
+# Kinds that may ask about several items at once (config.batch_size).
+BATCH_KINDS = {"verify", "group"}
+
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+
+
+# Size classes of models (enum model_size_class, migration 0008). A config
+# value may be a map by class (drafts/token_budgets.md, phase 3):
+#   max_facts: { small: 3, medium: 5, large: 8 }
+# A class without a key takes the next smaller one: large_think -> large
+# -> medium -> small. So 'small' is required.
+SIZE_FALLBACK = {
+    "small": ["small"],
+    "medium": ["medium", "small"],
+    "large": ["large", "medium", "small"],
+    "small_think": ["small_think", "small"],
+    "medium_think": ["medium_think", "medium", "small"],
+    "large_think": ["large_think", "large", "medium", "small"],
+}
+
+
+def is_size_map(value: Any) -> bool:
+    return isinstance(value, dict) and any(key in SIZE_FALLBACK for key in value)
+
+
+def size_map_problem(value: dict) -> str | None:
+    unknown = [key for key in value if key not in SIZE_FALLBACK]
+    if unknown:
+        return f"unknown size class {', '.join(map(str, unknown))}"
+    if "small" not in value:
+        return "a size map needs a 'small' value (the default)"
+    return None
+
+
+def for_size(config: dict[str, Any], size_class: str) -> dict[str, Any]:
+    """The config with every size map replaced by the value for this class."""
+    found = {}
+    for name, value in config.items():
+        if is_size_map(value):
+            key = next(k for k in SIZE_FALLBACK[size_class] if k in value)
+            value = value[key]
+        found[name] = value
+    return found
 
 
 class PipelineError(Exception):
@@ -124,6 +166,11 @@ class PipelineFile(BaseModel):
                     problems.append(f"{where}: template '{name}': {error}")
             if step.llm is not None:
                 problems += [f"{where}: {p}" for p in _schema_problems(step.llm.output)]
+            for name, value in step.config.items():
+                if is_size_map(value) and (problem := size_map_problem(value)):
+                    problems.append(f"{where}: config '{name}': {problem}")
+            if "batch_size" in step.config:
+                problems += [f"{where}: {p}" for p in _batch_problems(step)]
             seen.append(step.id)
         if self.revise is not None:
             if self.revise.rerun_from not in seen:
@@ -145,6 +192,18 @@ def _templates(step: Step) -> list[tuple[str, str]]:
         if step.llm.system:
             found.append(("system", step.llm.system))
     return found
+
+
+def _batch_problems(step: Step) -> list[str]:
+    """A batch step answers {"answers": [{"n": <int>, ...}, ...]}."""
+    if step.kind not in BATCH_KINDS:
+        return [f"kind '{step.kind}' cannot use batch_size"]
+    output = step.llm.output if step.llm else {}
+    answers = output.get("properties", {}).get("answers", {})
+    entry = answers.get("items", {}) if answers.get("type") == "array" else {}
+    if "answers" not in output.get("required", []) or "n" not in entry.get("required", []):
+        return ["with batch_size the output must be {answers: [{n, ...}]} (n required)"]
+    return []
 
 
 def _schema_problems(schema: dict[str, Any]) -> list[str]:

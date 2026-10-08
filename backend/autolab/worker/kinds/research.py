@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from autolab.worker.kinds.base import StepContext, StepFailed
+from autolab.worker.llm_manager import CHARS_PER_TOKEN
 from autolab.worker.web import FetchError, fetch_page, searxng_search
 
 log = logging.getLogger(__name__)
@@ -85,6 +86,21 @@ def _earlier_urls(ctx: StepContext) -> set[str]:
     return urls
 
 
+# max_chars: auto = this share of the model's window, in characters
+# (drafts/token_budgets.md, phase 3). The rest is for the prompt and the
+# answer.
+AUTO_PAGE_SHARE = 0.5
+
+
+def page_chars(ctx: StepContext, value: Any) -> int:
+    """max_chars of a fetched page: a number, or 'auto' (from the window)."""
+    if value == "auto":
+        if ctx.model is None:
+            return 6000
+        return int(ctx.model.context_length * AUTO_PAGE_SHARE * CHARS_PER_TOKEN)
+    return int(value)
+
+
 async def fetch(ctx: StepContext) -> dict[str, Any]:
     """Download candidate pages (only public http(s) addresses) until
     target_sources pages are readable. A page is readable if it has at
@@ -93,7 +109,7 @@ async def fetch(ctx: StepContext) -> dict[str, Any]:
 
     Config (defaults keep version 1.0.0 working as before): target_sources
     (all candidates), min_sources (1), min_chars (1), parallel (1),
-    max_bytes, max_chars.
+    max_bytes, max_chars (a number, or 'auto': half of the model's window).
     """
     config = ctx.step.config
     candidates = ctx.resolve(ctx.step.from_)
@@ -108,7 +124,7 @@ async def fetch(ctx: StepContext) -> dict[str, Any]:
                 ctx.http,
                 result["url"],
                 max_bytes=int(config.get("max_bytes", 2_000_000)),
-                max_chars=int(config.get("max_chars", 6000)),
+                max_chars=page_chars(ctx, config.get("max_chars", 6000)),
                 resolver=ctx.resolver,
             )
         except FetchError as exc:

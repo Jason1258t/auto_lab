@@ -68,6 +68,12 @@ def fake_model(request: GenerateRequest) -> str:
         return json.dumps(
             {"missing": ["sunset colors"], "queries": ["new query", "sky blue reason"]}
         )
+    if system.startswith("You check if quotes"):  # 1.2.0: a batch
+        n = prompt.count("Claim:")
+        return json.dumps({"answers": [{"n": i, "verdict": "supported"} for i in range(1, n + 1)]})
+    if system.startswith("You sort facts") and "answers" in request.schema["required"]:
+        n = prompt.split("Facts:")[1].count("Rayleigh")
+        return json.dumps({"answers": [{"n": i, "question": 1} for i in range(1, n + 1)]})
     if system.startswith("You check if a quote"):
         # 1.1.0 needs no reason (a short answer for slow models).
         if "reason" in request.schema["required"]:
@@ -82,7 +88,7 @@ def fake_model(request: GenerateRequest) -> str:
     raise AssertionError(f"unexpected prompt: {system}")
 
 
-@pytest.mark.parametrize("version", ["1.0.0", "1.1.0"])
+@pytest.mark.parametrize("version", ["1.0.0", "1.1.0", "1.2.0"])
 async def test_deep_research_pipeline(
     db: AsyncSession, session_factory, settings: Settings, tmp_path: Path, version: str
 ) -> None:

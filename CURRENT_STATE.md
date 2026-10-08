@@ -40,8 +40,12 @@ Unfinished, in the order the author cares about:
    (PR #45). Phase 1 is done. Phase 2 is done (PR #46, migration 0008):
    `models.size_class` / `reasoning_tokens` / `max_output_tokens`, the
    output limit adds thinking room for `*_think` classes, an edit dialog
-   for models in the admin page. Next: phase 3 (batching in `group` /
-   `verify`, size-dependent config values, `fetch.max_chars: auto`).
+   for models in the admin page. Phase 3: config values by size class
+   and `fetch.max_chars: auto` (PR #48); batches in `verify` / `group`
+   with `research 1.3.0` and `deep_research 1.2.0` (PR #49). Phases 1-3
+   are done. Next: measure on the server (a 7B `deep_research` with
+   1.0.0 vs 1.2.0, `llm_step_budgets`), then phase 4 (suggest values
+   from the report).
 2. ~~A heavy model~~: `mistral-small:22b` (12 GB) is in the catalog:
    ~2 tok/s writing, ~27 tok/s prompt reading, valid JSON and exact
    quotes in the benchmark. `llama3:8b` and `phi3:mini` were removed to
