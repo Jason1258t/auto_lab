@@ -78,10 +78,11 @@ So for the 3B model the limits are fine. The problems are elsewhere:
 0. **Cut useless output.** New pipeline versions drop or shorten fields
    that code does not use (e.g. `verify.reason` → optional, max 60
    characters, or removed). Biggest time win for slow models, no code.
-1. **Retry a cut answer with more room.** If an attempt ends with
+1. **Retry a cut answer with more room** (done, PR #42). If an attempt ends with
    `finish_reason = length`, the next attempt gets 2× the limit (capped
    by the window). Watch: cut answers that still fail.
-2. **Window guard.** Estimate prompt tokens (characters / 3.5, or the
+2. **Window guard** (done, PR #42: characters / 3.5 + 10 per message;
+   less than 64 tokens of room fails the step at once). Estimate prompt tokens (characters / 3.5, or the
    real `prompt_eval_count` of earlier calls of the same step) and lower
    the output limit, or fail with a clear message, if prompt + output
    would not fit. Today Ollama would cut silently.

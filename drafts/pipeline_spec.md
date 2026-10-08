@@ -140,7 +140,7 @@ exact quote support this claim?". Weak models do this well enough.
 | `prompt` | required | user message, a template (section 6) |
 | `output` | required | JSON schema of the answer (sent to Ollama as the structured output format) |
 | `temperature` | 0.2 | |
-| `max_tokens` | 512 | keep it small: small models drift on long answers |
+| `max_tokens` | 512 | keep it small: small models drift on long answers; lowered if the prompt leaves less room in the window; doubled on a retry after a cut answer |
 | `max_attempts` | 2 | invalid JSON or a schema mismatch → one more attempt |
 
 Every attempt is one `llm_calls` row (`attempt` = 1, 2, ...). The full
