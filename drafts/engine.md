@@ -61,11 +61,11 @@ Rules:
 
 ## Order of work
 
-1. **Package and pure modules** (this PR): workspace, Dockerfile, CI;
+1. **Package and pure modules** (done, PR #56): workspace, Dockerfile, CI;
    move `templates`, `language`, `web`, `gateway`, `pipelines` (without
    `sync_pipelines`, which needs the DB and stays in the worker). The
    backend imports them from `autolab_engine`.
-2. **Step kinds and budgets**: `StepContext` over `LlmClient` and plain
+2. **Step kinds and budgets** (done, PR #58): `StepContext` over `LlmClient` and plain
    data; `fit_to_window`, `add_model_budget`, `Speed` into `budget.py`.
 3. **Run and CLI**: `run.py` (steps in order, outputs to a folder),
    `work.py` (the Markdown part of `assemble`), `autolab-engine run`.

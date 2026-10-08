@@ -5,7 +5,7 @@ import json
 import httpx
 
 from autolab.db.models.enums import FinishReason
-from autolab.worker.llm_manager import Speed
+from autolab_engine.budget import Speed
 from autolab_engine.gateway.base import GenerateRequest, GenerateResult, Message
 from autolab_engine.gateway.ollama import OllamaAdapter
 

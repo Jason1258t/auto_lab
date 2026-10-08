@@ -25,8 +25,10 @@ material; for a ~3 hour run a solid piece of work, not a collection of
 quotes". Step 1 done (PR #56): `packages/engine` (`autolab_engine`,
 uv workspace) with `pipelines` (format and validation), `templates`,
 `language`, `web`, `gateway`, `enums`; `sync_pipelines` moved to
-`autolab.worker.sync`. Next: step 2 (kinds and budgets over an
-`LlmClient` interface), then the CLI and a quality set of topics.
+`autolab.worker.sync`. Step 2 done (PR #58): `kinds`, `budget`, `llm`
+(`LlmClient`), `types` in the engine; the worker implements `LlmClient`
+with `TaskLlm` over its LLM manager. Next: step 3 (run a whole pipeline
+without a database, `autolab-engine run`), then a quality set of topics.
 
 Server access for the agent is back (2026-10-08, afternoon). Still list
 every merged change that needs a deploy step in `DEPLOY_PENDING.md`, and

@@ -1,8 +1,8 @@
 """Step kind handlers. A kind that is valid in a pipeline file but has no
 handler here fails the task with a clear message."""
 
-from autolab.worker.kinds import code, deep, research
-from autolab.worker.kinds.base import Handler, StepContext, StepFailed
+from autolab_engine.kinds import code, deep, research
+from autolab_engine.kinds.base import Handler, StepContext, StepFailed
 
 
 async def plan(ctx: StepContext) -> dict:

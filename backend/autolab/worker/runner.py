@@ -29,9 +29,9 @@ from autolab.config import Settings
 from autolab.db.models import Model, PipelineVersion, Task, TaskReview, TaskStep
 from autolab.db.models.enums import ReviewResult, TaskStatus, TaskStepStatus
 from autolab.worker.assemble import assemble_work
-from autolab.worker.kinds import HANDLERS, StepContext, StepFailed
-from autolab.worker.llm_manager import LlmManager, SessionFactory, TaskCancelled
+from autolab.worker.llm_manager import LlmManager, SessionFactory, TaskCancelled, TaskLlm
 from autolab_engine import templates
+from autolab_engine.kinds import HANDLERS, StepContext, StepFailed
 from autolab_engine.pipelines import (
     PipelineError,
     PipelineFile,
@@ -40,6 +40,7 @@ from autolab_engine.pipelines import (
     for_size,
     load_pipeline,
 )
+from autolab_engine.types import ModelInfo, TaskInput
 from autolab_engine.web import Resolver, resolve
 
 log = logging.getLogger(__name__)
@@ -61,6 +62,17 @@ def output_path(settings: Settings, task_id: int, index: int, step_id: str) -> P
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+def model_info(model: Model) -> ModelInfo:
+    """The engine's view of a models row."""
+    return ModelInfo(
+        name=model.name,
+        context_length=model.context_length,
+        size_class=model.size_class,
+        reasoning_tokens=model.reasoning_tokens,
+        max_output_tokens=model.max_output_tokens,
+    )
 
 
 class TaskRunner:
@@ -185,17 +197,17 @@ class TaskRunner:
         # so kinds and prompts ({{ config.x }}) see plain values.
         step = step.model_copy(update={"config": for_size(step.config, model.size_class)})
         ctx = StepContext(
-            task,
+            TaskInput(task.id, task.title, task.input),
             pipeline,
             step,
             index,
             outputs,
-            self.llm,
-            self.settings,
+            TaskLlm(self.llm, task.id, task.model_id),
+            searxng_url=self.settings.searxng_url,
             http=self.http,
             resolver=self.resolver,
             note=note if step.llm else None,
-            model=model,
+            model=model_info(model),
         )
         output = await handler(ctx)
 

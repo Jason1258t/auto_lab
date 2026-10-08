@@ -11,8 +11,8 @@ import re
 from typing import Any
 from urllib.parse import urlsplit
 
-from autolab.worker.kinds.base import StepContext, StepFailed
-from autolab.worker.llm_manager import CHARS_PER_TOKEN
+from autolab_engine.budget import CHARS_PER_TOKEN
+from autolab_engine.kinds.base import StepContext, StepFailed
 from autolab_engine.web import FetchError, fetch_page, searxng_search
 
 log = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ async def _search_one(ctx: StepContext, query: str, limit: int) -> list[dict[str
         if pause:
             await asyncio.sleep(pause)
         try:
-            found = await searxng_search(ctx.http, ctx.settings.searxng_url, query, limit)
+            found = await searxng_search(ctx.http, ctx.searxng_url, query, limit)
         except Exception as exc:  # one failed query is not the end
             log.warning("task %s: search %r failed: %s", ctx.task.id, query, exc)
             continue

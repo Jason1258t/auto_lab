@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from autolab.config import Settings
 from autolab.db.models import Quote, Task, Work, WorkSource
 from autolab.db.models.enums import SourceKind
-from autolab.worker.kinds.base import StepFailed
+from autolab_engine.kinds.base import StepFailed
 from autolab_engine.pipelines import PipelineFile
 
 

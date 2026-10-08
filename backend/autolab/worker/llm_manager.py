@@ -7,69 +7,29 @@ answer go to the log store under the same id.
 """
 
 import asyncio
-import json
 import logging
-import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-import jsonschema
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from autolab.db.models import LlmCall, LlmResponse, Model, ModelProvider, Task
-from autolab.db.models.enums import FinishReason, LlmCallStatus, TaskStatus
+from autolab.db.models.enums import LlmCallStatus, TaskStatus
 from autolab.logstore import LogStore
-from autolab_engine.gateway import (
-    Adapter,
-    GatewayError,
-    GenerateRequest,
-    GenerateResult,
-    Message,
-)
+from autolab_engine.budget import Speed, add_model_budget, estimate_tokens, fit_to_window
+from autolab_engine.gateway import Adapter, GatewayError, GenerateRequest, Message
+from autolab_engine.llm import CallResult, LlmCallFailed, PromptTooLong, parse_answer
 
 log = logging.getLogger(__name__)
 
 SessionFactory = Callable[[], AsyncSession]
 
-# Window guard (drafts/token_budgets.md, phase 1). We do not have the
-# model's tokenizer, so the prompt size is an estimate; 3.5 characters per
-# token is a careful guess for English and code (Russian is denser).
-CHARS_PER_TOKEN = 3.5
-TOKENS_PER_MESSAGE = 10  # the chat template around each message
-MIN_ANSWER_TOKENS = 64  # less room than this: do not even try
-DEFAULT_REASONING_TOKENS = 1024  # models.reasoning_tokens is NULL
-
-# Per-call timeout (phase 1, item 3): expected time x 2, plus time to load
-# the model into memory (a 12 GB model takes about a minute from disk).
-TIMEOUT_FACTOR = 2.0
-LOAD_SECONDS = 120.0
-SPEED_WEIGHT = 0.3  # how much one new call changes the learned speed
-
 
 class TaskCancelled(Exception):
     """The task was cancelled while the worker was busy with it."""
-
-
-class LlmCallFailed(Exception):
-    """The provider could not answer. The message is safe for users."""
-
-
-class PromptTooLong(LlmCallFailed):
-    """The prompt leaves no room for an answer in the model's window.
-    Trying again with the same prompt cannot help."""
-
-
-@dataclass(frozen=True)
-class CallResult:
-    call_id: int
-    text: str
-    # The parsed answer if a schema was given and the answer matches it;
-    # None otherwise (the caller may try again).
-    data: dict[str, Any] | None
-    finish_reason: FinishReason
 
 
 @dataclass
@@ -80,81 +40,6 @@ class _Job:
     schema: dict[str, Any] | None
     params: dict[str, Any]
     future: asyncio.Future
-
-
-@dataclass
-class Speed:
-    """A model's measured speed in tokens per second, learned from the
-    calls of this worker process (none yet after a start)."""
-
-    prompt: float | None = None
-    output: float | None = None
-
-    def learn(self, result: GenerateResult) -> None:
-        if result.input_tokens and result.prompt_seconds:
-            self.prompt = average(self.prompt, result.input_tokens / result.prompt_seconds)
-        if result.output_tokens and result.output_seconds:
-            self.output = average(self.output, result.output_tokens / result.output_seconds)
-
-    def timeout(self, prompt_tokens: int, max_tokens: int | None) -> float | None:
-        """None while the speed is unknown: the adapter's own timeout."""
-        if self.prompt is None or self.output is None or max_tokens is None:
-            return None
-        expected = prompt_tokens / self.prompt + max_tokens / self.output
-        return TIMEOUT_FACTOR * expected + LOAD_SECONDS
-
-
-def average(old: float | None, new: float) -> float:
-    return new if old is None else (1 - SPEED_WEIGHT) * old + SPEED_WEIGHT * new
-
-
-def parse_answer(text: str, schema: dict[str, Any] | None) -> tuple[dict[str, Any] | None, bool]:
-    """Returns (data, valid). Without a schema there is nothing to check."""
-    if schema is None:
-        return None, True
-    try:
-        data = json.loads(text)
-        jsonschema.validate(data, schema)
-    except (ValueError, jsonschema.ValidationError):
-        return None, False
-    return data, True
-
-
-def estimate_tokens(messages: list[Message]) -> int:
-    """A rough prompt size in tokens, from the length of the text."""
-    chars = sum(len(m.content) for m in messages)
-    return math.ceil(chars / CHARS_PER_TOKEN) + TOKENS_PER_MESSAGE * len(messages)
-
-
-def add_model_budget(params: dict[str, Any], model: Model) -> dict[str, Any]:
-    """max_tokens in a pipeline file is the answer size. A thinking model
-    (a *_think class) gets extra room to think before the answer; the
-    model's own output cap is the upper bound (token_budgets.md, phase 2)."""
-    if "max_tokens" not in params:
-        return params
-    limit = params["max_tokens"]
-    if model.size_class.thinks:
-        limit += model.reasoning_tokens or DEFAULT_REASONING_TOKENS
-    if model.max_output_tokens is not None:
-        limit = min(limit, model.max_output_tokens)
-    return {**params, "max_tokens": limit}
-
-
-def fit_to_window(
-    params: dict[str, Any], prompt_tokens: int, context_length: int
-) -> dict[str, Any]:
-    """Lower max_tokens so that prompt + answer fit the window. Without
-    this Ollama silently cuts the prompt. Raises PromptTooLong if there is
-    no useful room left."""
-    room = context_length - prompt_tokens
-    if room < MIN_ANSWER_TOKENS:
-        raise PromptTooLong(
-            f"The prompt is too long for the model's window "
-            f"(about {prompt_tokens} tokens of {context_length})"
-        )
-    if "max_tokens" in params and params["max_tokens"] > room:
-        return {**params, "max_tokens": room}
-    return params
 
 
 class LlmManager:
@@ -334,3 +219,32 @@ class LlmManager:
         for consumer in self.consumers.values():
             consumer.cancel()
         await asyncio.gather(*self.consumers.values(), return_exceptions=True)
+
+
+@dataclass
+class TaskLlm:
+    """The engine's LlmClient for one task: every call goes through the
+    manager (its queue, llm_calls rows and the log store)."""
+
+    manager: LlmManager
+    task_id: int
+    model_id: int
+
+    async def call(
+        self,
+        *,
+        step_index: int,
+        messages: list[Message],
+        schema: dict[str, Any] | None,
+        params: dict[str, Any],
+        attempt: int,
+    ) -> CallResult:
+        return await self.manager.call(
+            task_id=self.task_id,
+            step_index=step_index,
+            model_id=self.model_id,
+            messages=messages,
+            schema=schema,
+            params=params,
+            attempt=attempt,
+        )

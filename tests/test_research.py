@@ -26,11 +26,11 @@ from autolab.db.models import (
 )
 from autolab.db.models.enums import TaskStatus
 from autolab.logstore import FileLogStore
-from autolab.worker.kinds import research
-from autolab.worker.kinds.base import StepFailed
-from autolab.worker.kinds.research import quote_in_text
 from autolab.worker.main import Worker
 from autolab_engine.gateway import GenerateRequest
+from autolab_engine.kinds import research
+from autolab_engine.kinds.base import StepFailed
+from autolab_engine.kinds.research import quote_in_text
 from autolab_engine.web import FetchError, check_url, fetch_page, html_to_text
 from tests.fakes import FakeAdapter
 
@@ -79,7 +79,7 @@ def test_quote_check() -> None:
 
 
 def test_mark_unsourced() -> None:
-    from autolab.worker.kinds.research import NO_SOURCE, mark_unsourced
+    from autolab_engine.kinds.research import NO_SOURCE, mark_unsourced
 
     text, marked = mark_unsourced(
         "Blue light scatters more [1]. So the sky is blue! Sunsets are red [2] [3]. Why? Physics."
@@ -286,7 +286,7 @@ def step_ctx(config: dict, given: list) -> SimpleNamespace:
         resolve=lambda ref: given,
         http=httpx.AsyncClient(transport=httpx.MockTransport(pages_web)),
         resolver=any_public,
-        settings=SimpleNamespace(searxng_url="http://searx.test"),
+        searxng_url="http://searx.test",
         task=SimpleNamespace(id=1),
         skipped=0,
     )
