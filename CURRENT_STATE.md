@@ -8,7 +8,7 @@ out again.
 
 ## In one paragraph
 
-The database schema is designed, reviewed and migrated (6 migrations).
+The database schema is designed, reviewed and migrated (7 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
@@ -195,6 +195,8 @@ After-MVP ideas: `BACKLOG.md`.
   longer logs the user out).
 - 0005 (data only): pipeline rows `deep_research`, `code`, `python_cli`.
 - 0006: activity action `pipeline_uploaded`, target type `pipeline`.
+- 0007: view `llm_step_budgets` (token use per model and pipeline step:
+  limit, average/max output, cut and invalid share, seconds, speed).
 - Snapshots kept in sync (checked with a `pg_dump` diff):
   `workbench_schema.sql`, `workbench_schema.dbml`, `er_diagram.md`.
 - **Outdated:** `drafts/schema_design.html` (the published schema page)

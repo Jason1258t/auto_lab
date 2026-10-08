@@ -1,7 +1,7 @@
 -- AutoLab database schema (PostgreSQL 14+).
 -- Snapshot for the course and the ER diagram. The source of truth for the
 -- DDL is the Alembic migrations (migrations/versions/). This file matches
--- migrations 0001-0006 (checked with a pg_dump diff on 2026-10-07). After
+-- migrations 0001-0007 (checked with a pg_dump diff on 2026-10-08). After
 -- each new migration, update it and check it the same way.
 -- Design notes and reasons: drafts/schema_design.md and drafts/.
 --
@@ -433,6 +433,45 @@ CREATE INDEX activity_events_workspace_occurred_idx
     ON activity_events (workspace_id, occurred_at DESC);
 CREATE INDEX sessions_user_id_idx ON sessions (user_id);
 CREATE INDEX user_identities_user_id_idx ON user_identities (user_id);
+
+-- =====================================================================
+-- Views (reports)
+-- =====================================================================
+
+-- Token budgets per model and pipeline step (drafts/token_budgets.md):
+-- is the limit too small (cut_share), too big (avg/max output far below
+-- avg_limit), and how fast is the model.
+CREATE VIEW llm_step_budgets AS
+SELECT
+    m.id                                   AS model_id,
+    m.name                                 AS model_name,
+    p.name                                 AS pipeline_name,
+    pv.version_name,
+    c.step_index,
+    s.review_id IS NOT NULL                AS revise_step,
+    count(*)                               AS calls,
+    count(*) FILTER (WHERE c.status = 'failed') AS failed_calls,
+    round(avg((c.params ->> 'max_tokens')::integer)) AS avg_limit,
+    round(avg(r.input_tokens))             AS avg_input_tokens,
+    round(avg(r.output_tokens))            AS avg_output_tokens,
+    max(r.output_tokens)                   AS max_output_tokens,
+    -- Shares are 0..1 over the calls with a response.
+    round(avg((r.finish_reason = 'length')::integer), 3) AS cut_share,
+    round(avg((NOT r.valid_json)::integer), 3)           AS invalid_share,
+    round(avg(extract(epoch FROM c.finished_at - c.started_at)), 1) AS avg_seconds,
+    -- Output tokens per second of the whole call (prompt reading included).
+    round(sum(r.output_tokens)
+          / nullif(sum(extract(epoch FROM c.finished_at - c.started_at))
+                   FILTER (WHERE r.output_tokens IS NOT NULL), 0), 1) AS output_per_second
+FROM llm_calls c
+JOIN models m             ON m.id = c.model_id
+JOIN tasks t              ON t.id = c.task_id
+JOIN pipeline_versions pv ON pv.id = t.pipeline_version_id
+JOIN pipelines p          ON p.id = pv.pipeline_id
+JOIN task_steps s         ON s.task_id = c.task_id AND s.step_index = c.step_index
+LEFT JOIN llm_responses r ON r.call_id = c.id
+WHERE c.status IN ('done', 'failed')
+GROUP BY m.id, m.name, p.name, pv.version_name, c.step_index, s.review_id IS NOT NULL;
 
 -- =====================================================================
 -- Seed data
