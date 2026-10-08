@@ -14,7 +14,7 @@ Last deploy: 2026-10-08, 16:25 (up to PR #49; migration 0008).
 
 | PR | What | Check after deploy |
 |---|---|---|
-| #52 | Search: an empty or failed query is tried again after 10 and 30 s | **deploy only when no task is running** (a deploy restarts the worker); then a task's search step survives a short SearxNG block |
+| #51 | Search: an empty or failed query is tried again after 10 and 30 s | **deploy only when no task is running** (a deploy restarts the worker); then a task's search step survives a short SearxNG block |
 
 ## Needs sudo (the author runs it)
 
