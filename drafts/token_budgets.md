@@ -1,6 +1,8 @@
 # Token budgets per step: a plan (proposal, 2026-10-08)
 
-Status: **proposal for the author**. Nothing here is built yet.
+Status: **accepted 2026-10-08** with one change: thinking is left at the
+model's default, and the size classes include three "think" classes
+(see "Decisions" at the end). Phase 1 is in progress.
 
 ## Why
 
@@ -102,24 +104,31 @@ New columns on `models`:
 
 | Column | Type | Meaning |
 |---|---|---|
-| `thinking` | boolean, default false | the model reasons before answering |
-| `reasoning_tokens` | integer, null | extra output room for thinking (e.g. 1024) |
+| `size_class` | enum, not null, default `small` | how big a step this model handles, and whether it thinks (see below) |
+| `reasoning_tokens` | integer, null | extra output room for thinking; used only by the `*_think` classes (null = 1024) |
 | `max_output_tokens` | integer, null | the model's own output cap |
-| `size_class` | enum `small` / `medium` / `large` | how big a step this model handles (see phase 3) |
+
+The enum `model_size_class` has six values:
+
+| Class | For |
+|---|---|
+| `small`, `medium`, `large` | normal models (e.g. 3B, 7-8B, 14B+) |
+| `small_think`, `medium_think`, `large_think` | thinking models of the same sizes |
+
+Thinking is **not controlled** per step: we do not send Ollama's `think`
+option, so a model thinks (or not) as it does by default. A `*_think`
+class only gives it room to think. No separate `thinking` column: the
+class says it.
 
 The real output limit of a call becomes:
 
 ```
 answer   = llm.max_tokens (from the file)
-limit    = answer + (reasoning_tokens if thinking else 0)
+limit    = answer + (reasoning_tokens if class is *_think else 0)
 limit    = min(limit, max_output_tokens, context_length - prompt_tokens)
 ```
 
-Thinking models: send Ollama's `think` option. Per step, the file may say
-`llm.reasoning: off | on` (default `off` for checks like `verify` and
-`group`, `on` allowed for `synthesize`, `gaps`, `design`). With `off`,
-a thinking model answers directly, fast; with `on` it gets
-`reasoning_tokens`. Then `deepseek-r1` can be switched on again.
+Then `deepseek-r1:7b` can be switched on again as `medium_think`.
 
 Admin page: the new fields in *Add model*, and an edit dialog.
 
@@ -140,7 +149,10 @@ Admin page: the new fields in *Add model*, and an edit dialog.
    ```
 
    A plain number keeps working (old files). Prompts use
-   `{{ config.max_facts }}` as before; code picks the value.
+   `{{ config.max_facts }}` as before; code picks the value. A
+   `*_think` class falls back to its normal class when the file has no
+   key for it (`medium_think` → `medium`), so files may give think
+   values only where they differ.
 3. **Inputs follow the window**: `fetch.max_chars: auto` = a share of the
    window (e.g. 50 %), so a large-window model reads whole pages.
 4. New pipeline versions (`research 1.2.0`, `deep_research 1.1.0`, ...)
@@ -161,18 +173,15 @@ is cut 12 % of the time". First as a report, later maybe automatic.
 - `AGENTS.md`: "Every pipeline step ... a small, single-purpose call"
   becomes "single-purpose; its size fits the model (default: small)".
 - `drafts/pipeline_spec.md`: `llm.max_tokens` means **answer size**;
-  new `llm.reasoning`, `config.batch_size`, size-dependent config values.
+  new `config.batch_size`, size-dependent config values (keys are the
+  six size classes).
 
-## Open questions for the author
+## Decisions (author, 2026-10-08)
 
-1. **Model profile**: separate columns (clear, checked by the DB, good
-   for the course) or one JSON `profile` column (flexible)? Proposal:
-   columns.
-2. **Thinking models**: thinking off by default and on only for steps
-   that allow it, or always on with a bigger budget? Proposal: off by
-   default, per-step opt-in.
-3. **Size classes**: three fixed classes (`small` / `medium` /
-   `large`, set by the admin per model), or numbers computed from the
-   model size? Proposal: three classes, set by the admin.
-4. **Order**: phase 1 now (no schema change), then 2 and 3 after your
-   answers?
+1. **Model profile**: separate columns.
+2. **Thinking**: left at the model's default; no per-step switch. Room
+   for thinking comes from the size class.
+3. **Size classes**: six fixed classes, set by the admin per model:
+   `small`, `medium`, `large`, `small_think`, `medium_think`,
+   `large_think`.
+4. **Order**: phase 1 now; then phases 2 and 3.
