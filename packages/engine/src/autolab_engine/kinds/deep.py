@@ -9,7 +9,7 @@ no loops.
 
 from typing import Any
 
-from autolab.worker.kinds.base import StepContext, StepFailed
+from autolab_engine.kinds.base import StepContext, StepFailed
 
 
 def _clean(texts: list[str]) -> list[str]:

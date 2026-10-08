@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from autolab.worker.kinds.base import StepContext, StepFailed
+from autolab_engine.kinds.base import StepContext, StepFailed
 
 # Paths the model may give: relative, simple characters, at most 2 levels.
 _SAFE_PATH = re.compile(

@@ -41,10 +41,12 @@ Examples from the history:
 | File | What |
 |---|---|
 | `packages/engine/src/autolab_engine/pipelines.py` | the file format (pydantic), `KINDS` (name → needs a model?), validation |
-| `backend/autolab/worker/kinds/__init__.py` | `HANDLERS`: kind name → function |
-| `backend/autolab/worker/kinds/base.py` | `StepContext`: inputs, `ask`, `ask_each`, notes |
-| `backend/autolab/worker/kinds/research.py`, `deep.py`, `code.py` | the kinds, by area |
-| `backend/autolab/worker/runner.py` | runs steps, saves outputs, summaries, revise |
+| `packages/engine/src/autolab_engine/kinds/__init__.py` | `HANDLERS`: kind name → function |
+| `packages/engine/src/autolab_engine/kinds/base.py` | `StepContext`: inputs, `ask`, `ask_each`, notes |
+| `packages/engine/src/autolab_engine/kinds/research.py`, `deep.py`, `code.py` | the kinds, by area |
+| `packages/engine/src/autolab_engine/llm.py` | `LlmClient`: how a step asks a model (the worker and the CLI implement it) |
+| `packages/engine/src/autolab_engine/budget.py` | token limits, window guard, timeout from the model's speed |
+| `backend/autolab/worker/runner.py` | AutoLab's runner: runs steps, saves outputs, summaries, revise |
 | `backend/autolab/worker/assemble.py` | builds the work from outputs |
 
 ## Add a kind, step by step

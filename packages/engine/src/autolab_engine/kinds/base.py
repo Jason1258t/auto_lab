@@ -7,15 +7,14 @@ from typing import Any
 
 import httpx
 
-from autolab.config import Settings
-from autolab.db.models import Model, Task
-from autolab.db.models.enums import FinishReason
-from autolab.worker.llm_manager import LlmCallFailed, LlmManager, PromptTooLong
 from autolab_engine import templates
+from autolab_engine.enums import FinishReason
 from autolab_engine.gateway import Message
 from autolab_engine.language import Language, detect, foreign_letters, matches
 from autolab_engine.language import note as language_note
+from autolab_engine.llm import LlmCallFailed, LlmClient, PromptTooLong
 from autolab_engine.pipelines import PipelineFile, Step
+from autolab_engine.types import ModelInfo, TaskInput
 from autolab_engine.web import Resolver
 
 log = logging.getLogger(__name__)
@@ -38,13 +37,13 @@ def _language_score(text: str, language: Language) -> tuple[int, int]:
 
 @dataclass
 class StepContext:
-    task: Task
-    pipeline: PipelineFile
+    task: TaskInput
+    pipeline: PipelineFile | None
     step: Step
     step_index: int
     outputs: dict[str, dict[str, Any]]  # outputs of earlier steps, by step id
-    llm: LlmManager
-    settings: Settings
+    llm: LlmClient  # model calls of this task
+    searxng_url: str = ""  # web search (search kinds only)
     http: httpx.AsyncClient | None = None  # for search and fetch
     resolver: Resolver | None = None  # host name -> addresses (fetch)
     note: str | None = None  # revise note, added to every prompt (later step)
@@ -53,7 +52,7 @@ class StepContext:
     # without a source" (pipeline files cannot change after sync).
     notes: list[str] = field(default_factory=list)
     wrong_language: int = field(default=0)  # texts still not in the task language
-    model: Model | None = None  # the task's model (size class, window)
+    model: ModelInfo | None = None  # the task's model (size class, window)
 
     @property
     def language(self) -> Language:
@@ -109,9 +108,7 @@ class StepContext:
         for attempt in range(1, llm.max_attempts + 1):
             try:
                 result = await self.llm.call(
-                    task_id=self.task.id,
                     step_index=self.step_index,
-                    model_id=self.task.model_id,
                     messages=messages,
                     schema=llm.output,
                     params={"temperature": llm.temperature, "max_tokens": max_tokens},

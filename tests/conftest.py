@@ -24,7 +24,7 @@ from autolab.api.app import create_app  # noqa: E402
 from autolab.api.deps import get_session  # noqa: E402
 from autolab.config import Settings, get_settings  # noqa: E402
 from autolab.logstore import FileLogStore  # noqa: E402
-from autolab.worker.kinds import research  # noqa: E402
+from autolab_engine.kinds import research  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

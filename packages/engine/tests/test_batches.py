@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 
 from autolab.db.models.enums import FinishReason
-from autolab.worker.kinds.base import StepContext, StepFailed
-from autolab.worker.llm_manager import CallResult
+from autolab_engine.kinds.base import StepContext, StepFailed
+from autolab_engine.llm import CallResult
 from autolab_engine.pipelines import Step
 
 OUTPUT = {
@@ -46,7 +46,7 @@ def context(llm: FakeLlm, batch_size: int) -> StepContext:
         }
     )
     task = SimpleNamespace(id=1, model_id=1, title="Sky", input="Why is the sky blue?")
-    return StepContext(task, None, step, 0, {}, llm, None)
+    return StepContext(task, None, step, 0, {}, llm)
 
 
 async def test_batches_and_a_left_out_item_asked_alone() -> None:

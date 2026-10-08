@@ -14,6 +14,12 @@ What is here now:
 - `language`: the task language (detect, check, prompt note);
 - `web`: SearxNG search and safe page download;
 - `gateway`: model adapters (Ollama);
+- `llm`: `LlmClient`, the interface a step uses to ask a model;
+- `budget`: token limits (thinking room, output cap, window), timeouts;
+- `kinds`: the step kinds and `StepContext`;
+- `types`: `TaskInput`, `ModelInfo` (plain data from the caller);
 - `enums`: fixed lists shared with AutoLab's database.
+
+Tests: `uv run pytest packages/engine/tests` (no database needed).
 
 Rule: the engine never imports `autolab` (the backend).
