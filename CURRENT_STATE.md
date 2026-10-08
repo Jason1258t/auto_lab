@@ -23,10 +23,10 @@ Unfinished, in the order the author cares about:
 1. **Token budgets per step** (`drafts/token_budgets.md`, PR #37). The
    author's point: "small steps" is a property of the model, not of the
    product, and a "small step" must be recalculated per model (today a
-   step is barely a couple of sentences). Waiting for the author's
-   answers to the 4 open questions at the end of the plan (columns vs
-   JSON profile; thinking off by default; three size classes; start with
-   phase 1). Phase 1 needs no schema change and can start at once. Also
+   step is barely a couple of sentences). **Accepted** on 2026-10-08:
+   columns on `models`; thinking left at the model's default; six size
+   classes (`small`, `medium`, `large` and `small_think`,
+   `medium_think`, `large_think`); phase 1 first (no schema change). Also
    in scope: the **per-call timeout** should follow the step's token
    limit and the model's speed (today one global `LLM_TIMEOUT_SECONDS`;
    raised to 3600 on the server on 2026-10-08 because 14B models write
