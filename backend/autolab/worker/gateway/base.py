@@ -23,6 +23,9 @@ class GenerateRequest:
     messages: list[Message]
     schema: dict[str, Any] | None = None  # JSON schema for structured output
     params: dict[str, Any] = field(default_factory=dict)  # temperature, max_tokens
+    # Per-call timeout from the token budget; None = the adapter's own
+    # (which is also the upper bound).
+    timeout_seconds: float | None = None
 
     def as_log(self) -> dict[str, Any]:
         """What goes into the log store."""
@@ -41,6 +44,10 @@ class GenerateResult:
     output_tokens: int | None
     finish_reason: FinishReason
     raw: dict[str, Any]  # the provider's full answer, for the log store
+    # Time spent reading the prompt and writing the answer, if the
+    # provider tells it. The manager learns the model's speed from it.
+    prompt_seconds: float | None = None
+    output_seconds: float | None = None
 
 
 class GatewayError(Exception):
