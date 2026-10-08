@@ -35,6 +35,27 @@ def _domain(url: str) -> str:
     return host.removeprefix("www.")
 
 
+# Search engines behind SearxNG sometimes block us for a minute (Brave:
+# "too many requests", DuckDuckGo: CAPTCHA), and every query comes back
+# empty. So an empty or failed query is tried again after these pauses.
+SEARCH_RETRY_SECONDS = (10.0, 30.0)
+
+
+async def _search_one(ctx: StepContext, query: str, limit: int) -> list[dict[str, str]]:
+    for pause in (0.0, *SEARCH_RETRY_SECONDS):
+        if pause:
+            await asyncio.sleep(pause)
+        try:
+            found = await searxng_search(ctx.http, ctx.settings.searxng_url, query, limit)
+        except Exception as exc:  # one failed query is not the end
+            log.warning("task %s: search %r failed: %s", ctx.task.id, query, exc)
+            continue
+        if found:
+            return found
+        log.info("task %s: search %r found nothing", ctx.task.id, query)
+    return []
+
+
 async def search(ctx: StepContext) -> dict[str, Any]:
     """Run each query in SearxNG; keep unique URLs as candidates for fetch.
 
@@ -42,7 +63,8 @@ async def search(ctx: StepContext) -> dict[str, Any]:
     max_per_domain (default: no limit), so one site cannot fill the list;
     skip_seen: skip URLs that earlier steps already found or read (later
     rounds of a deep research); optional: no queries or no results is not
-    an error (the output is empty).
+    an error (the output is empty). An empty or failed query is tried
+    again twice, after 10 and 30 seconds.
     """
     config = ctx.step.config
     per_query = int(config.get("results_per_query", 5))
@@ -56,12 +78,7 @@ async def search(ctx: StepContext) -> dict[str, Any]:
     if not queries and optional:
         return {"results": []}
     for query in queries:
-        try:
-            found = await searxng_search(ctx.http, ctx.settings.searxng_url, query, per_query)
-        except Exception as exc:  # one failed query is not the end
-            log.warning("task %s: search %r failed: %s", ctx.task.id, query, exc)
-            continue
-        for result in found:
+        for result in await _search_one(ctx, query, per_query):
             domain = _domain(result["url"])
             if result["url"] in seen or len(results) >= max_candidates:
                 continue
