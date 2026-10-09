@@ -31,6 +31,7 @@ from autolab_engine.kinds import research  # noqa: E402
 def no_search_pauses(monkeypatch: pytest.MonkeyPatch) -> None:
     """Retry empty searches at once in tests (no 10 and 30 s pauses)."""
     monkeypatch.setattr(research, "SEARCH_RETRY_SECONDS", (0.0, 0.0))
+    monkeypatch.setattr(research, "SEARCH_ROUND_PAUSE", 0.0)
 
 
 @pytest.fixture(scope="session")
