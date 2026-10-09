@@ -174,10 +174,22 @@ mark as *(⚠ no source)*.
 | `gaps` | yes, once | facts so far (`from`, often a list) | `max_claims` (40), `max_queries` (10) | `queries` (new ones only), `missing` |
 | `group` | yes, per fact | facts (`for_each`) | `questions_from` (**required**, e.g. `outline.questions`), `max_facts_per_section` (12), `batch_size` (none) | like `synthesize`: one section per question |
 | `abstract` | yes, once | anything (`from`) | — | `summary` (becomes the work summary) |
+| `subplan` | yes, per section | sections of `group` (`for_each`) | — | `sections` (heading, question, previous, parts: heading, point), `parts` (flat: section, heading, point, fact_numbers, facts, paragraphs = 1-3 by the number of facts) |
+| `write_parts` | yes, per part | parts of `subplan` (`for_each`) | — | `parts` (section, heading, text, fact_numbers), `unsourced_sentences`; "[3, 5]" becomes "[3][5]" |
+| `compose` | yes, once (or per item with `for_each`) | none, or items | — | the answer as it is (must have `text`, checked for the task language); with `for_each`: `texts` (one answer or null per item) |
+| `assemble` | **no** | step ids in `config` | `sections`, `parts`, `facts` (refs, **required**), `intro`, `leads`, `conclusion` (step ids, optional) | `paragraphs` (heading, level 2/3, text, fact_numbers), `facts` renumbered 1, 2, 3 in the order of first use; the work is built from it |
 
 Answers: `plan_each` → `queries: [string]`; `gaps` → `queries`
 (+ optional `missing`); `group` → `question` (a number, 0 = none);
-`abstract` → `summary`.
+`abstract` → `summary`; `subplan` → `parts: [{heading, point, facts:
+[number]}]`; `write_parts` → `paragraphs: [string]`; `compose` →
+`text` (+ any fields, e.g. `heading` of a conclusion).
+
+`group` takes plain questions (`outline.questions`) or sections
+`{heading, question}` (`outline.sections`, `deep_research 1.3.0`): the
+section heading becomes the heading in the report. Example of the
+whole chain (sections → parts → paragraphs → intro, openings,
+conclusion → assemble): `pipelines/deep_research/1.3.0.yaml`.
 
 **Batches** (`verify` and `group`). With `config.batch_size: N` (often a
 size map, e.g. `{ small: 1, medium: 4, large: 8 }`) the step asks about

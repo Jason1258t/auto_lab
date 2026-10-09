@@ -29,6 +29,11 @@ KINDS: dict[str, bool] = {
     "gaps": True,
     "group": True,
     "abstract": True,
+    # deep research 1.3.0: parts, longer text, intro and conclusion
+    "subplan": True,
+    "write_parts": True,
+    "compose": True,
+    "assemble": False,
     # code (kinds/code.py)
     "code_write": True,
     "code_check": False,

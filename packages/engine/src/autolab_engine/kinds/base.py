@@ -183,18 +183,22 @@ class StepContext:
                 answers[n] = {k: v for k, v in entry.items() if k != "n"}
         return answers
 
-    async def in_task_language(self, item: Any, answer: dict[str, Any], key: str) -> dict[str, Any]:
+    async def in_task_language(
+        self, item: Any, answer: dict[str, Any], key: str | Callable[[dict[str, Any]], str]
+    ) -> dict[str, Any]:
         """If answer[key] is not in the task language, or mixes in letters
         of another alphabet, ask again (up to LANGUAGE_RETRIES times) with
         a note that names the problem. Returns the first good answer, else
         the one with the fewest foreign letters; that one is counted in
-        the step summary."""
+        the step summary. `key` may be a function answer -> text (e.g.
+        paragraphs joined)."""
         language = self.language
+        text = key if callable(key) else (lambda found: found[key])
         best = answer
         for _ in range(LANGUAGE_RETRIES):
-            if matches(best[key], language):
+            if matches(text(best), language):
                 return best
-            foreign = foreign_letters(best[key], language)
+            foreign = foreign_letters(text(best), language)
             problem = (
                 f"Your last answer mixed in letters of another alphabet ({foreign[:20]})."
                 if foreign
@@ -206,11 +210,11 @@ class StepContext:
                 f"Use only the {language.name} alphabet; Latin letters only for "
                 "names, terms and units.",
             )
-            if retry is not None and _language_score(retry[key], language) < _language_score(
-                best[key], language
+            if retry is not None and _language_score(text(retry), language) < _language_score(
+                text(best), language
             ):
                 best = retry
-        if matches(best[key], language):
+        if matches(text(best), language):
             return best
         self.wrong_language += 1
         return best

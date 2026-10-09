@@ -144,7 +144,7 @@ async def test_deep_research_pipeline(
     for step in steps:
         await db.refresh(step)
         summaries.append(step.summary)
-    assert task.status == TaskStatus.IN_REVIEW, summaries
+    assert task.status == TaskStatus.IN_REVIEW, "; ".join(map(str, summaries))
     assert summaries == [
         "3 sub-questions",
         "1 search queries",  # the same query from every sub-question: kept once
@@ -169,3 +169,134 @@ async def test_deep_research_pipeline(
     assert "## Why blue?" in Path(work.file_path).read_text()
     sources = (await db.scalars(select(WorkSource))).all()
     assert len(sources) == 1  # only the cited fact [1] becomes evidence
+
+
+def fake_model_13(request: GenerateRequest) -> str:
+    """1.3.0: sections, parts, paragraphs, openings, intro, conclusion."""
+    system = request.messages[0].content
+    prompt = request.messages[-1].content
+    if system.startswith("You plan a research report"):
+        return json.dumps(
+            {
+                "sections": [
+                    {"heading": "Blue sky", "question": "Why blue?"},
+                    {"heading": "Red sunset", "question": "Why red at sunset?"},
+                    {"heading": "The physics", "question": "What is Rayleigh scattering?"},
+                ]
+            }
+        )
+    if system.startswith("You find gaps"):
+        assert "2. Red sunset: Why red at sunset?" in prompt
+        return json.dumps({"missing": [], "queries": ["new query"]})
+    if system.startswith("You plan one section"):
+        assert "Section: Blue sky (Why blue?)" in prompt
+        return json.dumps(
+            {
+                "parts": [
+                    {"heading": "Scattering", "point": "Light scatters.", "facts": [1, 2, 3]},
+                    # 3 is used above and 99 does not exist: this part is dropped.
+                    {"heading": "Again", "point": "The same.", "facts": [3, 99]},
+                ]
+            }
+        )
+    if system.startswith("You write one part"):
+        assert "Write 1 paragraph\n" in prompt  # 3 facts -> 1 paragraph
+        return json.dumps(
+            {
+                "paragraphs": [
+                    "Rayleigh scattering makes the sky blue [2, 3].",
+                    "So the sky is blue at noon [1].",
+                ]
+            }
+        )
+    if system.startswith("You write the opening"):
+        return json.dumps({"text": "This section explains the blue sky."})
+    if system.startswith("You write the introduction"):
+        assert "1. Blue sky: Light scatters." in prompt
+        return json.dumps({"text": "Why is the sky blue? This report explains it."})
+    if system.startswith("You write the conclusion"):
+        return json.dumps({"heading": "Conclusion", "text": "Scattering explains the sky."})
+    if system.startswith("You summarize a report"):
+        assert "- Scattering: Light scatters." in prompt
+    return fake_model(request)
+
+
+async def test_deep_research_1_3_0(
+    db: AsyncSession, session_factory, settings: Settings, tmp_path: Path
+) -> None:
+    folder = tmp_path / "pipelines" / "deep_research"
+    folder.mkdir(parents=True)
+    shutil.copy("pipelines/deep_research/1.3.0.yaml", folder)
+    settings.pipelines_dir = str(folder.parent)
+    settings.searxng_url = "http://searx.test"
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(fake_web))
+    worker = Worker(
+        session_factory,
+        settings,
+        FileLogStore(tmp_path / "logs"),
+        {"ollama": FakeAdapter(fake_model_13)},
+        http=http,
+        resolver=any_public,
+    )
+    await worker.start()
+    async with session_factory() as s:
+        version_id = await s.scalar(select(PipelineVersion.id))
+        workspace = Workspace(name="Lab")
+        model = Model(provider_id=1, name="fake-model", context_length=8192)
+        s.add_all([workspace, model])
+        await s.flush()
+        task = Task(
+            workspace_id=workspace.id,
+            pipeline_version_id=version_id,
+            model_id=model.id,
+            title="Sky colors",
+            input="Why is the sky blue in the day and red at sunset?",
+            status=TaskStatus.QUEUED,
+        )
+        s.add(task)
+        await s.commit()
+        task_id = task.id
+
+    await worker.run_once()
+    await http.aclose()
+
+    task = await db.get(Task, task_id)
+    await db.refresh(task)
+    steps = (
+        await db.scalars(
+            select(TaskStep).where(TaskStep.task_id == task_id).order_by(TaskStep.step_index)
+        )
+    ).all()
+    summaries = [step.summary for step in steps]
+    assert task.status == TaskStatus.IN_REVIEW, "; ".join(map(str, summaries))
+    assert summaries[0] == "3 sections"
+    assert summaries[-9:] == [
+        "7 facts kept",
+        "1 sections",
+        "1 parts in 1 sections",
+        "1 parts written",
+        "1 section openings",
+        "introduction written",
+        "conclusion written",
+        "summary written",
+        "4 blocks, 3 facts cited",
+    ]
+
+    work = await db.get(Work, task_id)
+    text = Path(work.file_path).read_text()
+    body = text.split("## Sources")[0]
+    assert body == (
+        "# Sky colors\n\n"
+        "The sky is blue because of Rayleigh scattering.\n\n"
+        "Why is the sky blue? This report explains it.\n\n"
+        "## Blue sky\n\n"
+        "This section explains the blue sky.\n\n"
+        "### Scattering\n\n"
+        # [2, 3] split into [2][3]; numbers renumbered by first use.
+        "Rayleigh scattering makes the sky blue [1][2].\n\n"
+        "So the sky is blue at noon [3].\n\n"
+        "## Conclusion\n\n"
+        "Scattering explains the sky.\n\n"
+    )
+    assert len((await db.scalars(select(WorkSource))).all()) == 3
