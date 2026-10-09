@@ -39,6 +39,9 @@ def _domain(url: str) -> str:
 # "too many requests", DuckDuckGo: CAPTCHA), and every query comes back
 # empty. So an empty or failed query is tried again after these pauses.
 SEARCH_RETRY_SECONDS = (10.0, 30.0)
+# A longer block (the whole step found too few pages): the empty queries
+# get one more round after this pause (config.min_candidates).
+SEARCH_ROUND_PAUSE = 120.0
 
 
 async def _search_one(ctx: StepContext, query: str, limit: int) -> list[dict[str, str]]:
@@ -64,21 +67,23 @@ async def search(ctx: StepContext) -> dict[str, Any]:
     skip_seen: skip URLs that earlier steps already found or read (later
     rounds of a deep research); optional: no queries or no results is not
     an error (the output is empty). An empty or failed query is tried
-    again twice, after 10 and 30 seconds.
+    again twice, after 10 and 30 seconds. min_candidates (default 0): if
+    the step found fewer pages, the queries that found nothing get one
+    more round after a pause of SEARCH_ROUND_PAUSE seconds (the search
+    engines often block us for a few minutes).
     """
     config = ctx.step.config
     per_query = int(config.get("results_per_query", 5))
     max_candidates = int(config.get("max_candidates", config.get("max_sources", 5)))
     max_per_domain = int(config.get("max_per_domain", 0)) or None
+    min_candidates = int(config.get("min_candidates", 0))
     optional = bool(config.get("optional", False))
     results: list[dict[str, str]] = []
     seen: set[str] = _earlier_urls(ctx) if config.get("skip_seen") else set()
     per_domain: dict[str, int] = {}
-    queries = ctx.resolve(ctx.step.from_)
-    if not queries and optional:
-        return {"results": []}
-    for query in queries:
-        for result in await _search_one(ctx, query, per_query):
+
+    def add(found: list[dict[str, str]]) -> None:
+        for result in found:
             domain = _domain(result["url"])
             if result["url"] in seen or len(results) >= max_candidates:
                 continue
@@ -87,6 +92,22 @@ async def search(ctx: StepContext) -> dict[str, Any]:
             seen.add(result["url"])
             per_domain[domain] = per_domain.get(domain, 0) + 1
             results.append(result)
+
+    queries = ctx.resolve(ctx.step.from_)
+    if not queries and optional:
+        return {"results": []}
+    empty = []
+    for query in queries:
+        found = await _search_one(ctx, query, per_query)
+        if not found:
+            empty.append(query)
+        add(found)
+    if empty and len(results) < min_candidates:
+        log.info("task %s: few candidates, %s empty queries again", ctx.task.id, len(empty))
+        await asyncio.sleep(SEARCH_ROUND_PAUSE)
+        for query in empty:
+            add(await _search_one(ctx, query, per_query))
+        ctx.notes.append(f"{len(empty)} empty queries tried again")
     if not results and not optional:
         raise StepFailed("the search found nothing (is SearxNG running?)")
     return {"results": results}
