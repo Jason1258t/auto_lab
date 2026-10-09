@@ -117,6 +117,8 @@ docker build -t autolab .
 
 ```bash
 uv run pytest        # needs the Docker database running
+uv run pytest --cov  # the same, with a coverage table (lines and branches)
+uv run coverage html # then open htmlcov/index.html: the missed lines in color
 uv run ruff check .  # lint
 uv run ruff format . # format
 uv run autolab-engine check pipelines/*/*.yaml  # validate pipeline files
@@ -127,6 +129,12 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+Coverage: CI writes the table to the summary page of each run (job
+`test`). There is no minimum yet; on 2026-10-10 it was 84%. The weakest
+parts then: `cli.py` (0%), `services/publications.py` (43%),
+`services/catalog.py` (53%), the engine CLI (54%), `services/members.py`
+(59%), `services/auth.py` (62%), `worker/main.py` (62%).
 
 CI runs all of these on every PR (`test`, `frontend`, `image`); `main`
 accepts only green PRs.
