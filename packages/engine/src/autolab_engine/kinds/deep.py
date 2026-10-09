@@ -7,6 +7,7 @@ The rounds are separate steps in the pipeline file, so the runner needs
 no loops.
 """
 
+import json
 import re
 from typing import Any
 
@@ -126,6 +127,11 @@ def _paragraphs_for(facts: int) -> int:
     return 1 if facts <= 3 else 2 if facts <= 6 else 3
 
 
+def _max_parts(facts: int) -> int:
+    """Parts of a section: one per 3 facts, 1 to 3."""
+    return max(1, min(3, facts // 3))
+
+
 async def subplan(ctx: StepContext) -> dict[str, Any]:
     """One call per section (from group): split it into parts (sub-
     sections), each with a heading, its main point and its facts. Code
@@ -141,7 +147,13 @@ async def subplan(ctx: StepContext) -> dict[str, Any]:
         claims = {f["number"]: f["claim"] for f in section["facts"]}
         used: set[int] = set()
         found = []
-        for part in answer["parts"]:
+        # At most one part per 3 facts; the facts of extra parts go to
+        # the last part that is kept.
+        limit = _max_parts(len(claims))
+        kept = answer["parts"][:limit]
+        for extra in answer["parts"][limit:]:
+            kept[-1] = kept[-1] | {"facts": kept[-1]["facts"] + extra["facts"]}
+        for part in kept:
             numbers = []
             for n in part["facts"]:
                 if n in claims and n not in used:
@@ -186,6 +198,32 @@ def split_marks(text: str) -> str:
     )
 
 
+# A paragraph with JSON in it, or a made-up chat turn: a small model lost
+# track of the format (seen with qwen2.5:3b). Such a paragraph is dropped.
+_BROKEN = re.compile(r"[{}]|\"\w+\":|^(user|assistant)$", re.MULTILINE)
+
+
+def unwrap_json(paragraph: str) -> str:
+    """A paragraph that is a JSON object ({"text": "...", "citation":
+    [13]}, seen with qwen2.5:3b) -> its text with the numbers as [n]
+    marks. Any other paragraph is returned as it is."""
+    try:
+        data = json.loads(paragraph)
+    except ValueError:
+        return paragraph
+    if not isinstance(data, dict) or not isinstance(data.get("text"), str):
+        return paragraph
+    numbers = []
+    for value in data.values():
+        if isinstance(value, list):
+            for n in value:  # 13, "13" or "[13]"
+                digits = str(n).strip("[] ")
+                if digits.isdigit():
+                    numbers.append(int(digits))
+    marks = "".join(f"[{n}]" for n in numbers if f"[{n}]" not in data["text"])
+    return f"{data['text'].strip()} {marks}".strip()
+
+
 async def write_parts(ctx: StepContext) -> dict[str, Any]:
     """One call per part: 1 to 3 paragraphs from the part's facts. As in
     `write`: marks of facts outside the part are removed, sentences
@@ -200,9 +238,12 @@ async def write_parts(ctx: StepContext) -> dict[str, Any]:
             return match.group(0) if int(match.group(1)) in allowed else ""
 
         paragraphs = []
-        for paragraph in answer["paragraphs"]:
+        # At most the planned number: a model asked for 1 paragraph from
+        # 1 fact and writing 3 only repeats itself.
+        for paragraph in answer["paragraphs"][: part["paragraphs"]]:
+            paragraph = unwrap_json(paragraph.strip())
             text = _MARK_WITH_SPACE.sub(check_mark, split_marks(paragraph)).strip()
-            if not text:
+            if not text or _BROKEN.search(text):
                 continue
             text, marked = mark_unsourced(text)
             unsourced += marked

@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-08 (MVP done; new pipelines, language, pipeline upload; see "Start here next session").
+Last updated: 2026-10-09 (quality work: deep_research 1.3.0; see "Start here next session").
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -22,24 +22,45 @@ real model on the test server. The frontend has all MVP screens
 text with checked facts, and enough material; for a ~3 hour run a solid
 piece of work, not a collection of quotes". Speed work is paused.
 
-**First thing to do:** read the overnight baseline.
-- It runs on the server in the container `autolab-eval` (started
-  2026-10-09 ~00:15): `deep_research 1.2.0` on `qwen2.5:7b` (medium),
-  the six topics of `quality/topics.yaml`. Results:
-  `~/autolab/data/runs/deep-1.2.0-7b-baseline/` (`report.md`, and per
-  topic `work.md`, step outputs, `calls.jsonl`). `docker logs
-  autolab-eval` shows progress; `docker rm autolab-eval` when done.
-- Copy the folder to the laptop (`scp -r`), read `report.md` and two or
-  three `work.md`, and write down what makes the text weak.
+**Baseline read (2026-10-09).** `deep_research 1.2.0` on `qwen2.5:7b`,
+5 of 6 topics done (43-63 min each; `attention` failed: the search
+engines blocked us, 6 candidate pages from 18 queries). A copy is on the
+laptop: `data/runs/deep-1.2.0-7b-baseline/` (git-ignored). What made the
+text weak: each section is a list of "fact [n]." sentences with no idea
+that connects them; facts in the wrong section; repeats; filler
+sentences without a source; only 1/4-1/3 of the kept facts are used; no
+introduction or conclusion; "[19, 20]" marks were not seen as marks.
 
-**Then: the quality work** (needs a short design first, ask the
-author). Known problems from a test run (`research 1.3.0`, 3B): one
-paragraph per section with 1-3 facts, the heading repeated inside the
-text, a list of retold quotes. Ideas: a deeper outline (sections and
-sub-sections), several paragraphs per sub-section that connect facts
-around one idea, an introduction, transitions and a conclusion, more
-facts per section. Facts and exact quotes stay required. Compare every
-new version with the baseline: `autolab-engine eval` + `compare`.
+**Quality work: the author chose A, B, C, E, F** (D, a check of each
+sentence against its quote, is postponed):
+- F (PR #63, merged): `search` config `min_candidates`: too few pages ->
+  the empty queries get one more round after 2 minutes.
+- A + B + C + E: `deep_research 1.3.0` (PR in progress, see below):
+  sections with real headings; `group` sorts facts into sections (0 only
+  for off-topic facts); `subplan` splits a section into 1-3 parts with a
+  main point, each fact in one part, at most one part per 3 facts;
+  `write_parts` writes 1-3 paragraphs per part (by its number of facts);
+  `compose` writes the introduction, the opening of each section and
+  the conclusion; `assemble` renumbers facts 1, 2, 3. Fixes on the way:
+  a mark after the full stop ("blue. [1]") belongs to the sentence
+  before (this wrongly gave "no source" notes in `research` too); a
+  paragraph with JSON in it is dropped.
+- Not marked "no source": the introduction, the section openings and
+  the conclusion (they should hold no facts). The author may change this.
+- 3B test runs vary a lot (15 vs 1 cited facts); the real comparison is
+  the 7B eval of 1.3.0 against the baseline (`autolab-engine compare`).
+
+**Direction from the author (2026-10-09), after the quality work:**
+- First a complete working system: comfortable UX and UI, a strong
+  ("competitive") worker. Then split the architecture into separate
+  modules with stable APIs and their own docs. Open question: what does
+  "competitive" mean (report quality vs. Perplexity/GPT Researcher,
+  parallel tasks, or reliability)?
+- Think about test coverage (proposal: `pytest-cov` in CI with a report,
+  no threshold yet) and docs.
+- Maybe a separate docs site (proposal: Starlight or MkDocs from the
+  existing `docs/`, built in CI, GitHub Pages). Not decided.
+- The author will send UX/UI notes for AutoLab and the panel.
 
 **State of the code (all merged and deployed, PRs #54-#61):**
 - The pipeline engine is its own package, `packages/engine`

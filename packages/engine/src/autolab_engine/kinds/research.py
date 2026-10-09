@@ -259,7 +259,10 @@ _MARK = re.compile(r"\[(\d+)\]")
 # A mark with the spaces before it, so removing it leaves no " ." behind.
 _MARK_WITH_SPACE = re.compile(r"\s*\[(\d+)\]")
 # A sentence ends with . ! or ? (and maybe its [n] marks), then a space.
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=\])\s+(?=[A-Z])")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=\])\s+(?=[A-ZА-ЯЁ])")
+# Marks after the end of a sentence ("blue. [1] Next"): they belong to
+# the sentence before them, so they are moved in front of its full stop.
+_MARKS_AFTER_END = re.compile(r"\s*([.!?])((?:\s*\[\d+\])+)(?=\s|$)")
 
 # Shown after a sentence that cites no fact (decided 2026-10-07): the
 # reviewer sees at a glance what to check. Small models often add such
@@ -269,6 +272,7 @@ NO_SOURCE = "*(\u26a0 no source)*"
 
 def mark_unsourced(text: str) -> tuple[str, int]:
     """Add NO_SOURCE after every sentence without a [n] mark."""
+    text = _MARKS_AFTER_END.sub(lambda m: " " + m.group(2).strip() + m.group(1), text)
     sentences = [s for s in _SENTENCE_END.split(text) if s.strip()]
     marked = 0
     out = []

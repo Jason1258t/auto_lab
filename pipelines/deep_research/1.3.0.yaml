@@ -37,7 +37,8 @@ steps:
 
         Split this task into 3 to {{ config.max_sections }} sections of a
         report. Together they must cover the whole task, in a logical
-        order (basics first). For each section:
+        order (basics first). No introduction or conclusion section: the
+        report gets them separately. For each section:
         - "heading": a short title of 2 to 6 words, not a question;
         - "question": one short question that a web search can answer.
         No repeats.
@@ -326,11 +327,14 @@ steps:
       # Facts per call. Sorting is easy, so even small models take 5.
       batch_size: { small: 5, medium: 10, large: 10 }
     llm:
-      system: You sort facts into questions. Reply with JSON only.
+      system: You sort facts into sections. Reply with JSON only.
       prompt: |
-        Questions:
+        Research task:
+        {{ task.input }}
+
+        Sections of the report:
         {% for s in steps.outline.sections %}
-        {{ loop.index }}. {{ s.question }}
+        {{ loop.index }}. {{ s.heading }}: {{ s.question }}
         {% endfor %}
 
         Facts:
@@ -338,9 +342,9 @@ steps:
         {{ loop.index }}. {{ f.claim }}
         {% endfor %}
 
-        For each fact: which question does it help to answer? Give one entry
-        per fact: n = the fact number, question = the question number, or 0
-        if it helps none of them.
+        For each fact: which section does it fit best? Give one entry per
+        fact: n = the fact number, question = the section number. Use 0
+        only if the fact has nothing to do with the research task.
       output:
         type: object
         required: [answers]
@@ -377,8 +381,8 @@ steps:
         [{{ fact.number }}] {{ fact.claim }}
         {% endfor %}
 
-        Split the section into 1 to 3 parts: one part for every 3 to 6
-        facts. For each part:
+        Split the section into 1 to {{ [1, [3, (item.facts | length) // 3] | min] | max }} parts (one part for every 3 to 6
+        facts). For each part:
         - "heading": a short title of 2 to 6 words, not a question;
         - "point": the main idea of the part in one sentence;
         - "facts": the numbers of the facts that belong to it.
@@ -427,13 +431,17 @@ steps:
 
         Write {{ item.paragraphs }} paragraph{{ "s" if item.paragraphs > 1 else "" }}
         about the main point. Each paragraph has 3 to 6 sentences around
-        one idea: first the idea, then the facts that show it, then what
-        they mean together or how they connect.
+        one idea: first the idea, then the facts that show it, then, in
+        your own words, why it matters or how the facts connect. Write
+        plainly; do not start sentences with "Together" or "In summary".
         Rules:
         - Use only these facts; add no other facts, names or numbers.
         - After each sentence that uses a fact, put its number in
-          brackets, like [2]. A sentence that links two facts gets both
-          numbers, like [2][5].
+          brackets, like [{{ item.fact_numbers[0] }}].
+          {%- if item.fact_numbers | length > 1 %} A sentence that links two facts
+          gets both numbers, like [{{ item.fact_numbers[0] }}][{{ item.fact_numbers[1] }}].
+          {%- endif %}
+        - Each paragraph is plain text, not JSON.
         - Use every fact at most once. Do not repeat the heading.
       output:
         type: object
@@ -470,7 +478,7 @@ steps:
         Write 1 or 2 sentences that open this section: what it is about
         {%- if item.previous %} and how it follows from the section before
         {%- endif %}. No facts, no numbers, no brackets. Do not repeat the
-        heading.
+        heading, and do not start with "In this section".
       output:
         type: object
         required: [text]

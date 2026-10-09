@@ -280,7 +280,7 @@ async def test_deep_research_1_3_0(
         "introduction written",
         "conclusion written",
         "summary written",
-        "4 blocks, 3 facts cited",
+        "4 blocks, 2 facts cited",
     ]
 
     work = await db.get(Work, task_id)
@@ -295,8 +295,8 @@ async def test_deep_research_1_3_0(
         "### Scattering\n\n"
         # [2, 3] split into [2][3]; numbers renumbered by first use.
         "Rayleigh scattering makes the sky blue [1][2].\n\n"
-        "So the sky is blue at noon [3].\n\n"
+        # The second paragraph is dropped: 3 facts -> 1 paragraph.
         "## Conclusion\n\n"
         "Scattering explains the sky.\n\n"
     )
-    assert len((await db.scalars(select(WorkSource))).all()) == 3
+    assert len((await db.scalars(select(WorkSource))).all()) == 2
