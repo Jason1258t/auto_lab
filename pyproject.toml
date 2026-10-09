@@ -48,6 +48,7 @@ module-root = "backend"
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.ruff]
@@ -65,3 +66,13 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages/engine/tests"]
 asyncio_mode = "auto"
+
+# Test coverage (pytest-cov). CI prints a report, no minimum yet.
+[tool.coverage.run]
+source = ["autolab", "autolab_engine"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+sort = "Cover"

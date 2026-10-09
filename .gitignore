@@ -23,3 +23,9 @@ data/
 
 # autolab-engine run / eval outputs
 runs/
+
+# Test coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
