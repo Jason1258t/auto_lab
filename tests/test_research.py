@@ -89,6 +89,9 @@ def test_mark_unsourced() -> None:
         f"Blue light scatters more [1]. So the sky is blue! {NO_SOURCE} "
         f"Sunsets are red [2] [3]. Why? {NO_SOURCE} Physics. {NO_SOURCE}"
     )
+    # A mark after the full stop belongs to the sentence before it.
+    text, marked = mark_unsourced("Blue light scatters. [1] So the sky is blue. [2][3]")
+    assert (text, marked) == ("Blue light scatters [1]. So the sky is blue [2][3].", 0)
 
 
 def test_html_to_text() -> None:

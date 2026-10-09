@@ -36,7 +36,12 @@ def render_markdown(
     if summary:
         lines += [summary, ""]
     for paragraph in paragraphs:
-        lines += [f"## {paragraph['heading']}", "", paragraph["text"], ""]
+        # level: 2 = a section, 3 = a part (deep research 1.3.0). The
+        # introduction has no heading; a section heading may have no text.
+        if paragraph.get("heading"):
+            lines += ["#" * paragraph.get("level", 2) + f" {paragraph['heading']}", ""]
+        if paragraph["text"]:
+            lines += [paragraph["text"], ""]
     if facts:
         lines += ["## Sources", ""]
         for fact in facts:
@@ -109,13 +114,21 @@ def build_work(
 ) -> WorkResult:
     """The work of a finished run. Raises StepFailed if the outputs give
     no text, or no cited fact where the pipeline requires evidence."""
-    written = _find(pipeline, outputs, "write")
+    # The text: assemble (deep research 1.3.0: intro, parts, conclusion,
+    # its own fact numbers), else the write step.
+    assembled = _find(pipeline, outputs, "assemble")
+    written = assembled or _find(pipeline, outputs, "write")
     if written is None:
         if _find(pipeline, outputs, "code_check") is not None:
             return WorkResult(*render_code(title, pipeline, outputs))
         raise StepFailed("the pipeline has no write step, so there is no text")
     # The report plan: synthesize (research) or group (deep research).
-    plan = _find(pipeline, outputs, "synthesize") or _find(pipeline, outputs, "group") or {}
+    plan = (
+        assembled
+        or _find(pipeline, outputs, "synthesize")
+        or _find(pipeline, outputs, "group")
+        or {}
+    )
     paragraphs = written["paragraphs"]
     # A summary written after the text (deep research) wins over the plan's.
     summary = (_find(pipeline, outputs, "abstract") or {}).get("summary") or plan.get("summary")
@@ -129,5 +142,6 @@ def build_work(
 
 
 def has_work(pipeline: PipelineFile) -> bool:
-    """A work comes from a write step (text) or a code_check step (code)."""
-    return any(step.kind in ("write", "code_check") for step in pipeline.steps)
+    """A work comes from a write or assemble step (text) or a code_check
+    step (code)."""
+    return any(step.kind in ("write", "assemble", "code_check") for step in pipeline.steps)
