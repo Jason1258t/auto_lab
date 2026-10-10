@@ -8,13 +8,12 @@ server access deploys (the agent, when it has access). How: `DEPLOY.md`,
 After a deploy: check the items below, then empty the list (keep the
 header) and write the date in `CURRENT_STATE.md`.
 
-Last deploy: 2026-10-09 evening (up to PR #64: deep_research 1.3.0, search round). Not checked yet: one short `research` task from the web app finishes (the agent cannot create tasks).
+Last deploy: 2026-10-10 (up to PR #71: deep_research 1.4.0; its 7B eval runs in `autolab-eval`). Not checked yet: one short `research` task from the web app finishes (the agent cannot create tasks).
 
 ## Changes
 
 | PR | What | Check after deploy |
 |---|---|---|
-| #70 | `deep_research 1.4.0` complete (parts 1-4: no stock phrases, dedup, cover, check_text) | the worker log says "new versions: deep_research 1.4.0"; then the 7B eval (engine README) |
 
 ## Needs sudo (the author runs it)
 
