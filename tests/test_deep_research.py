@@ -182,6 +182,11 @@ def fake_model_13(request: GenerateRequest) -> str:
         return json.dumps({"facts": [{"claim": claim, "quote": QUOTE}]})
     if system.startswith("You find repeated facts"):
         return json.dumps({"repeats": [{"n": 5, "same_as": 4}]})
+    if system.startswith("You add one paragraph"):  # cites the first two new facts
+        assert "Rayleigh scattering makes the sky blue" in prompt.split("so far:")[1]
+        new = prompt.split("New facts to add:")[1]
+        numbers = [line.split("]")[0] + "]" for line in new.split("\n") if line.startswith("[")]
+        return json.dumps({"paragraph": f"More light scatters at noon {''.join(numbers[:2])}."})
     if system.startswith("You plan a research report"):
         return json.dumps(
             {
@@ -281,34 +286,46 @@ async def test_deep_research_parts(
     summaries = [step.summary for step in steps]
     assert task.status == TaskStatus.IN_REVIEW, "; ".join(map(str, summaries))
     assert summaries[0] == "3 sections"
-    repeats = ["1 repeated facts removed"] if version >= "1.4.0" else []
-    assert summaries[-9 - len(repeats) :] == [
+    new = version >= "1.4.0"  # dedup and cover
+    expected = [
         "7 facts kept",
         "1 sections",
-        *repeats,
+        *(["1 repeated facts removed"] if new else []),
         "1 parts in 1 sections",
         "1 parts written",
+        *(["2 paragraphs added"] if new else []),
         "1 section openings",
         "introduction written",
         "conclusion written",
         "summary written",
-        "4 blocks, 2 facts cited",
+        "4 blocks, 6 facts cited" if new else "4 blocks, 2 facts cited",
     ]
+    assert summaries[-len(expected) :] == expected
 
     work = await db.get(Work, task_id)
     text = Path(work.file_path).read_text()
     body = text.split("## Sources")[0]
-    assert body == (
-        "# Sky colors\n\n"
-        "The sky is blue because of Rayleigh scattering.\n\n"
-        "Why is the sky blue? This report explains it.\n\n"
-        "## Blue sky\n\n"
-        "This section explains the blue sky.\n\n"
-        "### Scattering\n\n"
-        # [2, 3] split into [2][3]; numbers renumbered by first use.
-        "Rayleigh scattering makes the sky blue [1][2].\n\n"
-        # The second paragraph is dropped: 3 facts -> 1 paragraph.
-        "## Conclusion\n\n"
-        "Scattering explains the sky.\n\n"
+    assert (
+        body
+        == (
+            "# Sky colors\n\n"
+            "The sky is blue because of Rayleigh scattering.\n\n"
+            "Why is the sky blue? This report explains it.\n\n"
+            "## Blue sky\n\n"
+            "This section explains the blue sky.\n\n"
+            "### Scattering\n\n"
+            # [2, 3] split into [2][3]; numbers renumbered by first use.
+            "Rayleigh scattering makes the sky blue [1][2].\n\n"
+            # The second paragraph is dropped: 3 facts -> 1 paragraph.
+            # 1.4.0: facts 1 (unused), 4, 6, 7 (left out by subplan; 5 is a
+            # repeat of 4) are added in two more paragraphs, 2 facts each.
+            + (
+                "More light scatters at noon [3][4].\n\nMore light scatters at noon [5][6].\n\n"
+                if new
+                else ""
+            )
+            + "## Conclusion\n\n"
+            "Scattering explains the sky.\n\n"
+        )
     )
-    assert len((await db.scalars(select(WorkSource))).all()) == 2
+    assert len((await db.scalars(select(WorkSource))).all()) == (6 if new else 2)

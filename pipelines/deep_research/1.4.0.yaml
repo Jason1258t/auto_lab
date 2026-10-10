@@ -4,7 +4,8 @@
 # - the introduction and the other short texts are the text itself, not
 #   talk about the task ("Here is an introduction of 3 to 5 sentences");
 # - repeated facts (the same fact from several pages) are removed before
-#   the sections are split into parts (dedup).
+#   the sections are split into parts (dedup);
+# - coverage: facts a part did not use get more paragraphs (cover).
 # Rules: drafts/pipeline_spec.md.
 # Never change this file after the worker has synced it: copy it to a
 # new version and edit the copy.
@@ -491,6 +492,50 @@ steps:
       max_tokens: 1400
     summary: "{{ output.parts | length }} parts written"
 
+  # 9b. Coverage: while a part has facts its text does not cite (or facts
+  #     subplan left out of every part), add one paragraph with up to 4
+  #     of them; at most 3 calls per part. The [n] marks are the report.
+  - id: cover
+    kind: cover
+    config:
+      plan: subplan.parts
+      parts: write.parts
+      sections: dedup.sections
+      facts_per_call: 4
+      max_calls: 3
+    llm:
+      system: You add one paragraph to a part of a report. Reply with JSON only.
+      prompt: |
+        Section: {{ item.section }}
+        Part: {{ item.heading }}
+        Main point of this part: {{ item.point }}
+
+        The text of this part so far:
+        {{ item.text if item.text else "(nothing yet)" }}
+
+        New facts to add:
+        {% for fact in item.facts %}
+        [{{ fact.number }}] {{ fact.claim }}
+        {% endfor %}
+
+        Write one paragraph of 3 to 6 sentences that continues the text
+        and uses these new facts. Do not repeat what the text already says.
+        Rules:
+        - Use only these new facts; add no other facts, names or numbers.
+        - After each sentence that uses a fact, put its number in
+          brackets, like [{{ item.facts[0].number }}].
+        - The paragraph is plain text, not JSON. Do not use the word
+          "delve", and do not start with "Together" or "In summary".
+      output:
+        type: object
+        required: [paragraph]
+        additionalProperties: false
+        properties:
+          paragraph: { type: string, minLength: 20, maxLength: 1500 }
+      temperature: 0.4
+      max_tokens: 700
+    summary: "{{ output.added_paragraphs }} paragraphs added"
+
   # 10. Two or three sentences that open each section and link it to the
   #     one before.
   - id: leads
@@ -611,7 +656,7 @@ steps:
     kind: assemble
     config:
       sections: subplan.sections
-      parts: write.parts
+      parts: cover.parts
       leads: leads
       intro: intro
       conclusion: conclusion

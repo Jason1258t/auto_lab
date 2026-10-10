@@ -49,8 +49,11 @@ def measure(
     text = work.markdown if work else ""
     body = text.split(SOURCES_HEADING)[0]  # the text without the source list
     language = detect(f"{topic.title}\n{topic.input}")
-    written = _of_kind(pipeline, outputs, "write") + _of_kind(pipeline, outputs, "write_parts")
-    # A section: a paragraph of `write`, or a part of `write_parts` (1.3.0).
+    written = [
+        o for kind in ("write", "write_parts", "cover") for o in _of_kind(pipeline, outputs, kind)
+    ]
+    # A section: a paragraph of `write`, or a part of `write_parts` /
+    # `cover` (1.3.0+; cover comes last, with the final texts).
     paragraphs = (written[-1].get("paragraphs") or written[-1].get("parts")) if written else []
     facts_found = sum(len(o.get("facts", [])) for o in _of_kind(pipeline, outputs, "summarize"))
     verified = _of_kind(pipeline, outputs, "verify")

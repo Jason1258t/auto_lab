@@ -75,3 +75,61 @@ async def test_dedup() -> None:
     assert result["sections"][0]["fact_numbers"] == [1, 5]
     assert result["sections"][1]["fact_numbers"] == [6]  # one fact: not asked
     assert result["dropped"] == 3
+
+
+async def test_cover() -> None:
+    import json
+    from types import SimpleNamespace
+
+    from autolab_engine.enums import FinishReason
+    from autolab_engine.kinds.base import StepContext
+    from autolab_engine.kinds.deep import cover
+    from autolab_engine.llm import CallResult
+    from autolab_engine.pipelines import Step
+
+    class Llm:
+        def __init__(self) -> None:
+            self.prompts: list[str] = []
+
+        async def call(self, *, messages, **_) -> CallResult:
+            prompt = messages[-1].content
+            self.prompts.append(prompt)
+            if "Part: B" in prompt:  # B: uses the facts it is given
+                data = {"paragraph": "Dead rows stay until VACUUM [3]. It frees space [4]."}
+            else:  # A: writes without the new fact (and a wrong mark)
+                data = {"paragraph": "MVCC is useful for many reasons [9]."}
+            return CallResult(1, json.dumps(data), data, FinishReason.STOP)
+
+    plan = [
+        {"section": "S", "heading": "A", "point": "p", "facts": [
+            {"number": 1, "claim": "c1"}, {"number": 2, "claim": "c2"}]},
+        {"section": "S", "heading": "B", "point": "p", "facts": [{"number": 3, "claim": "c3"}]},
+    ]  # fmt: skip
+    written = [{"section": "S", "heading": "A", "text": "MVCC keeps versions [1].",
+                "fact_numbers": [1]}]  # B was not written  # fmt: skip
+    sections = [{"heading": "S", "facts": [{"number": n, "claim": f"c{n}"} for n in (1, 2, 3, 4)]}]
+    config = {"plan": "subplan.parts", "parts": "write.parts", "sections": "dedup.sections"}
+    step = Step.model_validate(
+        {"id": "cover", "kind": "cover", "config": config,
+         "llm": {"prompt": "Part: {{ item.heading }} {{ item.facts | tojson }}",
+                 "output": {"type": "object"}}}
+    )  # fmt: skip
+    outputs = {
+        "subplan": {"parts": plan},
+        "write": {"parts": written},
+        "dedup": {"sections": sections},
+    }
+    task = SimpleNamespace(id=1, model_id=1, title="T", input="T")
+    llm = Llm()
+    ctx = StepContext(task, None, step, 1, outputs, llm)
+    result = await cover(ctx)
+    # A: fact 2 asked once; the answer cites no new fact, so A is not asked again.
+    # B: not written before; it gets fact 3 and fact 4 (left out by subplan).
+    assert [p["heading"] for p in result["parts"]] == ["A", "B"]
+    assert result["parts"][0]["text"] == "MVCC keeps versions [1]."
+    assert result["parts"][1]["text"] == "Dead rows stay until VACUUM [3]. It frees space [4]."
+    assert result["coverage"][0] == {
+        "section": "S", "heading": "A", "planned": [1, 2], "used": [1], "unused": [2]
+    }  # fmt: skip
+    assert result["unused"] == 1 and result["added_paragraphs"] == 1
+    assert len(llm.prompts) == 2
