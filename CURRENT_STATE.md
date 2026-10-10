@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-10 (eval of deep_research 1.3.0, coverage; see "Start here next session").
+Last updated: 2026-10-10 (deep_research 1.4.0 deployed, its 7B eval running; see "Start here next session").
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -16,7 +16,43 @@ real model on the test server. The frontend has all MVP screens
 (`frontend/`), and the API image serves it. Guides for users:
 `docs/USER_GUIDE.md`, `docs/TRY_IT.md`.
 
-## Start here next session (handoff 2026-10-09)
+## Start here next session (handoff 2026-10-10)
+
+**First thing to do: read the eval of `deep_research 1.4.0`.**
+- It runs on the server in the container `autolab-eval` (started
+  2026-10-10 ~07:23): 1.4.0 on `qwen2.5:7b` (medium, 8k), the six topics
+  of `quality/topics.yaml`. Expect 8-10 hours (1.3.0 took ~8 h; 1.4.0
+  has more calls). `docker logs autolab-eval` shows progress;
+  `docker rm autolab-eval` when done.
+- Copy and compare (keep the output short, read with grep/head):
+  `scp -r master@192.168.0.101:~/autolab/data/runs/deep-1.4.0-7b data/runs/`,
+  then `uv run autolab-engine compare data/runs/deep-1.3.0-7b
+  data/runs/deep-1.4.0-7b`.
+- Look at: cited facts (target: clearly more than 1.3.0's 26-46), the
+  "Removed" column, and the `removed` list in `*_check.json` of 2-3
+  topics: are removed sentences really wrong? On 3B the check removed
+  correct sentences too (20 of 38 verdicts were new/wrong). If 7B is
+  also too strict, options: keep "new" sentences with a mark instead of
+  removing them, or remove only "wrong".
+- Then read 1-2 `work.md` (not all) and report to the author.
+
+**What 1.4.0 is** (PRs #67-#71, deployed 2026-10-10): 1.3.0 plus
+- no stock phrases; `compose` asks again when a short text talks about
+  the task ("Here is an introduction...");
+- `dedup`: repeated facts removed per section (code: exact repeats;
+  model: pairs that say the same);
+- `cover` (the author's idea): a coverage table per part (planned / used
+  / unused facts, from the [n] marks); while facts are unused, one more
+  paragraph with up to 4 of them, at most 3 calls per part; facts no
+  part took go to the last part of their section;
+- `check_text` (idea D): every sentence checked against its quotes;
+  "new" and "wrong" sentences are removed (listed in the step output).
+A 3B test run (MVCC topic, 17 min, 15 cited facts) went through all steps.
+
+**Token use** (author, 2026-10-10): 40% of the weekly limit in two days.
+Agreed: short sessions with a handoff; do not keep a session open while
+an eval runs; read outputs selectively (grep, numbers); short replies;
+routine work (deploy, CI) can run on a cheaper model.
 
 **Goal now: quality, not speed** (author, 2026-10-09): "a well written
 text with checked facts, and enough material; for a ~3 hour run a solid
@@ -78,7 +114,8 @@ introduction and a conclusion. Problems that are left:
 5. Stock phrases: "This section delves into..." (9 times in 6 works).
 6. The model talks about the task in the introduction: "Вот введение
    длиной от 3 до 5 предложений..." (2 of 6 works).
-Next version (1.4.0) needs the author's choice among these.
+The author chose 5, 6, 2, 1 and the coverage idea for 3 (all in 1.4.0,
+see the top of this section). Item 4 (overlapping sections) is open.
 
 **Direction from the author (2026-10-09), after the quality work:**
 - First a complete working system: comfortable UX and UI, a strong
