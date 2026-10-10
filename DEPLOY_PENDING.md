@@ -14,6 +14,7 @@ Last deploy: 2026-10-09 evening (up to PR #64: deep_research 1.3.0, search round
 
 | PR | What | Check after deploy |
 |---|---|---|
+| (this) | `deep_research 1.4.0`, part 1: no stock phrases, no talk about the task in short texts | **Hold the deploy** until 1.4.0 is complete (dedup, coverage, sentence check): after the worker syncs a version, its file must not change |
 
 ## Needs sudo (the author runs it)
 
