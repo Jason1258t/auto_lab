@@ -12,7 +12,7 @@ import re
 from typing import Any
 
 from autolab_engine.kinds.base import StepContext, StepFailed
-from autolab_engine.kinds.research import _MARK, _MARK_WITH_SPACE, mark_unsourced
+from autolab_engine.kinds.research import _MARK, _MARK_WITH_SPACE, NO_SOURCE, mark_unsourced
 
 
 def _clean(texts: list[str]) -> list[str]:
@@ -277,6 +277,26 @@ def unwrap_json(paragraph: str) -> str:
     return f"{data['text'].strip()} {marks}".strip()
 
 
+def clean_paragraph(paragraph: str, allowed: set[int]) -> tuple[str | None, int]:
+    """A written paragraph made safe: unwrapped from JSON, "[3, 5]" split,
+    marks of facts outside `allowed` removed, "no source" notes added.
+    (None, 0) if nothing is left or the paragraph is broken. Returns the
+    text and the number of sentences without a source."""
+
+    def check_mark(match: re.Match) -> str:
+        return match.group(0) if int(match.group(1)) in allowed else ""
+
+    paragraph = unwrap_json(paragraph.strip())
+    text = _MARK_WITH_SPACE.sub(check_mark, split_marks(paragraph)).strip()
+    if not text or _BROKEN.search(text):
+        return None, 0
+    return mark_unsourced(text)
+
+
+def _used(text: str) -> list[int]:
+    return sorted({int(n) for n in _MARK.findall(text)})
+
+
 async def write_parts(ctx: StepContext) -> dict[str, Any]:
     """One call per part: 1 to 3 paragraphs from the part's facts. As in
     `write`: marks of facts outside the part are removed, sentences
@@ -286,19 +306,13 @@ async def write_parts(ctx: StepContext) -> dict[str, Any]:
     for part, answer in await ctx.ask_each(ctx.resolve(ctx.step.for_each)):
         answer = await ctx.in_task_language(part, answer, lambda a: "\n\n".join(a["paragraphs"]))
         allowed = set(part["fact_numbers"])
-
-        def check_mark(match: re.Match, allowed: set[int] = allowed) -> str:
-            return match.group(0) if int(match.group(1)) in allowed else ""
-
         paragraphs = []
         # At most the planned number: a model asked for 1 paragraph from
         # 1 fact and writing 3 only repeats itself.
         for paragraph in answer["paragraphs"][: part["paragraphs"]]:
-            paragraph = unwrap_json(paragraph.strip())
-            text = _MARK_WITH_SPACE.sub(check_mark, split_marks(paragraph)).strip()
-            if not text or _BROKEN.search(text):
+            text, marked = clean_paragraph(paragraph, allowed)
+            if text is None:
                 continue
-            text, marked = mark_unsourced(text)
             unsourced += marked
             paragraphs.append(text)
         if not paragraphs:
@@ -310,7 +324,7 @@ async def write_parts(ctx: StepContext) -> dict[str, Any]:
                 "section": part["section"],
                 "heading": part["heading"],
                 "text": text,
-                "fact_numbers": sorted({int(n) for n in _MARK.findall(text)}),
+                "fact_numbers": _used(text),
             }
         )
     if not written:
@@ -318,6 +332,112 @@ async def write_parts(ctx: StepContext) -> dict[str, Any]:
     if unsourced:
         ctx.notes.append(f"{unsourced} sentences without a source")
     return {"parts": written, "unsourced_sentences": unsourced}
+
+
+async def cover(ctx: StepContext) -> dict[str, Any]:
+    """Use the facts the text left out (deep_research 1.4.0). Code keeps a
+    coverage table: for each planned part (config.plan, from subplan) the
+    facts it should use and the facts its text (config.parts, from
+    write_parts) cites. Facts of a section (config.sections, from dedup)
+    that subplan put in no part go to the last part of their section. A
+    part that was not written starts with no text.
+
+    While a part has unused facts, the model adds one paragraph with up to
+    config.facts_per_call of them (default 4), at most config.max_calls
+    calls per part (default 3). The [n] marks of the new paragraph are the
+    report of what it used; marks of other facts are removed.
+
+    Output: parts (the texts with the new paragraphs, in plan order),
+    coverage (per part: planned, used, unused), added_paragraphs, unused
+    (facts still left out), unsourced_sentences."""
+    config = ctx.step.config
+    plan = ctx.resolve(config["plan"])
+    texts = {(p["section"], p["heading"]): p["text"] for p in ctx.resolve(config["parts"])}
+    per_call = int(config.get("facts_per_call", 4))
+    max_calls = int(config.get("max_calls", 3))
+
+    # The coverage table: planned facts per part, with claims.
+    table = [
+        {
+            "section": p["section"],
+            "heading": p["heading"],
+            "point": p["point"],
+            "planned": {f["number"]: f["claim"] for f in p["facts"]},
+            "text": texts.get((p["section"], p["heading"]), ""),
+        }
+        for p in plan
+    ]
+    if config.get("sections"):
+        for section in ctx.resolve(config["sections"]):
+            rows = [r for r in table if r["section"] == section["heading"]]
+            if not rows:
+                continue
+            planned = {n for r in rows for n in r["planned"]}
+            for fact in section["facts"]:
+                if fact["number"] not in planned:
+                    rows[-1]["planned"][fact["number"]] = fact["claim"]
+
+    added = unsourced = 0
+    for row in table:
+        for _ in range(max_calls):
+            unused = [n for n in row["planned"] if n not in _used(row["text"])]
+            if not unused:
+                break
+            batch = unused[:per_call]
+            item = {
+                "section": row["section"],
+                "heading": row["heading"],
+                "point": row["point"],
+                # Without the "no source" notes: they are for people.
+                "text": row["text"].replace(f" {NO_SOURCE}", ""),
+                "facts": [{"number": n, "claim": row["planned"][n]} for n in batch],
+            }
+            answer = await ctx.ask(item=item)
+            if answer is None:
+                ctx.skipped += 1
+                break
+            answer = await ctx.in_task_language(item, answer, "paragraph")
+            text, marked = clean_paragraph(answer["paragraph"], set(batch))
+            if text is None or not _used(text):
+                ctx.skipped += 1  # nothing usable: do not ask about these again
+                break
+            row["text"] = f"{row['text']}\n\n{text}".strip()
+            added += 1
+            unsourced += marked
+
+    parts, coverage = [], []
+    for row in table:
+        used = _used(row["text"])
+        coverage.append(
+            {
+                "section": row["section"],
+                "heading": row["heading"],
+                "planned": sorted(row["planned"]),
+                "used": used,
+                "unused": sorted(set(row["planned"]) - set(used)),
+            }
+        )
+        if row["text"]:
+            parts.append(
+                {
+                    "section": row["section"],
+                    "heading": row["heading"],
+                    "text": row["text"],
+                    "fact_numbers": used,
+                }
+            )
+    left = sum(len(c["unused"]) for c in coverage)
+    if left:
+        ctx.notes.append(f"{left} facts still not used")
+    if unsourced:
+        ctx.notes.append(f"{unsourced} new sentences without a source")
+    return {
+        "parts": parts,
+        "coverage": coverage,
+        "added_paragraphs": added,
+        "unused": left,
+        "unsourced_sentences": unsourced,
+    }
 
 
 # The model talks about the task instead of doing it: "Here is an
@@ -431,6 +551,7 @@ HANDLERS = {
     "dedup": dedup,
     "subplan": subplan,
     "write_parts": write_parts,
+    "cover": cover,
     "compose": compose,
     "assemble": assemble,
 }

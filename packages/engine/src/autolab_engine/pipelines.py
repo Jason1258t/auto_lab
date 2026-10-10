@@ -33,6 +33,7 @@ KINDS: dict[str, bool] = {
     "dedup": True,
     "subplan": True,
     "write_parts": True,
+    "cover": True,
     "compose": True,
     "assemble": False,
     # code (kinds/code.py)
