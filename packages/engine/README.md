@@ -40,6 +40,20 @@ sub-questions covered. The report is updated after every topic.
 `compare` shows two reports side by side with the changes. The numbers
 make versions comparable; read the works too.
 
+A long eval on the AutoLab server runs in a detached container (it takes
+hours). `quality/` is not in the image, so mount it:
+
+```bash
+cd ~/autolab && docker compose -f compose.server.yaml run -d --no-deps \
+    -v ./quality:/app/quality:ro -v ./pipelines:/app/pipelines:ro \
+    --name autolab-eval worker autolab-engine eval \
+    pipelines/deep_research/1.3.0.yaml --topics quality/topics.yaml \
+    --model qwen2.5:7b --size-class medium --context-length 8192 \
+    --ollama-url http://host.docker.internal:11434 \
+    --searxng-url http://searxng:8080 --out data/runs/deep-1.3.0-7b
+docker logs -f autolab-eval   # progress; docker rm autolab-eval when done
+```
+
 Work in progress: the plan and the order of work are in
 `drafts/engine.md` of the AutoLab repository.
 
