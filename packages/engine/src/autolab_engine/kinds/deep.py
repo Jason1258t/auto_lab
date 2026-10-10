@@ -453,10 +453,14 @@ def _sentences(paragraph: str) -> list[str]:
     for piece in _SENTENCE_END.split(paragraph):
         if not piece.strip():
             continue
-        if piece.strip() == NO_SOURCE and found:
+        # "blue. *(⚠ no source)* Next" splits after the full stop, so the
+        # note may start the next piece: move it back.
+        if piece.strip().startswith(NO_SOURCE) and found:
             found[-1] += f" {NO_SOURCE}"
-        else:
-            found.append(piece)
+            piece = piece.strip()[len(NO_SOURCE) :].strip()
+            if not piece:
+                continue
+        found.append(piece)
     return found
 
 
@@ -538,8 +542,6 @@ async def check_text(ctx: StepContext) -> dict[str, Any]:
             checked.append(part | {"text": text, "fact_numbers": _used(text)})
     if not checked:
         raise StepFailed("every sentence failed the check")
-    if removed:
-        ctx.notes.append(f"{len(removed)} sentences removed")
     unsourced = sum(p["text"].count(NO_SOURCE) for p in checked)
     return {
         "parts": checked,

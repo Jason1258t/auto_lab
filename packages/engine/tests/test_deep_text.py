@@ -165,7 +165,8 @@ async def test_check_text() -> None:
         {"number": 2, "claim": "c", "quote": "VACUUM removes dead rows."},
     ]
     text = (
-        f"Old versions stay [1]. A transaction holds a lock on the row. {NO_SOURCE}\n\n"
+        f"Old versions stay [1]. A transaction holds a lock on the row. {NO_SOURCE} "
+        f"So it waits. {NO_SOURCE}\n\n"
         "VACUUM removes them [2]. It is very fast [2]."
     )
     parts = [{"section": "S", "heading": "A", "text": text, "fact_numbers": [1, 2]}]
@@ -183,6 +184,8 @@ async def test_check_text() -> None:
     lock = next(s for s in seen if "lock" in s["text"])
     assert lock["text"] == "A transaction holds a lock on the row."
     assert lock["quotes"] == ["Old row versions stay."]
-    assert result["parts"][0]["text"] == "Old versions stay [1].\n\nVACUUM removes them [2]."
+    assert result["parts"][0]["text"] == (
+        f"Old versions stay [1]. So it waits. {NO_SOURCE}\n\nVACUUM removes them [2]."
+    )
     assert [r["verdict"] for r in result["removed"]] == ["wrong", "new"]
-    assert result["unsourced_sentences"] == 0
+    assert result["unsourced_sentences"] == 1
