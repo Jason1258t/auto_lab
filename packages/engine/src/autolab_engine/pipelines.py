@@ -30,6 +30,7 @@ KINDS: dict[str, bool] = {
     "group": True,
     "abstract": True,
     # deep research 1.3.0: parts, longer text, intro and conclusion
+    "dedup": True,
     "subplan": True,
     "write_parts": True,
     "compose": True,

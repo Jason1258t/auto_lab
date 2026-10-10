@@ -172,9 +172,16 @@ async def test_deep_research_pipeline(
 
 
 def fake_model_13(request: GenerateRequest) -> str:
-    """1.3.0: sections, parts, paragraphs, openings, intro, conclusion."""
+    """1.3.0: sections, parts, paragraphs, openings, intro, conclusion.
+    1.4.0: also repeats (dedup)."""
     system = request.messages[0].content
     prompt = request.messages[-1].content
+    if system.startswith("You extract facts"):  # a different claim per page
+        page = prompt.split('<source title="')[1].split('"')[0]
+        claim = f"Rayleigh scattering makes the sky blue ({page})."
+        return json.dumps({"facts": [{"claim": claim, "quote": QUOTE}]})
+    if system.startswith("You find repeated facts"):
+        return json.dumps({"repeats": [{"n": 5, "same_as": 4}]})
     if system.startswith("You plan a research report"):
         return json.dumps(
             {
@@ -274,9 +281,11 @@ async def test_deep_research_parts(
     summaries = [step.summary for step in steps]
     assert task.status == TaskStatus.IN_REVIEW, "; ".join(map(str, summaries))
     assert summaries[0] == "3 sections"
-    assert summaries[-9:] == [
+    repeats = ["1 repeated facts removed"] if version >= "1.4.0" else []
+    assert summaries[-9 - len(repeats) :] == [
         "7 facts kept",
         "1 sections",
+        *repeats,
         "1 parts in 1 sections",
         "1 parts written",
         "1 section openings",

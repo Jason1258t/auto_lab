@@ -174,6 +174,7 @@ mark as *(⚠ no source)*.
 | `gaps` | yes, once | facts so far (`from`, often a list) | `max_claims` (40), `max_queries` (10) | `queries` (new ones only), `missing` |
 | `group` | yes, per fact | facts (`for_each`) | `questions_from` (**required**, e.g. `outline.questions`), `max_facts_per_section` (12), `batch_size` (none) | like `synthesize`: one section per question |
 | `abstract` | yes, once | anything (`from`) | — | `summary` (becomes the work summary) |
+| `dedup` | yes, per section with 2+ facts | sections of `group` (`for_each`) | — | `sections` (same shape, repeats removed), `dropped`; exact repeats (same claim up to case and punctuation) are removed by code first; of each pair the higher number goes |
 | `subplan` | yes, per section | sections of `group` (`for_each`) | — | `sections` (heading, question, previous, parts: heading, point), `parts` (flat: section, heading, point, fact_numbers, facts, paragraphs = 1-3 by the number of facts) |
 | `write_parts` | yes, per part | parts of `subplan` (`for_each`) | — | `parts` (section, heading, text, fact_numbers), `unsourced_sentences`; "[3, 5]" becomes "[3][5]" |
 | `compose` | yes, once (or per item with `for_each`) | none, or items | — | the answer as it is (must have `text`, checked for the task language); with `for_each`: `texts` (one answer or null per item) |
@@ -181,7 +182,7 @@ mark as *(⚠ no source)*.
 
 Answers: `plan_each` → `queries: [string]`; `gaps` → `queries`
 (+ optional `missing`); `group` → `question` (a number, 0 = none);
-`abstract` → `summary`; `subplan` → `parts: [{heading, point, facts:
+`abstract` → `summary`; `dedup` → `repeats: [{n, same_as}]`; `subplan` → `parts: [{heading, point, facts:
 [number]}]`; `write_parts` → `paragraphs: [string]`; `compose` →
 `text` (+ any fields, e.g. `heading` of a conclusion).
 

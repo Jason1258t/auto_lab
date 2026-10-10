@@ -27,3 +27,51 @@ def test_is_meta() -> None:
     assert is_meta("Here is an introduction of 3 to 5 sentences.")
     assert not is_meta("Квантизация сжимает веса модели.")
     assert not is_meta("Heresy is not a topic here.")
+
+
+async def test_dedup() -> None:
+    import json
+    from types import SimpleNamespace
+
+    from autolab_engine.enums import FinishReason
+    from autolab_engine.kinds.base import StepContext
+    from autolab_engine.kinds.deep import dedup
+    from autolab_engine.llm import CallResult
+    from autolab_engine.pipelines import Step
+
+    class Llm:
+        async def call(self, **_) -> CallResult:
+            # 3 = 1 and 4 = 3: a chain, so 3 and 4 go and 1 stays; 9 does not exist.
+            data = {
+                "repeats": [{"n": 3, "same_as": 1}, {"n": 3, "same_as": 4}, {"n": 9, "same_as": 1}]
+            }
+            return CallResult(1, json.dumps(data), data, FinishReason.STOP)
+
+    facts = [
+        {"number": 1, "claim": "MVCC keeps row versions."},
+        {"number": 2, "claim": "mvcc keeps row versions"},  # an exact repeat of 1
+        {"number": 3, "claim": "PostgreSQL stores several versions of a row."},
+        {"number": 4, "claim": "Old row versions stay in the table."},
+        {"number": 5, "claim": "VACUUM removes dead rows."},
+    ]
+    sections = [
+        {"heading": "MVCC", "question": "?", "fact_numbers": [1, 2, 3, 4, 5], "facts": facts},
+        {
+            "heading": "One",
+            "question": "?",
+            "fact_numbers": [6],
+            "facts": [{"number": 6, "claim": "x"}],
+        },
+    ]
+    output = {"type": "object", "required": ["repeats"]}
+    step = Step.model_validate(
+        {"id": "dedup", "kind": "dedup", "for_each": "group.sections",
+         "llm": {"prompt": "{{ item.heading }}", "output": output}}
+    )  # fmt: skip
+    task = SimpleNamespace(id=1, model_id=1, title="T", input="T")
+    ctx = StepContext(task, None, step, 1, {"group": {"sections": sections}}, Llm())
+    result = await dedup(ctx)
+    assert [f["number"] for f in result["sections"][0]["facts"]] == [1, 5]
+    assert result["sections"][0]["fact_numbers"] == [1, 5]
+    assert result["sections"][1]["fact_numbers"] == [6]  # one fact: not asked
+    assert result["dropped"] == 3

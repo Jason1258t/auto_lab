@@ -2,7 +2,9 @@
 # 7B eval (2026-10-10; CURRENT_STATE.md):
 # - no stock phrases ("This section delves into...");
 # - the introduction and the other short texts are the text itself, not
-#   talk about the task ("Here is an introduction of 3 to 5 sentences").
+#   talk about the task ("Here is an introduction of 3 to 5 sentences");
+# - repeated facts (the same fact from several pages) are removed before
+#   the sections are split into parts (dedup).
 # Rules: drafts/pipeline_spec.md.
 # Never change this file after the worker has synced it: copy it to a
 # new version and edit the copy.
@@ -358,10 +360,47 @@ steps:
       max_tokens: 200
     summary: "{{ output.sections | length }} sections"
 
+  # 7b. Remove repeats inside each section: the same fact from several
+  #     pages (code drops exact repeats first).
+  - id: dedup
+    kind: dedup
+    for_each: group.sections
+    llm:
+      system: You find repeated facts. Reply with JSON only.
+      prompt: |
+        Facts of one report section:
+        {% for fact in item.facts %}
+        [{{ fact.number }}] {{ fact.claim }}
+        {% endfor %}
+
+        Which facts say the same thing as another fact in this list (the
+        same claim in other words, maybe with less detail)? For each such
+        pair give n = one fact number and same_as = the other one. Facts
+        that only talk about the same subject are not repeats. If there
+        are no repeats, return an empty list.
+      output:
+        type: object
+        required: [repeats]
+        additionalProperties: false
+        properties:
+          repeats:
+            type: array
+            maxItems: 20
+            items:
+              type: object
+              required: [n, same_as]
+              additionalProperties: false
+              properties:
+                n: { type: integer, minimum: 1 }
+                same_as: { type: integer, minimum: 1 }
+      temperature: 0
+      max_tokens: 400
+    summary: "{{ output.dropped }} repeated facts removed"
+
   # 8. Split each section into parts, after the facts are known.
   - id: subplan
     kind: subplan
-    for_each: group.sections
+    for_each: dedup.sections
     llm:
       system: You plan one section of a report. Reply with JSON only.
       prompt: |
