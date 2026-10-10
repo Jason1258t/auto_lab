@@ -213,6 +213,8 @@ def fake_model_13(request: GenerateRequest) -> str:
         return json.dumps({"text": "This section explains the blue sky."})
     if system.startswith("You write the introduction"):
         assert "1. Blue sky: Light scatters." in prompt
+        if "talked about the task" not in prompt:  # first try: talk, then asked again
+            return json.dumps({"text": "Here is an introduction of 3 sentences: ..."})
         return json.dumps({"text": "Why is the sky blue? This report explains it."})
     if system.startswith("You write the conclusion"):
         return json.dumps({"heading": "Conclusion", "text": "Scattering explains the sky."})
@@ -221,12 +223,13 @@ def fake_model_13(request: GenerateRequest) -> str:
     return fake_model(request)
 
 
-async def test_deep_research_1_3_0(
-    db: AsyncSession, session_factory, settings: Settings, tmp_path: Path
+@pytest.mark.parametrize("version", ["1.3.0", "1.4.0"])
+async def test_deep_research_parts(
+    db: AsyncSession, session_factory, settings: Settings, tmp_path: Path, version: str
 ) -> None:
     folder = tmp_path / "pipelines" / "deep_research"
     folder.mkdir(parents=True)
-    shutil.copy("pipelines/deep_research/1.3.0.yaml", folder)
+    shutil.copy(f"pipelines/deep_research/{version}.yaml", folder)
     settings.pipelines_dir = str(folder.parent)
     settings.searxng_url = "http://searx.test"
 

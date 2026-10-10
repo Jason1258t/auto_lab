@@ -267,23 +267,53 @@ async def write_parts(ctx: StepContext) -> dict[str, Any]:
     return {"parts": written, "unsourced_sentences": unsourced}
 
 
+# The model talks about the task instead of doing it: "Here is an
+# introduction of 3 to 5 sentences: ..." (2 of 6 works of the 1.3.0 eval).
+_META = re.compile(r"^\s*(here is|here's|here are|below is|sure|вот |ниже |конечно)", re.IGNORECASE)
+_FIRST_SENTENCE = re.compile(r"^.*?[.!?:](\s+|$)", re.DOTALL)
+META_NOTE = (
+    "Your last answer talked about the task. Reply with the text itself only: "
+    "no words about the task, the instructions or the number of sentences."
+)
+
+
+def is_meta(text: str) -> bool:
+    return bool(_META.match(text))
+
+
+async def _not_meta(ctx: StepContext, item: Any, answer: dict[str, Any]) -> dict[str, Any]:
+    """Ask once more if the text talks about the task; if it still does,
+    drop its first sentence (the talk). Counted in the step summary."""
+    if not is_meta(answer["text"]):
+        return answer
+    retry = await ctx.ask(item=item, extra_note=META_NOTE)
+    if retry is not None and not is_meta(retry["text"]):
+        return retry
+    ctx.notes.append("a text talked about the task; its first sentence was dropped")
+    return answer | {"text": _FIRST_SENTENCE.sub("", answer["text"], count=1).strip()}
+
+
 async def compose(ctx: StepContext) -> dict[str, Any]:
     """A short text without facts: an introduction, a conclusion, or (with
     for_each) the opening sentences of each section. The answer must have
-    a "text" field; it is checked for the task language. With for_each:
-    {"texts": [answer or None, ...]} in the order of the items."""
+    a "text" field; it is checked for the task language, and asked again
+    if it talks about the task ("Here is an introduction..."). With
+    for_each: {"texts": [answer or None, ...]} in the order of the items."""
     if ctx.step.for_each:
         items = ctx.resolve(ctx.step.for_each)
         answers = {id(item): data for item, data in await ctx.ask_each(items)}
         texts = []
         for item in items:
             data = answers.get(id(item))
-            texts.append(await ctx.in_task_language(item, data, "text") if data else None)
+            if data:
+                data = await _not_meta(ctx, item, await ctx.in_task_language(item, data, "text"))
+            texts.append(data)
         return {"texts": texts}
     answer = await ctx.ask()
     if answer is None:
         raise StepFailed("the model gave no valid answer")
-    return await ctx.in_task_language(None, answer, "text")
+    answer = await ctx.in_task_language(None, answer, "text")
+    return await _not_meta(ctx, None, answer)
 
 
 def _text_of(ctx: StepContext, step_id: str | None) -> dict[str, Any] | None:

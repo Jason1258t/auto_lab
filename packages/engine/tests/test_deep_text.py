@@ -18,3 +18,12 @@ def test_unwrap_json() -> None:
     )
     assert unwrap_json("Plain text [1].") == "Plain text [1]."
     assert unwrap_json('{"other": 1}') == '{"other": 1}'
+
+
+def test_is_meta() -> None:
+    from autolab_engine.kinds.deep import is_meta
+
+    assert is_meta("Вот введение длиной от 3 до 5 предложений: ...")
+    assert is_meta("Here is an introduction of 3 to 5 sentences.")
+    assert not is_meta("Квантизация сжимает веса модели.")
+    assert not is_meta("Heresy is not a topic here.")
