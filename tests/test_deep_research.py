@@ -182,6 +182,10 @@ def fake_model_13(request: GenerateRequest) -> str:
         return json.dumps({"facts": [{"claim": claim, "quote": QUOTE}]})
     if system.startswith("You find repeated facts"):
         return json.dumps({"repeats": [{"n": 5, "same_as": 4}]})
+    if system.startswith("You check sentences"):  # all fine
+        assert "[" not in prompt.split("Quotes")[0]  # the model sees no marks
+        n = prompt.count("Sentence ")
+        return json.dumps({"answers": [{"n": i, "verdict": "ok"} for i in range(1, n + 1)]})
     if system.startswith("You add one paragraph"):  # cites the first two new facts
         assert "Rayleigh scattering makes the sky blue" in prompt.split("so far:")[1]
         new = prompt.split("New facts to add:")[1]
@@ -293,7 +297,7 @@ async def test_deep_research_parts(
         *(["1 repeated facts removed"] if new else []),
         "1 parts in 1 sections",
         "1 parts written",
-        *(["2 paragraphs added"] if new else []),
+        *(["2 paragraphs added", "0 sentences removed"] if new else []),
         "1 section openings",
         "introduction written",
         "conclusion written",

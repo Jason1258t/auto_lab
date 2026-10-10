@@ -12,7 +12,13 @@ import re
 from typing import Any
 
 from autolab_engine.kinds.base import StepContext, StepFailed
-from autolab_engine.kinds.research import _MARK, _MARK_WITH_SPACE, NO_SOURCE, mark_unsourced
+from autolab_engine.kinds.research import (
+    _MARK,
+    _MARK_WITH_SPACE,
+    _SENTENCE_END,
+    NO_SOURCE,
+    mark_unsourced,
+)
 
 
 def _clean(texts: list[str]) -> list[str]:
@@ -440,6 +446,109 @@ async def cover(ctx: StepContext) -> dict[str, Any]:
     }
 
 
+def _sentences(paragraph: str) -> list[str]:
+    """The sentences of a paragraph; a "no source" note stays with the
+    sentence before it."""
+    found: list[str] = []
+    for piece in _SENTENCE_END.split(paragraph):
+        if not piece.strip():
+            continue
+        if piece.strip() == NO_SOURCE and found:
+            found[-1] += f" {NO_SOURCE}"
+        else:
+            found.append(piece)
+    return found
+
+
+# Verdicts of check_text that remove a sentence.
+_REMOVE = {"new", "wrong"}
+
+
+async def check_text(ctx: StepContext) -> dict[str, Any]:
+    """Check every sentence of the written parts against the quotes
+    (deep_research 1.4.0, idea D). A sentence with [n] marks is checked
+    against the quotes of those facts; a sentence without marks (a link
+    or an explanation) against the quotes of the facts its paragraph
+    cites. The model says per sentence: "ok" (the quotes support it, or it
+    only links them without a new claim), "new" (a claim the quotes do
+    not make) or "wrong" (against the quotes). "new" and "wrong" sentences
+    are removed; a sentence without an answer stays.
+
+    Config: parts (written parts, e.g. cover.parts), facts (numbered facts
+    with quotes, e.g. group.facts), batch_size. Output: parts (checked
+    texts), removed (heading, sentence, verdict: for people), verdicts,
+    unsourced_sentences (left in the final texts)."""
+    config = ctx.step.config
+    quotes = {f["number"]: f["quote"] for f in ctx.resolve(config["facts"])}
+    parts = ctx.resolve(config["parts"])
+
+    # Every sentence, with where it is and the quotes to check it against.
+    items: list[dict[str, Any]] = []
+    layout: list[list[list[int]]] = []  # part -> paragraph -> item indexes
+    for p_index, part in enumerate(parts):
+        paragraphs = []
+        for paragraph in part["text"].split("\n\n"):
+            cited = _used(paragraph)
+            indexes = []
+            for sentence in _sentences(paragraph):
+                marks = _used(sentence)
+                numbers = marks or cited or part["fact_numbers"]
+                items.append(
+                    {
+                        "part": p_index,
+                        "sentence": sentence,
+                        # The model sees the sentence without marks and notes.
+                        "text": _MARK_WITH_SPACE.sub("", sentence.replace(f" {NO_SOURCE}", "")),
+                        "quotes": [quotes[n] for n in numbers if n in quotes][:4],
+                    }
+                )
+                indexes.append(len(items) - 1)
+            paragraphs.append(indexes)
+        layout.append(paragraphs)
+
+    size = int(config.get("batch_size", 1))
+    answered = await ctx.ask_batches([i for i in items if i["quotes"]], size)
+    verdict_of = {id(item): answer["verdict"] for item, answer in answered}
+    verdicts: dict[str, int] = {}
+    for verdict in verdict_of.values():
+        verdicts[verdict] = verdicts.get(verdict, 0) + 1
+
+    removed = []
+    checked = []
+    for p_index, part in enumerate(parts):
+        paragraphs = []
+        for indexes in layout[p_index]:
+            kept = []
+            for i in indexes:
+                verdict = verdict_of.get(id(items[i]))
+                if verdict in _REMOVE:
+                    removed.append(
+                        {
+                            "heading": part["heading"],
+                            "sentence": items[i]["text"],
+                            "verdict": verdict,
+                        }
+                    )
+                else:
+                    kept.append(items[i]["sentence"])
+            if kept:
+                paragraphs.append(" ".join(kept))
+        if paragraphs:
+            text = "\n\n".join(paragraphs)
+            checked.append(part | {"text": text, "fact_numbers": _used(text)})
+    if not checked:
+        raise StepFailed("every sentence failed the check")
+    if removed:
+        ctx.notes.append(f"{len(removed)} sentences removed")
+    unsourced = sum(p["text"].count(NO_SOURCE) for p in checked)
+    return {
+        "parts": checked,
+        "removed": removed,
+        "verdicts": verdicts,
+        "unsourced_sentences": unsourced,
+    }
+
+
 # The model talks about the task instead of doing it: "Here is an
 # introduction of 3 to 5 sentences: ..." (2 of 6 works of the 1.3.0 eval).
 _META = re.compile(r"^\s*(here is|here's|here are|below is|sure|вот |ниже |конечно)", re.IGNORECASE)
@@ -552,6 +661,7 @@ HANDLERS = {
     "subplan": subplan,
     "write_parts": write_parts,
     "cover": cover,
+    "check_text": check_text,
     "compose": compose,
     "assemble": assemble,
 }

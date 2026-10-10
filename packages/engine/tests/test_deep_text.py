@@ -133,3 +133,56 @@ async def test_cover() -> None:
     }  # fmt: skip
     assert result["unused"] == 1 and result["added_paragraphs"] == 1
     assert len(llm.prompts) == 2
+
+
+async def test_check_text() -> None:
+    import json
+    from types import SimpleNamespace
+
+    from autolab_engine.enums import FinishReason
+    from autolab_engine.kinds.base import StepContext
+    from autolab_engine.kinds.deep import check_text
+    from autolab_engine.kinds.research import NO_SOURCE
+    from autolab_engine.llm import CallResult
+    from autolab_engine.pipelines import Step
+
+    seen: list[dict] = []
+
+    class Llm:
+        async def call(self, *, messages, **_) -> CallResult:
+            items = json.loads(messages[-1].content)
+            seen.extend(items)
+            verdicts = {"lock": "wrong", "fast": "new"}
+            answers = [
+                {"n": i, "verdict": next((v for k, v in verdicts.items() if k in s["text"]), "ok")}
+                for i, s in enumerate(items, 1)
+            ]
+            data = {"answers": answers}
+            return CallResult(1, json.dumps(data), data, FinishReason.STOP)
+
+    facts = [
+        {"number": 1, "claim": "c", "quote": "Old row versions stay."},
+        {"number": 2, "claim": "c", "quote": "VACUUM removes dead rows."},
+    ]
+    text = (
+        f"Old versions stay [1]. A transaction holds a lock on the row. {NO_SOURCE}\n\n"
+        "VACUUM removes them [2]. It is very fast [2]."
+    )
+    parts = [{"section": "S", "heading": "A", "text": text, "fact_numbers": [1, 2]}]
+    step = Step.model_validate(
+        {"id": "check", "kind": "check_text",
+         "config": {"parts": "cover.parts", "facts": "group.facts", "batch_size": 4},
+         "llm": {"prompt": "{{ items | tojson }}",
+                 "output": {"type": "object", "required": ["answers"], "properties": {
+                     "answers": {"type": "array", "items": {"required": ["n"]}}}}}}
+    )  # fmt: skip
+    task = SimpleNamespace(id=1, model_id=1, title="T", input="T")
+    outputs = {"cover": {"parts": parts}, "group": {"facts": facts}}
+    result = await check_text(StepContext(task, None, step, 1, outputs, Llm()))
+    # The sentence without a mark is checked against its paragraph's quote.
+    lock = next(s for s in seen if "lock" in s["text"])
+    assert lock["text"] == "A transaction holds a lock on the row."
+    assert lock["quotes"] == ["Old row versions stay."]
+    assert result["parts"][0]["text"] == "Old versions stay [1].\n\nVACUUM removes them [2]."
+    assert [r["verdict"] for r in result["removed"]] == ["wrong", "new"]
+    assert result["unsourced_sentences"] == 0

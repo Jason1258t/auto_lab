@@ -34,6 +34,7 @@ KINDS: dict[str, bool] = {
     "subplan": True,
     "write_parts": True,
     "cover": True,
+    "check_text": True,
     "compose": True,
     "assemble": False,
     # code (kinds/code.py)
@@ -44,7 +45,7 @@ KINDS: dict[str, bool] = {
 }
 
 # Kinds that may ask about several items at once (config.batch_size).
-BATCH_KINDS = {"verify", "group"}
+BATCH_KINDS = {"verify", "group", "check_text"}
 
 VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 

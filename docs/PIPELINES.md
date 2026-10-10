@@ -178,12 +178,13 @@ mark as *(⚠ no source)*.
 | `subplan` | yes, per section | sections of `group` (`for_each`) | — | `sections` (heading, question, previous, parts: heading, point), `parts` (flat: section, heading, point, fact_numbers, facts, paragraphs = 1-3 by the number of facts) |
 | `write_parts` | yes, per part | parts of `subplan` (`for_each`) | — | `parts` (section, heading, text, fact_numbers), `unsourced_sentences`; "[3, 5]" becomes "[3][5]" |
 | `cover` | yes, per part and round | step refs in `config` | `plan` (subplan.parts), `parts` (written parts), `sections` (optional, e.g. dedup.sections: facts no part took go to the last part of their section), `facts_per_call` (4), `max_calls` (3 per part) | `parts` (texts with added paragraphs, plan order), `coverage` (per part: planned, used, unused), `added_paragraphs`, `unused`, `unsourced_sentences`. The coverage table is kept by code from the `[n]` marks; a part that was not written starts empty; an answer that cites none of its new facts ends that part |
+| `check_text` | yes, per sentence (or per batch) | step refs in `config` | `parts` (written parts), `facts` (numbered facts with quotes, e.g. group.facts), `batch_size` | `parts` (texts without the removed sentences), `removed` (heading, sentence, verdict), `verdicts`, `unsourced_sentences`. A sentence is checked against the quotes of its `[n]` marks; without marks, against the quotes its paragraph cites. Verdicts `ok` / `new` / `wrong`; `new` and `wrong` sentences are removed; no answer = kept |
 | `compose` | yes, once (or per item with `for_each`) | none, or items | — | the answer as it is (must have `text`, checked for the task language); with `for_each`: `texts` (one answer or null per item) |
 | `assemble` | **no** | step ids in `config` | `sections`, `parts`, `facts` (refs, **required**), `intro`, `leads`, `conclusion` (step ids, optional) | `paragraphs` (heading, level 2/3, text, fact_numbers), `facts` renumbered 1, 2, 3 in the order of first use; the work is built from it |
 
 Answers: `plan_each` → `queries: [string]`; `gaps` → `queries`
 (+ optional `missing`); `group` → `question` (a number, 0 = none);
-`abstract` → `summary`; `dedup` → `repeats: [{n, same_as}]`; `cover` → `paragraph`; `subplan` → `parts: [{heading, point, facts:
+`abstract` → `summary`; `dedup` → `repeats: [{n, same_as}]`; `cover` → `paragraph`; `check_text` → batch `answers: [{n, verdict}]` (`items`: text, quotes); `subplan` → `parts: [{heading, point, facts:
 [number]}]`; `write_parts` → `paragraphs: [string]`; `compose` →
 `text` (+ any fields, e.g. `heading` of a conclusion).
 
@@ -193,7 +194,7 @@ section heading becomes the heading in the report. Example of the
 whole chain (sections → parts → paragraphs → intro, openings,
 conclusion → assemble): `pipelines/deep_research/1.3.0.yaml`.
 
-**Batches** (`verify` and `group`). With `config.batch_size: N` (often a
+**Batches** (`verify`, `group` and `check_text`). With `config.batch_size: N` (often a
 size map, e.g. `{ small: 1, medium: 4, large: 8 }`) the step asks about
 up to N items in one call. Then the prompt uses `{{ items }}` (a list;
 number them with `{{ loop.index }}`) instead of `{{ item }}`, and the
@@ -337,7 +338,7 @@ Good habits:
 | `revise: unknown step 'x'` | `rerun_from` must be a step id |
 | `config 'x': a size map needs a 'small' value` | add `small:` to the map |
 | `config 'x': unknown size class y` | keys are the six size classes only |
-| `kind 'x' cannot use batch_size` | only `verify` and `group` work in batches |
+| `kind 'x' cannot use batch_size` | only `verify`, `group` and `check_text` work in batches |
 | `with batch_size the output must be {answers: [{n, ...}]}` | change the schema, see "Batches" in section 6 |
 | `already has version X; the new one must be newer` | raise the version |
 

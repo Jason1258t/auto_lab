@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from autolab_engine.kinds.research import NO_SOURCE
 from autolab_engine.language import detect, foreign_letters, matches
 from autolab_engine.pipelines import PipelineFile
 from autolab_engine.work import WorkResult
@@ -53,7 +54,7 @@ def measure(
         o for kind in ("write", "write_parts", "cover") for o in _of_kind(pipeline, outputs, kind)
     ]
     # A section: a paragraph of `write`, or a part of `write_parts` /
-    # `cover` (1.3.0+; cover comes last, with the final texts).
+    # `cover` / `check_text` (1.3.0+; the last one has the final texts).
     paragraphs = (written[-1].get("paragraphs") or written[-1].get("parts")) if written else []
     facts_found = sum(len(o.get("facts", [])) for o in _of_kind(pipeline, outputs, "summarize"))
     verified = _of_kind(pipeline, outputs, "verify")
@@ -68,10 +69,14 @@ def measure(
         "facts_kept": len(verified[-1]["facts"]) if verified else None,
         "facts_cited": len(work.facts) if work else 0,
         "sources_cited": len({f["source"]["url"] for f in work.facts}) if work else 0,
-        "unsourced_sentences": sum(o.get("unsourced_sentences", 0) for o in written),
+        # Counted in the final text, so steps that rewrite it count once.
+        "unsourced_sentences": body.count(NO_SOURCE),
         "foreign_letters": len(foreign_letters(body, language)),
         "language_ok": bool(body) and matches(body, language),
     }
+    checked = _of_kind(pipeline, outputs, "check_text")
+    if checked:  # deep_research 1.4.0: sentences the check removed
+        found["sentences_removed"] = len(checked[-1]["removed"])
     # Deep research: how many sub-questions got a section.
     for step in pipeline.steps:
         if step.kind == "group" and step.id in outputs:
@@ -94,6 +99,7 @@ COLUMNS = [
     ("facts_cited", "Cited"),
     ("sources_cited", "Sources"),
     ("unsourced_sentences", "No source"),
+    ("sentences_removed", "Removed"),
     ("foreign_letters", "Wrong letters"),
     ("questions_covered", "Questions"),
 ]
