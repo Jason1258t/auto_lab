@@ -37,7 +37,8 @@ def research_outputs() -> dict:
             "paragraphs": [
                 {
                     "heading": "Why",
-                    "text": "Небо голубое из-за 散射 рассеяния [1].",
+                    # "No source" is counted in the final text.
+                    "text": "Небо голубое из-за 散射 рассеяния [1]. Это красиво. *(⚠ no source)*",
                     "fact_numbers": [1],
                 }
             ],

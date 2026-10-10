@@ -14,9 +14,7 @@ Last deploy: 2026-10-09 evening (up to PR #64: deep_research 1.3.0, search round
 
 | PR | What | Check after deploy |
 |---|---|---|
-| #69 | `deep_research 1.4.0`, part 3: `cover` step (coverage of facts) | same hold as part 1 |
-| #68 | `deep_research 1.4.0`, part 2: `dedup` step (repeated facts) | same hold as part 1 |
-| #67 | `deep_research 1.4.0`, part 1: no stock phrases, no talk about the task in short texts | **Hold the deploy** until 1.4.0 is complete (dedup, coverage, sentence check): after the worker syncs a version, its file must not change |
+| #70 | `deep_research 1.4.0` complete (parts 1-4: no stock phrases, dedup, cover, check_text) | the worker log says "new versions: deep_research 1.4.0"; then the 7B eval (engine README) |
 
 ## Needs sudo (the author runs it)
 

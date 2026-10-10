@@ -5,7 +5,9 @@
 #   talk about the task ("Here is an introduction of 3 to 5 sentences");
 # - repeated facts (the same fact from several pages) are removed before
 #   the sections are split into parts (dedup);
-# - coverage: facts a part did not use get more paragraphs (cover).
+# - coverage: facts a part did not use get more paragraphs (cover);
+# - every sentence is checked against its quotes; sentences with a claim
+#   the quotes do not make, or against them, are removed (check_text).
 # Rules: drafts/pipeline_spec.md.
 # Never change this file after the worker has synced it: copy it to a
 # new version and edit the copy.
@@ -536,6 +538,53 @@ steps:
       max_tokens: 700
     summary: "{{ output.added_paragraphs }} paragraphs added"
 
+  # 9c. Check every sentence against the quotes it cites (or, without
+  #     marks, the quotes its paragraph cites); "new" and "wrong" ones
+  #     are removed. Several sentences per call on bigger models.
+  - id: check
+    kind: check_text
+    config:
+      parts: cover.parts
+      facts: group.facts
+      batch_size: { small: 1, medium: 4, large: 8 }
+    llm:
+      system: You check sentences of a report against quotes. Reply with JSON only.
+      prompt: |
+        {% for s in items %}
+        Sentence {{ loop.index }}: {{ s.text }}
+        Quotes from the sources:
+        {% for q in s.quotes %}
+        - "{{ q }}"
+        {% endfor %}
+
+        {% endfor %}
+        For each sentence, compare it only with its own quotes:
+        - "ok": the quotes support what it says, or it only explains or
+          links them without adding a new claim;
+        - "new": it adds a claim (a cause, a number, a detail) that the
+          quotes do not make;
+        - "wrong": it says something against the quotes.
+        Answer with one entry per sentence: n = the sentence number, and
+        the verdict.
+      output:
+        type: object
+        required: [answers]
+        additionalProperties: false
+        properties:
+          answers:
+            type: array
+            maxItems: 8
+            items:
+              type: object
+              required: [n, verdict]
+              additionalProperties: false
+              properties:
+                n: { type: integer, minimum: 1, maximum: 8 }
+                verdict: { type: string, enum: [ok, new, wrong] }
+      temperature: 0
+      max_tokens: 300
+    summary: "{{ output.removed | length }} sentences removed"
+
   # 10. Two or three sentences that open each section and link it to the
   #     one before.
   - id: leads
@@ -656,7 +705,7 @@ steps:
     kind: assemble
     config:
       sections: subplan.sections
-      parts: cover.parts
+      parts: check.parts
       leads: leads
       intro: intro
       conclusion: conclusion
