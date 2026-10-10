@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-09 (quality work: deep_research 1.3.0; see "Start here next session").
+Last updated: 2026-10-10 (eval of deep_research 1.3.0, coverage; see "Start here next session").
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -47,8 +47,38 @@ sentence against its quote, is postponed):
   paragraph with JSON in it is dropped.
 - Not marked "no source": the introduction, the section openings and
   the conclusion (they should hold no facts). The author may change this.
-- 3B test runs vary a lot (15 vs 1 cited facts); the real comparison is
-  the 7B eval of 1.3.0 against the baseline (`autolab-engine compare`).
+- 3B test runs vary a lot (15 vs 1 cited facts), so 3B runs are only
+  a smoke test.
+
+**Eval of 1.3.0 (2026-10-10)**, `qwen2.5:7b` medium, 8k context, on the
+server (copy: `data/runs/deep-1.3.0-7b/`, git-ignored):
+
+| Topic | Min | Words | Parts | Cited | Sources | No source |
+|---|---|---|---|---|---|---|
+| rag | 68 (+25) | 1587 (+774) | 14 | 36 (+4) | 22 | 18 (+14) |
+| quantization | 94 (+31) | 1249 (+874) | 13 | 28 (+15) | 20 | 19 (+17) |
+| local_llm | 85 (+28) | 1222 (+615) | 11 | 28 (-1) | 15 | 8 (+6) |
+| attention | 87 (1.2.0 failed) | 1001 | 11 | 26 | 18 | 11 |
+| postgres_mvcc | 81 (+27) | 1951 (+1191) | 14 | 46 (+17) | 25 | 22 (+17) |
+| rust_cpp | 72 (+28) | 927 (+509) | 8 | 26 (+7) | 17 | 7 (+4) |
+
+All 6 topics done (the search round of PR #63 saved `attention`). The
+text is 2-3 times longer and reads as connected paragraphs with an
+introduction and a conclusion. Problems that are left:
+1. "No source" sentences (the "why it matters" part) sometimes carry
+   wrong claims, e.g. "an active transaction holds a lock on the row,
+   so VACUUM cannot remove it" (the real reason is the xmin horizon).
+   This is idea D (check each sentence against its quote).
+2. The same fact from several pages: marks pile up ("[1][2][3][4]").
+   Facts need a dedup step before grouping.
+3. Only 20-30% of the kept facts are cited (130 kept, 36 cited in rag).
+4. Overlapping sections (a part "Tuning Autovacuum" in one section and
+   a section "Tuning Autovacuum"), a part heading equal to its section
+   heading, a thin last section.
+5. Stock phrases: "This section delves into..." (9 times in 6 works).
+6. The model talks about the task in the introduction: "Вот введение
+   длиной от 3 до 5 предложений..." (2 of 6 works).
+Next version (1.4.0) needs the author's choice among these.
 
 **Direction from the author (2026-10-09), after the quality work:**
 - First a complete working system: comfortable UX and UI, a strong
@@ -56,8 +86,26 @@ sentence against its quote, is postponed):
   modules with stable APIs and their own docs. Open question: what does
   "competitive" mean (report quality vs. Perplexity/GPT Researcher,
   parallel tasks, or reliability)?
-- Think about test coverage (proposal: `pytest-cov` in CI with a report,
-  no threshold yet) and docs.
+- Test coverage: done (PR #65): CI runs `pytest --cov` and writes the
+  table to the run summary; no minimum yet. 84% on 2026-10-10. Files
+  below 70% then:
+
+  | File | Cover |
+  |---|---|
+  | `backend/autolab/cli.py` | 0% |
+  | `backend/autolab/api/openapi.py` | 0% |
+  | `services/publications.py` | 43% |
+  | `services/catalog.py` | 53% |
+  | `autolab_engine/cli.py` | 54% |
+  | `services/members.py` | 59% |
+  | `services/auth.py` | 62% |
+  | `worker/main.py` | 62% |
+  | `services/pipelines.py` | 64% |
+  | `api/app.py` | 64% |
+  | `services/tasks.py` | 68% |
+
+  Proposal: tests for permissions and services first (auth, members,
+  publications), then a minimum (e.g. `--cov-fail-under=85`).
 - Maybe a separate docs site (proposal: Starlight or MkDocs from the
   existing `docs/`, built in CI, GitHub Pages). Not decided.
 - The author will send UX/UI notes for AutoLab and the panel.

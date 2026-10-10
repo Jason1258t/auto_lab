@@ -8,7 +8,7 @@ server access deploys (the agent, when it has access). How: `DEPLOY.md`,
 After a deploy: check the items below, then empty the list (keep the
 header) and write the date in `CURRENT_STATE.md`.
 
-Last deploy: 2026-10-09 (up to PR #60: engine package, stricter language check, DNS retry). Not checked yet: one short `research` task from the web app finishes (the agent cannot create tasks).
+Last deploy: 2026-10-09 evening (up to PR #64: deep_research 1.3.0, search round). Not checked yet: one short `research` task from the web app finishes (the agent cannot create tasks).
 
 ## Changes
 
