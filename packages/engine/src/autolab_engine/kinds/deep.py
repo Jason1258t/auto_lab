@@ -121,6 +121,59 @@ async def abstract(ctx: StepContext) -> dict[str, Any]:
     return {"summary": answer["summary"]}
 
 
+_NOT_WORD = re.compile(r"[^\w]+")
+
+
+def _claim_key(claim: str) -> str:
+    """The same claim with other case, spaces or punctuation -> one key."""
+    return _NOT_WORD.sub(" ", claim.lower()).strip()
+
+
+async def dedup(ctx: StepContext) -> dict[str, Any]:
+    """Remove repeated facts inside each section of `group` (the same fact
+    found on several pages). Code drops exact repeats (the same claim up
+    to case and punctuation); then one call per section with 2+ facts:
+    which facts say the same as another one? Of each such pair the fact
+    with the higher number is dropped, so one of them always stays.
+
+    Output: the sections with fewer facts (same shape as in group; the
+    numbered facts stay in group's output) and `dropped`."""
+    sections = []
+    dropped = 0
+    for section in ctx.resolve(ctx.step.for_each):
+        seen: set[str] = set()
+        facts = []
+        for fact in section["facts"]:
+            key = _claim_key(fact["claim"])
+            if key in seen:
+                dropped += 1
+                continue
+            seen.add(key)
+            facts.append(fact)
+        sections.append(section | {"facts": facts})
+    asked = [s for s in sections if len(s["facts"]) >= 2]
+    try:  # no answer at all: keep the facts (a repeat is not an error)
+        answers = await ctx.ask_each(asked) if asked else []
+    except StepFailed:
+        answers = []
+        ctx.notes.append("no answer from the model; only exact repeats removed")
+    repeats: dict[int, set[int]] = {}  # id(section) -> fact numbers to drop
+    for section, answer in answers:
+        numbers = {f["number"] for f in section["facts"]}
+        drop = repeats.setdefault(id(section), set())
+        for pair in answer["repeats"]:
+            a, b = pair["n"], pair["same_as"]
+            if a in numbers and b in numbers and a != b:
+                drop.add(max(a, b))
+    out = []
+    for section in sections:
+        drop = repeats.get(id(section), set())
+        dropped += len(drop)
+        facts = [f for f in section["facts"] if f["number"] not in drop]
+        out.append(section | {"facts": facts, "fact_numbers": [f["number"] for f in facts]})
+    return {"sections": out, "dropped": dropped}
+
+
 # How many paragraphs a part gets, by its number of facts: up to 3 -> 1,
 # up to 6 -> 2, more -> 3 (deep_research 1.3.0).
 def _paragraphs_for(facts: int) -> int:
@@ -375,6 +428,7 @@ HANDLERS = {
     "gaps": gaps,
     "group": group,
     "abstract": abstract,
+    "dedup": dedup,
     "subplan": subplan,
     "write_parts": write_parts,
     "compose": compose,
