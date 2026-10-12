@@ -123,6 +123,7 @@ Pipelines (rows in `pipelines`; a pipeline without a file cannot be used yet):
 | `deep_research` | plan, plan_each, search, fetch, summarize, gaps (×2), verify, group, write, abstract | Long research in 3 rounds: sub-questions; each round searches only for what is still missing and skips pages already found; one section per sub-question (`pipelines/deep_research/`, 25-40 min on a 3B model). Added 2026-10-07. Since 1.3.0 (2026-10-09) also subplan, write_parts, compose (intro, section openings, conclusion) and assemble: sections with headings, 1-3 parts each, several paragraphs per part. |
 | `code` | plan, code_write, code_check, code_fix | One small program; static checks only (syntax, ruff), the code is never run. Added 2026-10-07. |
 | `python_cli` | plan, code_write, code_check, code_fix, plan (review, usage) | A Python CLI in several files: requirements, design, files, two check-and-fix rounds, a self-review and usage notes. Static checks only. Added 2026-10-07. |
+| `rofl_article` | plan, search (optional), fetch, summarize (optional), plan, compose (intro), compose (per section), compose (ending), assemble, abstract | A short funny article from any prompt; tone from the prompt. Searches only when the event needs it; the joke keeps a grain of truth, there is no fact check and no real quotes (`evidence: none`). `pipelines/rofl_article/`. Added 2026-10-12. |
 
 Adding a new task type means adding a new pipeline (a row in `pipelines`
 and its first version file). The orchestrator should not need code

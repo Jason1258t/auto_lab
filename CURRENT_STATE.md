@@ -1,6 +1,6 @@
 # Current state
 
-Last updated: 2026-10-10 (deep_research 1.4.0 deployed, its 7B eval running; see "Start here next session").
+Last updated: 2026-10-12 (1.4.0 eval read; `rofl_article` 1.0.0 added; see "Start here next session").
 
 What exists now and what comes next. Update it at the end of every work
 session, so the next session (human or agent) does not have to work it
@@ -8,7 +8,7 @@ out again.
 
 ## In one paragraph
 
-The database schema is designed, reviewed and migrated (7 migrations).
+The database schema is designed, reviewed and migrated (9 migrations).
 The backend is complete for the MVP: API (auth, workspaces, members,
 files, tasks, reviews, works, publications, admin) and the worker that
 runs pipelines with a local model. The `research` pipeline has run with a
@@ -18,23 +18,31 @@ real model on the test server. The frontend has all MVP screens
 
 ## Start here next session (handoff 2026-10-10)
 
-**First thing to do: read the eval of `deep_research 1.4.0`.**
-- It runs on the server in the container `autolab-eval` (started
-  2026-10-10 ~07:23): 1.4.0 on `qwen2.5:7b` (medium, 8k), the six topics
-  of `quality/topics.yaml`. Expect 8-10 hours (1.3.0 took ~8 h; 1.4.0
-  has more calls). `docker logs autolab-eval` shows progress;
-  `docker rm autolab-eval` when done.
-- Copy and compare (keep the output short, read with grep/head):
-  `scp -r master@192.168.0.101:~/autolab/data/runs/deep-1.4.0-7b data/runs/`,
-  then `uv run autolab-engine compare data/runs/deep-1.3.0-7b
-  data/runs/deep-1.4.0-7b`.
-- Look at: cited facts (target: clearly more than 1.3.0's 26-46), the
-  "Removed" column, and the `removed` list in `*_check.json` of 2-3
-  topics: are removed sentences really wrong? On 3B the check removed
-  correct sentences too (20 of 38 verdicts were new/wrong). If 7B is
-  also too strict, options: keep "new" sentences with a mark instead of
-  removing them, or remove only "wrong".
-- Then read 1-2 `work.md` (not all) and report to the author.
+**Eval of `deep_research 1.4.0` (read 2026-10-12)**, `qwen2.5:7b`, medium,
+copy in `data/runs/deep-1.4.0-7b/` (git-ignored). Problems and next
+steps are in `drafts/deep_research.md`. Short: 4 of 6 topics done
+(`local_llm`, `attention`: "search found nothing"; SearxNG?);
+cited share of kept facts 63-86% (1.3.0: 20-30%); `check_text` removed
+only 2-4 sentences per topic (not too strict on 7B); stock phrases
+("This report delves into...", "This section explains...") are still
+there. The totals are not comparable with 1.3.0 because the search was
+thin (`quantization`: 30 facts, 7 sources). **First: check SearxNG,
+rerun the two failed topics.** The `autolab-eval` container can be
+removed.
+
+**New pipeline `rofl_article` 1.0.0** (2026-10-12, branch
+`feature/rofl-article`, not deployed yet): a short funny article from any
+prompt. Steps: understand (topic, tone, comic idea, needs_search,
+queries) → search/fetch/details only when needed → outline → intro, one
+`compose` per section, ending → assemble → abstract. Decisions of the
+author: no fact check or end validation for now (too hard, later); the
+joke keeps a grain of truth, real details come from the search (quotes
+checked by code), a quote in the text is only an imitation; tone comes
+from the prompt text (a tone field in the task is later). `assemble` got
+optional `parts` and `facts` for it. Migration 0009 (data only). Not
+done: a first real run on a model; a model for it (`deepseek-v2:16b`
+was pulled on the server on 2026-10-12, not yet added in
+Admin → Models; a model per pipeline is in `BACKLOG.md`).
 
 **What 1.4.0 is** (PRs #67-#71, deployed 2026-10-10): 1.3.0 plus
 - no stock phrases; `compose` asks again when a short text talks about
@@ -365,6 +373,7 @@ After-MVP ideas: `BACKLOG.md`.
 - 0006: activity action `pipeline_uploaded`, target type `pipeline`.
 - 0007: view `llm_step_budgets` (token use per model and pipeline step:
   limit, average/max output, cut and invalid share, seconds, speed).
+- 0009 (data only): pipeline row `rofl_article`.
 - 0008: ENUM `model_size_class` (6 values); `models.size_class`,
   `reasoning_tokens`, `max_output_tokens`; classes set for the server's
   models by name; `deepseek-r1:7b` available again (`medium_think`).

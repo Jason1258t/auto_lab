@@ -16,6 +16,12 @@ open live in `drafts/schema_design.md` ("Parked for later").
   `sub_filter`, and `proxy_buffering off` for its SSE.
 
 - `schedules`: repeat a task by time.
+- **A recommended model per pipeline** (asked 2026-10-12): a pipeline
+  says which model (or model class) it works best with, and the app
+  shows it when a task is created. Not just an id in the pipeline file:
+  models are rows in `models` and differ per server. Needs design
+  (class of model, minimum context, language quality) and care in how
+  it works with the admin's model list and the size classes.
 - Per-step model override.
 - **A library of scenarios and actions** (asked 2026-10-08): authors
   publish pipelines ("scenarios") and later step kinds ("actions") for
