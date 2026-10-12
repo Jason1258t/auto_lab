@@ -180,7 +180,7 @@ mark as *(⚠ no source)*.
 | `cover` | yes, per part and round | step refs in `config` | `plan` (subplan.parts), `parts` (written parts), `sections` (optional, e.g. dedup.sections: facts no part took go to the last part of their section), `facts_per_call` (4), `max_calls` (3 per part) | `parts` (texts with added paragraphs, plan order), `coverage` (per part: planned, used, unused), `added_paragraphs`, `unused`, `unsourced_sentences`. The coverage table is kept by code from the `[n]` marks; a part that was not written starts empty; an answer that cites none of its new facts ends that part |
 | `check_text` | yes, per sentence (or per batch) | step refs in `config` | `parts` (written parts), `facts` (numbered facts with quotes, e.g. group.facts), `batch_size` | `parts` (texts without the removed sentences), `removed` (heading, sentence, verdict), `verdicts`, `unsourced_sentences`. A sentence is checked against the quotes of its `[n]` marks; without marks, against the quotes its paragraph cites. Verdicts `ok` / `new` / `wrong`; `new` and `wrong` sentences are removed; no answer = kept |
 | `compose` | yes, once (or per item with `for_each`) | none, or items | — | the answer as it is (must have `text`, checked for the task language); with `for_each`: `texts` (one answer or null per item) |
-| `assemble` | **no** | step ids in `config` | `sections`, `parts`, `facts` (refs, **required**), `intro`, `leads`, `conclusion` (step ids, optional) | `paragraphs` (heading, level 2/3, text, fact_numbers), `facts` renumbered 1, 2, 3 in the order of first use; the work is built from it |
+| `assemble` | **no** | step ids in `config` | `sections` (ref, **required**), `parts`, `facts` (refs), `intro`, `leads`, `conclusion` (step ids, optional) | `paragraphs` (heading, level 2/3, text, fact_numbers), `facts` renumbered 1, 2, 3 in the order of first use; the work is built from it |
 
 Answers: `plan_each` → `queries: [string]`; `gaps` → `queries`
 (+ optional `missing`); `group` → `question` (a number, 0 = none);
@@ -193,6 +193,11 @@ Answers: `plan_each` → `queries: [string]`; `gaps` → `queries`
 section heading becomes the heading in the report. Example of the
 whole chain (sections → parts → paragraphs → intro, openings,
 conclusion → assemble): `pipelines/deep_research/1.3.0.yaml`.
+
+Without `parts`, `assemble` puts each section's heading and its `leads`
+text (a `compose` step with `for_each` over the sections): the lead is
+the whole body. Without `facts` the facts list is empty. This is how
+`rofl_article` builds its text (no sources, `evidence: none`).
 
 **Batches** (`verify`, `group` and `check_text`). With `config.batch_size: N` (often a
 size map, e.g. `{ small: 1, medium: 4, large: 8 }`) the step asks about

@@ -14,6 +14,7 @@ Last deploy: 2026-10-10 (up to PR #71: deep_research 1.4.0; its 7B eval runs in 
 
 | PR | What | Check after deploy |
 |---|---|---|
+| (branch `feature/rofl-article`) | `rofl_article` 1.0.0, migration 0009, `assemble` with optional `parts`/`facts` | a task with `rofl_article` finishes; the text has headings and no "no source" marks |
 
 ## Needs sudo (the author runs it)
 

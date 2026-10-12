@@ -612,18 +612,24 @@ async def assemble(ctx: StepContext) -> dict[str, Any]:
     are renumbered 1, 2, 3... in the order of first use; `facts` (the
     numbered facts of the group step) get the new numbers.
 
+    `parts` and `facts` are optional: without `parts` each section is its
+    heading and its lead; without `facts` the list is empty.
+
     Output: paragraphs (heading or None, level 2/3, text, fact_numbers),
     facts; the same shape the work builder reads from write + group."""
     config = ctx.step.config
     sections = ctx.resolve(config["sections"])
-    written = ctx.resolve(config["parts"])
+    # Without `parts` (rofl_article) a section is its heading and its lead
+    # text: the lead is the whole body, written by a compose step.
+    body_is_lead = "parts" not in config
+    written = [] if body_is_lead else ctx.resolve(config["parts"])
     leads = (_text_of(ctx, config.get("leads")) or {}).get("texts") or [None] * len(sections)
     paragraphs: list[dict[str, Any]] = []
     if intro := _text_of(ctx, config.get("intro")):
         paragraphs.append({"heading": None, "level": 2, "text": intro["text"]})
     for section, lead in zip(sections, leads, strict=False):
         parts = [p for p in written if p["section"] == section["heading"]]
-        if not parts:
+        if not parts and not (body_is_lead and lead):
             continue
         lead_text = lead["text"] if lead else ""
         paragraphs.append({"heading": section["heading"], "level": 2, "text": lead_text})
@@ -647,7 +653,7 @@ async def assemble(ctx: StepContext) -> dict[str, Any]:
         paragraph["fact_numbers"] = sorted({int(n) for n in _MARK.findall(paragraph["text"])})
     facts = [
         fact | {"number": new[fact["number"]]}
-        for fact in ctx.resolve(config["facts"])
+        for fact in (ctx.resolve(config["facts"]) if "facts" in config else [])
         if fact["number"] in new
     ]
     facts.sort(key=lambda f: f["number"])
