@@ -8,13 +8,12 @@ server access deploys (the agent, when it has access). How: `DEPLOY.md`,
 After a deploy: check the items below, then empty the list (keep the
 header) and write the date in `CURRENT_STATE.md`.
 
-Last deploy: 2026-10-10 (up to PR #71: deep_research 1.4.0; its 7B eval runs in `autolab-eval`). Not checked yet: one short `research` task from the web app finishes (the agent cannot create tasks).
+Last deploy: 2026-10-12 (up to PR #73: `rofl_article` 1.0.0, migration 0009; worker log: "new versions: rofl_article 1.0.0"). Not checked yet: a real `rofl_article` task from the web app.
 
 ## Changes
 
 | PR | What | Check after deploy |
 |---|---|---|
-| (branch `feature/rofl-article`) | `rofl_article` 1.0.0, migration 0009, `assemble` with optional `parts`/`facts` | a task with `rofl_article` finishes; the text has headings and no "no source" marks |
 
 ## Needs sudo (the author runs it)
 
