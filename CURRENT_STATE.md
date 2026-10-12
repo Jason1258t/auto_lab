@@ -26,12 +26,12 @@ cited share of kept facts 63-86% (1.3.0: 20-30%); `check_text` removed
 only 2-4 sentences per topic (not too strict on 7B); stock phrases
 ("This report delves into...", "This section explains...") are still
 there. The totals are not comparable with 1.3.0 because the search was
-thin (`quantization`: 30 facts, 7 sources). **First: check SearxNG,
-rerun the two failed topics.** The `autolab-eval` container can be
+thin (`quantization`: 30 facts, 7 sources). **First: rerun the two failed topics
+(SearxNG answered a test query on 2026-10-12, but its log shows
+engine timeouts, so the failures may be short blocks).** The `autolab-eval` container can be
 removed.
 
-**New pipeline `rofl_article` 1.0.0** (2026-10-12, branch
-`feature/rofl-article`, not deployed yet): a short funny article from any
+**New pipeline `rofl_article` 1.0.0** (2026-10-12, PR #73, deployed the same day): a short funny article from any
 prompt. Steps: understand (topic, tone, comic idea, needs_search,
 queries) → search/fetch/details only when needed → outline → intro, one
 `compose` per section, ending → assemble → abstract. Decisions of the
